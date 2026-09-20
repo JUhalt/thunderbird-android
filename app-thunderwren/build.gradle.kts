@@ -45,9 +45,11 @@ android {
 
 dependencies {
     implementation(projects.appCommon)
+    implementation(projects.legacy.core)
     implementation(projects.core.ui.compose.common)
     implementation(projects.core.featureflag)
 
+    implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.wear.compose.material3)
     implementation(libs.androidx.wear.compose.foundation)
