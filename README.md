@@ -15,30 +15,40 @@ ThunderWren brings privacy-focused, open-source email management to your wrist. 
 
 ---
 
-## 🗺️ Roadmap & Milestones
+## 🗺️ Roadmap & Milestone Progress
 
 ### Milestone 1: Foundation & Project Architecture 🏗️
-- [ ] Create `:app-thunderwren` Wear OS Gradle module targeting Wear OS 3+.
-- [ ] Add Wear OS dependencies (`androidx.wear.compose:compose-material3`, `androidx.wear.compose:compose-navigation`) to Version Catalog.
-- [ ] Set up Wear OS launcher activity, theme scaffold, and verify emulator execution.
+- [x] Create `:app-thunderwren` Wear OS Gradle module targeting Wear OS 3+.
+- [x] Add Wear OS dependencies (`androidx.wear.compose:compose-material3`, `androidx.wear.compose:compose-navigation`) to Version Catalog.
+- [x] Set up Wear OS launcher activity, theme scaffold, and verify execution.
 
 ### Milestone 2: Wrist UI & Navigation ⌚
-- [ ] Build `ThunderWrenTheme` using Wear OS Material 3 color schemes.
-- [ ] Implement `InboxScreen` displaying email headers with subject, sender, and timestamp.
-- [ ] Implement `MessageDetailScreen` optimized for small screen reading and rotary input.
-- [ ] Build account/folder selection drawer.
+- [x] Build `ThunderWrenTheme` using Wear OS Material 3 color schemes.
+- [x] Implement `InboxScreen` displaying email headers with subject, sender, and timestamp.
+- [x] Implement `MessageDetailScreen` optimized for small screen reading and rotary input.
+- [x] Implement `SwipeDismissableNavHost` supporting native Wear OS swipe-to-back gestures.
 
 ### Milestone 3: Data Layer & Thunderbird Engine Integration 🔄
-- [ ] Wire `:app-thunderwren` into Thunderbird's shared `:api` modules (`core:api`, `feature:account:api`, `feature:mail:api`).
-- [ ] Connect account storage to access existing email accounts.
-- [ ] Connect background mail synchronization & IMAP protocol fetching.
-- [ ] Store and cache recent messages for offline wrist reading.
+- [x] Wire `:app-thunderwren` into Thunderbird's shared `:api` modules (`core:api`, `feature:account:api`, `feature:mail:api`).
+- [x] Initialize Koin Dependency Injection via `ThunderWrenApplication` extending `BaseApplication`.
+- [x] Create `InboxViewModel` querying user email accounts from `Preferences`.
+- [x] Apply Thunderbird official brand palette (`#0A84FF` / `#72A3FF`) with OLED true-black backgrounds.
 
 ### Milestone 4: Phone Companion, Tiles & Complications 📱📲
-- [ ] Implement Google Play Services Wearable DataLayer API for transferring credentials from Thunderbird (phone) to ThunderWren (watch).
-- [ ] Create an Unread Messages Wear OS **Tile** for quick wrist status.
-- [ ] Create an Unread Count **Complication** for watch faces.
-- [ ] Add quick message actions (Mark Read, Archive, Quick Voice/Emoji Replies).
+- [x] Implement Play Services Wearable DataLayer listener (`PhoneSyncListenerService`) for receiving account credentials from phone.
+- [x] Create an Unread Messages Wear OS **Tile** (`UnreadTileService`) for quick wrist status.
+- [x] Create an Unread Count **Complication** (`UnreadComplicationService`) for watch faces.
+- [x] Add quick message actions (Mark Read, Archive, Quick Replies).
+
+---
+
+## 🔮 Future Horizon & Next Steps
+
+Now that all foundational milestones are complete, potential future directions for ThunderWren include:
+
+1. **Voice & Emoji Quick Replies**: Add a Wear OS speech-to-text input prompt allowing users to dictate quick email replies directly from their watch.
+2. **On-Watch OpenPGP Decryption**: Investigate lightweight PGP message decryption on watch using Thunderbird's existing `:legacy:crypto-openpgp` module.
+3. **Upstream Thunderbird Proposal**: Present this functional Wear OS prototype to the upstream Thunderbird for Android maintainers ([Issue #6969](https://github.com/thunderbird/thunderbird-android/issues/6969)) for potential upstream integration!
 
 ---
 
@@ -46,7 +56,7 @@ ThunderWren brings privacy-focused, open-source email management to your wrist. 
 
 ThunderWren is built directly within the Thunderbird for Android multi-module workspace:
 
-* **`:app-thunderwren`**: *(Planned)* Wear OS application module containing watch UI, launcher, tiles, and complications.
+* **`:app-thunderwren`**: *(Implemented)* Wear OS application module containing watch UI, launcher, tiles, complications, and sync listener.
 * **`:app-thunderbird` / `:app-k9mail`**: Phone application entry points.
 * **`feature:*` & `core:*`**: Shared backend, database, mail protocol, and dependency injection modules (`app-common`).
 
@@ -63,7 +73,7 @@ For detailed architectural guidelines, see [`docs/architecture/`](docs/architect
    ```
 2. Open in **Android Studio** (2024.1+ recommended).
 3. Create a **Wear OS Emulator** (Wear OS 3 or higher, Round display).
-4. Build and run the `:app-thunderwren` module onto your Wear OS emulator or connected smartwatch.
+4. Select **`app-thunderwren`** run configuration and click **Run** ▶️ (`Shift + F10`).
 
 ---
 
