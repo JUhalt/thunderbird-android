@@ -18,15 +18,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.Card
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
-import androidx.compose.ui.tooling.preview.Preview
 import net.thunderbird.wear.ui.model.EmailHeader
 import net.thunderbird.wear.ui.model.SampleEmailData
 import net.thunderbird.wear.ui.theme.ThunderWrenTheme
@@ -35,29 +37,57 @@ import net.thunderbird.wear.ui.theme.ThunderWrenTheme
 fun InboxScreen(
     headers: List<EmailHeader>,
     onEmailClick: (String) -> Unit,
+    onOpenFoldersClick: () -> Unit = {},
+    onRefreshClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberScalingLazyListState()
 
-    ScalingLazyColumn(
+    ScreenScaffold(
+        scrollState = listState,
         modifier = modifier.fillMaxSize(),
-        state = listState,
     ) {
-        item {
-            ListHeader {
-                Text(
-                    text = "Inbox",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
+        ScalingLazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            state = listState,
+        ) {
+            item {
+                ListHeader {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Inbox",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = onOpenFoldersClick,
+                        ) {
+                            Text(text = "📁")
+                        }
+                    }
+                }
+            }
+
+            items(headers, key = { it.id }) { header ->
+                EmailCard(
+                    header = header,
+                    onClick = { onEmailClick(header.id) },
                 )
             }
-        }
 
-        items(headers, key = { it.id }) { header ->
-            EmailCard(
-                header = header,
-                onClick = { onEmailClick(header.id) },
-            )
+            item {
+                Button(
+                    onClick = onRefreshClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                ) {
+                    Text(text = "🔄 Refresh Mail")
+                }
+            }
         }
     }
 }
