@@ -1,85 +1,74 @@
-# Wear OS email experiment
+# ThunderWren 🐦⚡
 
-**A standalone Wear OS email app experiment, built from Thunderbird for Android.**
+**A Wear OS companion & standalone email client built on Thunderbird for Android.**
 
-This independent community project explores email on a smartwatch. The app's name is still being decided.
-The goal is to develop a focused prototype that can be discussed with the Thunderbird team and, if there is
-agreement on direction, contribute useful work upstream.
+ThunderWren brings privacy-focused, open-source email management to your wrist. Designed specifically for smartwatches running Wear OS 3+, ThunderWren leverages the core engine of Thunderbird for Android (and K-9 Mail) while delivering a wrist-first UI built with **Wear OS Jetpack Compose Material 3**.
 
-This is an unofficial experiment. Thunderbird has not endorsed or adopted this project.
+---
 
-> **Status: planning and development setup.**
-> This fork does not yet contain a Wear OS application module or an installable watch app.
-> The milestones below describe planned work.
+## 🎯 Vision & Goals
 
-## What we want to build
+* **Wrist-First Experience**: Tailored interface for small, round smartwatch displays using Wear OS Compose Material 3 components (`AppScaffold`, `ScreenScaffold`, `ScalingLazyColumn`).
+* **Companion & Standalone Modes**: Read and manage emails on your watch via Wi-Fi/Cellular, or seamlessly sync account data and notifications with Thunderbird on your phone.
+* **Powered by Thunderbird Engine**: Reuses Thunderbird's robust core architecture (`core:api`, `feature:*:api`), account storage, IMAP/OAuth protocols, and cryptography foundations.
+* **Privacy & Open Source**: Zero telemetry, zero tracking, and complete respect for user data privacy.
 
-- **Install on the watch:** a Wear OS app with an interface designed for a small, round screen.
-- **Work independently:** core email functions should work without requiring a companion phone app.
-- **Start with reading mail:** a recent-message list and a lightweight message reader.
-- **Cooperate with Thunderbird:** explore optional integration with the existing Thunderbird app where practical.
-- **Reuse existing work:** investigate Thunderbird's mail components before introducing new implementations.
+---
 
-## First milestones
+## 🗺️ Roadmap & Milestones
 
-- [x] Establish a fork and document the standalone Wear OS goal.
-- [ ] Create a minimal watch app that launches in a Wear OS emulator.
-- [ ] Build a sample inbox and message reader using fictional messages.
-- [ ] Investigate reusable mail components, account setup, and authentication on the watch.
-- [ ] Connect one test account and read recent messages directly on the watch.
-- [ ] Evaluate usability, accessibility, battery use, and connectivity on a physical watch.
-- [ ] Present a focused prototype and discuss a contribution path with Thunderbird maintainers.
+### Milestone 1: Foundation & Project Architecture 🏗️
+- [ ] Create `:app-thunderwren` Wear OS Gradle module targeting Wear OS 3+.
+- [ ] Add Wear OS dependencies (`androidx.wear.compose:compose-material3`, `androidx.wear.compose:compose-navigation`) to Version Catalog.
+- [ ] Set up Wear OS launcher activity, theme scaffold, and verify emulator execution.
 
-Replying, composing, attachments, and additional mail actions will be considered after the reading experience works.
+### Milestone 2: Wrist UI & Navigation ⌚
+- [ ] Build `ThunderWrenTheme` using Wear OS Material 3 color schemes.
+- [ ] Implement `InboxScreen` displaying email headers with subject, sender, and timestamp.
+- [ ] Implement `MessageDetailScreen` optimized for small screen reading and rotary input.
+- [ ] Build account/folder selection drawer.
 
-## Working in this repository
+### Milestone 3: Data Layer & Thunderbird Engine Integration 🔄
+- [ ] Wire `:app-thunderwren` into Thunderbird's shared `:api` modules (`core:api`, `feature:account:api`, `feature:mail:api`).
+- [ ] Connect account storage to access existing email accounts.
+- [ ] Connect background mail synchronization & IMAP protocol fetching.
+- [ ] Store and cache recent messages for offline wrist reading.
 
-| Branch | Purpose |
-| --- | --- |
-| `main` | Track the upstream Thunderbird source. |
-| `wearos-prototype` | Develop and document the Wear OS experiment. |
+### Milestone 4: Phone Companion, Tiles & Complications 📱📲
+- [ ] Implement Google Play Services Wearable DataLayer API for transferring credentials from Thunderbird (phone) to ThunderWren (watch).
+- [ ] Create an Unread Messages Wear OS **Tile** for quick wrist status.
+- [ ] Create an Unread Count **Complication** for watch faces.
+- [ ] Add quick message actions (Mark Read, Archive, Quick Voice/Emoji Replies).
 
-The repository currently includes Thunderbird's existing phone applications and shared code.
-The planned watch application will target Wear OS; installing a phone application is not part of its goal.
+---
 
-For development setup, use [Android Studio and the repository setup guide][setup].
-Use the checked-in Gradle wrapper and the project's documented Java and Android SDK requirements.
+## 🧱 Repository Architecture
 
-The next development checkpoint is a minimal watch screen running in an emulator.
-Instructions for building and installing the watch app will be added when a Wear OS module exists.
+ThunderWren is built directly within the Thunderbird for Android multi-module workspace:
 
-## Coordination with Thunderbird
+* **`:app-thunderwren`**: *(Planned)* Wear OS application module containing watch UI, launcher, tiles, and complications.
+* **`:app-thunderbird` / `:app-k9mail`**: Phone application entry points.
+* **`feature:*` & `core:*`**: Shared backend, database, mail protocol, and dependency injection modules (`app-common`).
 
-The existing [Wear OS Port issue (#6969)][wear-issue] provides background for this effort.
-Before proposing changes to Thunderbird, follow the [upstream contribution workflow][workflow],
-confirm the scope with maintainers, and obtain any required issue assignment.
+For detailed architectural guidelines, see [`docs/architecture/`](docs/architecture/README.md) and [`AGENTS.md`](AGENTS.md). The original upstream Thunderbird README is preserved at [`README.upstream.md`](README.upstream.md).
 
-The Thunderbird team will decide whether any proposed contribution fits its plans.
+---
 
-## Contributing
+## 🛠️ Getting Started
 
-This experiment is maintained in [JUhalt's fork][fork].
-Keep changes small and reviewable, and follow the repository's [contribution guidelines][contributing]
-and [AI agent guide][agents]. AI-assisted contributions must be disclosed and meet the same review
-and verification standards as other contributions.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/JUhalt/thunderbird-android.git
+   cd thunderbird-android
+   ```
+2. Open in **Android Studio** (2024.1+ recommended).
+3. Create a **Wear OS Emulator** (Wear OS 3 or higher, Round display).
+4. Build and run the `:app-thunderwren` module onto your Wear OS emulator or connected smartwatch.
 
-For information about the existing Thunderbird phone applications, see the
-[preserved upstream README][upstream-readme].
+---
 
-## Credits and license
+## 📜 License & Credits
 
-This work builds on [Thunderbird for Android][upstream], which is based on K-9 Mail.
-Credit belongs to the Thunderbird, K-9 Mail, and wider contributor communities for the existing codebase.
+ThunderWren is an open-source community project based on [Thunderbird for Android](https://github.com/thunderbird/thunderbird-android) and [K-9 Mail](https://k9mail.app/).
 
-The repository retains the [Apache License, Version 2.0][license] and its existing [notices][notices].
-
-[setup]: docs/contributing/development-environment.md
-[wear-issue]: https://github.com/thunderbird/thunderbird-android/issues/6969
-[workflow]: docs/contributing/contribution-workflow.md
-[fork]: https://github.com/JUhalt/thunderbird-android/tree/wearos-prototype
-[contributing]: docs/CONTRIBUTING.md
-[agents]: AGENTS.md
-[upstream-readme]: README.upstream.md
-[upstream]: https://github.com/thunderbird/thunderbird-android
-[license]: LICENSE
-[notices]: NOTICE
+Licensed under the [Apache License, Version 2.0](LICENSE).
