@@ -1,15 +1,20 @@
 package net.thunderbird.wear.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import net.thunderbird.wear.ui.inbox.InboxScreen
+import net.thunderbird.wear.ui.inbox.InboxUiState
+import net.thunderbird.wear.ui.inbox.InboxViewModel
 import net.thunderbird.wear.ui.model.SampleEmailData
 import net.thunderbird.wear.ui.reader.MessageDetailScreen
+import org.koin.compose.viewmodel.koinViewModel
 
 object ThunderWrenRoutes {
     const val INBOX = "inbox"
@@ -30,8 +35,16 @@ fun ThunderWrenNavigation(
         modifier = modifier,
     ) {
         composable(ThunderWrenRoutes.INBOX) {
+            val viewModel: InboxViewModel = koinViewModel()
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+            val headers = when (val state = uiState) {
+                is InboxUiState.Success -> state.headers
+                else -> SampleEmailData.sampleHeaders
+            }
+
             InboxScreen(
-                headers = SampleEmailData.sampleHeaders,
+                headers = headers,
                 onEmailClick = { messageId ->
                     navController.navigate(ThunderWrenRoutes.messageDetail(messageId))
                 },

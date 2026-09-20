@@ -5,20 +5,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.wear.compose.material3.ColorScheme
 import androidx.wear.compose.material3.MaterialTheme
 
+// Official Thunderbird Brand Palette adapted for Wear OS OLED displays
+val ThunderbirdBlue = Color(0xFF0A84FF)
+val ThunderbirdSkyBlue = Color(0xFF72A3FF)
+val ThunderbirdDarkBlue = Color(0xFF004589)
+val ThunderbirdOledBlack = Color(0xFF000000)
+
 val ThunderWrenColorScheme = ColorScheme(
-    primary = Color(0xFF72A3FF),
-    onPrimary = Color(0xFF003062),
-    primaryContainer = Color(0xFF004589),
+    primary = ThunderbirdBlue,
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = ThunderbirdDarkBlue,
     onPrimaryContainer = Color(0xFFD6E3FF),
-    secondary = Color(0xFFBDC7DC),
-    onSecondary = Color(0xFF273142),
-    secondaryContainer = Color(0xFF3E4759),
-    onSecondaryContainer = Color(0xFFD9E3F9),
-    surfaceContainer = Color(0xFF1E2024),
-    onSurface = Color(0xFFE2E2E6),
-    onSurfaceVariant = Color(0xFFC4C6CF),
-    background = Color(0xFF000000), // OLED true black for battery savings
-    onBackground = Color(0xFFE2E2E6),
+    secondary = ThunderbirdSkyBlue,
+    onSecondary = Color(0xFF00227B),
+    secondaryContainer = Color(0xFF003B90),
+    onSecondaryContainer = Color(0xFFD6E3FF),
+    surfaceContainer = Color(0xFF161B22),
+    onSurface = Color(0xFFE6EDF3),
+    onSurfaceVariant = Color(0xFF8B949E),
+    background = ThunderbirdOledBlack, // OLED true black for watch battery efficiency
+    onBackground = Color(0xFFE6EDF3),
     error = Color(0xFFFFB4AB),
     onError = Color(0xFF690005),
 )
