@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
+import net.thunderbird.wear.ui.folder.FolderDrawerSheet
 import net.thunderbird.wear.ui.inbox.InboxScreen
 import net.thunderbird.wear.ui.inbox.InboxUiState
 import net.thunderbird.wear.ui.inbox.InboxViewModel
@@ -18,6 +19,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 object ThunderWrenRoutes {
     const val INBOX = "inbox"
+    const val FOLDERS = "folders"
     const val MESSAGE_DETAIL = "message/{messageId}"
 
     fun messageDetail(messageId: String) = "message/$messageId"
@@ -47,6 +49,20 @@ fun ThunderWrenNavigation(
                 headers = headers,
                 onEmailClick = { messageId ->
                     navController.navigate(ThunderWrenRoutes.messageDetail(messageId))
+                },
+                onOpenFoldersClick = {
+                    navController.navigate(ThunderWrenRoutes.FOLDERS)
+                },
+                onRefreshClick = {
+                    viewModel.loadInbox()
+                },
+            )
+        }
+
+        composable(ThunderWrenRoutes.FOLDERS) {
+            FolderDrawerSheet(
+                onSelectFolder = {
+                    navController.popBackStack()
                 },
             )
         }
