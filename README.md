@@ -40,15 +40,25 @@ ThunderWren brings privacy-focused, open-source email management to your wrist. 
 - [x] Create an Unread Count **Complication** (`UnreadComplicationService`) for watch faces.
 - [x] Add quick message actions (Mark Read, Archive, Quick Replies).
 
+### Milestone 5: Voice Dictation Replies, OpenPGP Security & Folder Navigation 🎤🔒
+- [x] Wear OS speech-to-text dictation contract (`VoiceReplyContract`) & quick emoji reply chips (`QuickReplySheet`).
+- [x] OpenPGP encrypted message detection & `🔒 OpenPGP Encrypted` badge (`PgpMessageHelper`).
+- [x] Multi-Account & Folder Selection Drawer (`FolderDrawerSheet`).
+
+### Milestone 6: Polishing Wrist Ergonomics 📁📍
+- [x] Folder Switcher button in `InboxScreen.kt` ListHeader.
+- [x] ScreenScaffold `PositionIndicator` scrollbar for round displays.
+- [x] Manual "🔄 Refresh Mail" action button.
+
+### Milestone 7: Account Color Accents & Message Starring 🎨⭐
+- [x] Account Color Accent Indicator badges (`accountColor`) on email cards matching Thunderbird account colors.
+- [x] `⭐` Message starring / flagging indicators.
+
 ---
 
-## 🔮 Future Horizon & Next Steps
+## 🏆 Final Milestone: Upstream Thunderbird Proposal 📬
 
-Now that all foundational milestones are complete, potential future directions for ThunderWren include:
-
-1. **Voice & Emoji Quick Replies**: Add a Wear OS speech-to-text input prompt allowing users to dictate quick email replies directly from their watch.
-2. **On-Watch OpenPGP Decryption**: Investigate lightweight PGP message decryption on watch using Thunderbird's existing `:legacy:crypto-openpgp` module.
-3. **Upstream Thunderbird Proposal**: Present this functional Wear OS prototype to the upstream Thunderbird for Android maintainers ([Issue #6969](https://github.com/thunderbird/thunderbird-android/issues/6969)) for potential upstream integration!
+- [ ] Present the ThunderWren prototype to the upstream Thunderbird for Android maintainers on [Issue #6969](https://github.com/thunderbird/thunderbird-android/issues/6969) for upstream integration consideration.
 
 ---
 
