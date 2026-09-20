@@ -54,10 +54,14 @@ androidxTestRunner = "1.7.0"
 androidxWebkit = "1.15.0"
 androidxWearCompose = "1.4.1"
 androidxWearComposeMaterial3 = "1.0.0-alpha32"
+androidxWearTiles = "1.4.1"
+androidxWearProtolayout = "1.2.1"
+androidxWearWatchface = "1.2.1"
 androidxWindow = "1.5.1"
 androidxWork = "2.11.2"
 apacheHttpclient5 = "5.6.4"
 appAuth = "0.11.1"
+playServicesWearable = "18.2.0"
 assertk = "0.28.1"
 buildconfig = "6.0.10"
 circleImageView = "3.1.0"
@@ -118,7 +122,9 @@ mozillaAndroidComponents = "145.0.1"
 jsonSchemaValidator = "3.0.7"
 okhttp = "5.5.0"
 okio = "3.18.1"
-preferencesFix = "1.1.0"
+preferencex = "1.1.0"
+preferencex-colorpicker = "1.1.0"
+preferencex-datetimepicker = "1.1.0"
 robolectric = "4.17-beta-4"
 safeContentResolver = "1.0.0"
 searchPreference = "2.7.3"
@@ -220,6 +226,11 @@ androidx-wear-compose-foundation = { module = "androidx.wear.compose:compose-fou
 androidx-wear-compose-material3 = { module = "androidx.wear.compose:compose-material3", version.ref = "androidxWearComposeMaterial3" }
 androidx-wear-compose-navigation = { module = "androidx.wear.compose:compose-navigation", version.ref = "androidxWearCompose" }
 androidx-wear-tooling-preview = { module = "androidx.wear:wear-tooling-preview", version = "1.0.0" }
+androidx-wear-tiles = { module = "androidx.wear.tiles:tiles", version.ref = "androidxWearTiles" }
+androidx-wear-protolayout = { module = "androidx.wear.protolayout:protolayout", version.ref = "androidxWearProtolayout" }
+androidx-wear-protolayout-material = { module = "androidx.wear.protolayout:protolayout-material", version.ref = "androidxWearProtolayout" }
+androidx-wear-watchface-complications-data-source = { module = "androidx.wear.watchface:watchface-complications-data-source", version.ref = "androidxWearWatchface" }
+play-services-wearable = { module = "com.google.android.gms:play-services-wearable", version.ref = "playServicesWearable" }
 androidx-window = { module = "androidx.window:window", version.ref = "androidxWindow" }
 androidx-work-runtime = { module = "androidx.work:work-runtime", version.ref = "androidxWork" }
 androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "androidxWork" }
@@ -267,17 +278,10 @@ jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 junit = { module = "junit:junit", version.ref = "junit" }
 jutf7 = { module = "com.beetstra.jutf7:jutf7", version.ref = "jutf7" }
 jzlib = { module = "com.jcraft:jzlib", version.ref = "jzlib" }
-koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koinBom" }
-koin-core = { module = "io.insert-koin:koin-core" }
-koin-core-viewmodel = { module = "io.insert-koin:koin-core-viewmodel" }
-koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel" }
-koin-compose = { module = "io.insert-koin:koin-compose" }
-koin-android = { module = "io.insert-koin:koin-android" }
-koin-test = { module = "io.insert-koin:koin-test" }
-koin-test-junit4 = { module = "io.insert-koin:koin-test-junit4" }
+koinBom = "4.2.2"
 konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
-kotlin-bom = { module = "org.jetbrains.kotlin:kotlin-bom", version.ref = "kotlinBom" }
-kotlin-compile-testing = { module = "dev.zacsweers.kctfork:core", version.ref = "kotlinCompileTesting" }
+kotlinBom = "2.4.10"
+kotlinCompileTesting = { module = "dev.zacsweers.kctfork:core", version.ref = "kotlinCompileTesting" }
 kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-compiler" }
 kotlin-gradle-plugin-api  = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin-api" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect" }
@@ -383,9 +387,9 @@ shared-kmp-compose-jvm = [
 shared-kmp-compose-common-test = [
   "jetbrains-compose-ui-test",
 ]
-shared-kmp-compose-android-test = [
-  "androidx-compose-ui-test-junit4",
+shared-android-compose-test = [
   "androidx-compose-ui-test-manifest",
+  "jetbrains-compose-ui-test",
   "robolectric",
 ]
 shared-kmp-compose-jvm-test = [

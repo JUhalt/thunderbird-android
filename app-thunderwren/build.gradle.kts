@@ -55,6 +55,12 @@ dependencies {
     implementation(libs.androidx.wear.compose.foundation)
     implementation(libs.androidx.wear.compose.navigation)
     implementation(libs.androidx.wear.tooling.preview)
+    implementation(libs.androidx.wear.tiles)
+    implementation(libs.androidx.wear.protolayout)
+    implementation(libs.androidx.wear.protolayout.material)
+    implementation(libs.androidx.wear.watchface.complications.data.source)
+    implementation(libs.play.services.wearable)
+    implementation("com.google.guava:guava:33.4.0-android")
 
     debugImplementation(libs.jetbrains.compose.ui.tooling)
 }

@@ -4,4 +4,6 @@
     <string name="welcome_thunderwren">Welcome to ThunderWren</string>
     <string name="thunderwren_subtitle">Thunderbird for Wear OS</string>
     <string name="open_inbox">Open Inbox</string>
+    <string name="tile_name">Unread Emails</string>
+    <string name="complication_name">Unread Count</string>
 </resources>
