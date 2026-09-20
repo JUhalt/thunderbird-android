@@ -111,10 +111,19 @@ fun EmailCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
             ) {
+                // Account Color Bar Indicator
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(header.accountColor),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+
                 if (header.isUnread) {
                     Box(
                         modifier = Modifier
-                            .size(8.dp)
+                            .size(6.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary),
                     )
@@ -131,7 +140,13 @@ fun EmailCard(
                     modifier = Modifier.weight(1f),
                 )
 
-                Spacer(modifier = Modifier.width(4.dp))
+                if (header.isStarred) {
+                    Text(
+                        text = "⭐",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
 
                 Text(
                     text = header.dateText,
