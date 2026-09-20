@@ -53,4 +53,6 @@ dependencies {
     implementation(libs.androidx.wear.compose.foundation)
     implementation(libs.androidx.wear.compose.navigation)
     implementation(libs.androidx.wear.tooling.preview)
+
+    debugImplementation(libs.jetbrains.compose.ui.tooling)
 }
