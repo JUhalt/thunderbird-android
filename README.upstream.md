@@ -6,7 +6,7 @@
 [![Latest release](https://img.shields.io/github/release/thunderbird/thunderbird-android.svg?style=for-the-badge&filter=THUNDERBIRD_*&logo=thunderbird)](https://github.com/thunderbird/thunderbird-android/releases/latest)
 [![Latest beta release](https://img.shields.io/github/release/thunderbird/thunderbird-android.svg?include_prereleases&style=for-the-badge&label=beta&filter=THUNDERBIRD_*b*&logo=thunderbird)](https://github.com/thunderbird/thunderbird-android/releases)
 
-Thunderbird for Android is a powerful, privacy-focused email app. Effortlessly manage multiple email accounts from one app, with a Unified Inbox option for maximum productivity. Built on open-source technology and supported by a dedicated team of developers alongside a global community of volunteers, Thunderbird never treats your private data as a product.
+Thunderbird for Android is a powerful, privacy-focused email app. Effortlessly manage multiple email accounts from one app, with a Unified Inbox option for maximum productivity. Built on open-source technology and supported by a dedicated team of volunteers, Thunderbird never treats your private data as a product.
 
 Thunderbird for Android is based on K-9 Mail, which comes with a rich history of success and functionality in open source email.
 
@@ -52,7 +52,7 @@ The Thunderbird Community uses Matrix to communicate:
 
 To learn more about all the wonderful things planned for this year please see our
 [roadmap](https://github.com/orgs/thunderbird/projects/19/views/1). The core team's day to day activities are additionally
-tracked in our [sprint board](https://github.com/orgs/thunderbird/projects/20/views/1).
+tracked in our [sprint board](https://github.orgs/thunderbird/projects/20/views/1).
 
 ## Contributing
 
