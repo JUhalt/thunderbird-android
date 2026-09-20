@@ -1,5 +1,7 @@
 package net.thunderbird.wear.ui.model
 
+import androidx.compose.ui.graphics.Color
+
 data class EmailHeader(
     val id: String,
     val senderName: String,
@@ -9,6 +11,7 @@ data class EmailHeader(
     val dateText: String,
     val isUnread: Boolean = false,
     val isStarred: Boolean = false,
+    val accountColor: Color = Color(0xFF0A84FF),
 )
 
 data class EmailMessage(
@@ -26,6 +29,7 @@ object SampleEmailData {
             snippet = "A new login to your Thunderbird account was detected on ThunderWren Watch.",
             dateText = "10:42 AM",
             isUnread = true,
+            accountColor = Color(0xFF0A84FF),
         ),
         EmailHeader(
             id = "2",
@@ -35,6 +39,7 @@ object SampleEmailData {
             snippet = "Learn how to build adaptive, battery-efficient Wear OS applications using Compose M3.",
             dateText = "9:15 AM",
             isUnread = true,
+            accountColor = Color(0xFFFF9800),
         ),
         EmailHeader(
             id = "3",
@@ -45,15 +50,17 @@ object SampleEmailData {
             dateText = "Yesterday",
             isUnread = false,
             isStarred = true,
+            accountColor = Color(0xFF4CAF50),
         ),
         EmailHeader(
             id = "4",
             senderName = "GitHub Notifications",
             senderAddress = "notifications@github.com",
-            subject = "[JUhalt/thunderbird-android] Issue #1 closed",
-            snippet = "Milestone 1: Create :app-thunderwren Wear OS Module & Gradle Configuration has been completed.",
+            subject = "[JUhalt/thunderbird-android] Issue #6 closed",
+            snippet = "Milestone 6: Polishing Wrist Ergonomics & Upstream Readiness has been completed.",
             dateText = "Yesterday",
             isUnread = false,
+            accountColor = Color(0xFF9C27B0),
         ),
     )
 
