@@ -46,6 +46,7 @@ android {
 dependencies {
     implementation(projects.appCommon)
     implementation(projects.legacy.core)
+    implementation(projects.legacy.logging)
     implementation(projects.core.ui.compose.common)
     implementation(projects.core.featureflag)
     implementation(projects.feature.telemetry.noop)
