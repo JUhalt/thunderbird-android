@@ -1,5 +1,6 @@
 package net.thunderbird.wear.di
 
+import app.k9mail.feature.telemetry.telemetryModule
 import com.fsck.k9.AppConfig
 import com.fsck.k9.DefaultAppConfig
 import net.thunderbird.core.common.oauth.OAuthConfigurationFactory
@@ -14,6 +15,7 @@ import org.koin.dsl.module
 
 val thunderWrenModule = module {
     includes(featureFlagModule)
+    includes(telemetryModule)
 
     factory {
         FlagRegistryOverrideSerializer(
