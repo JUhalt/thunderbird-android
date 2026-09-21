@@ -48,6 +48,7 @@ dependencies {
     implementation(projects.legacy.core)
     implementation(projects.core.ui.compose.common)
     implementation(projects.core.featureflag)
+    implementation(projects.feature.telemetry.noop)
 
     implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.activity.compose)
