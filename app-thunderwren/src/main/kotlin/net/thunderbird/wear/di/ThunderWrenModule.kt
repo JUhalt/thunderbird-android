@@ -7,7 +7,11 @@ import net.thunderbird.core.common.oauth.OAuthConfigurationFactory
 import net.thunderbird.core.featureflag.inject.featureFlagModule
 import net.thunderbird.core.featureflag.model.EmptyAppVariantOverride
 import net.thunderbird.core.featureflag.serialization.FlagRegistryOverrideSerializer
+import net.thunderbird.core.ui.theme.api.FeatureThemeProvider
+import net.thunderbird.core.ui.theme.api.ThemeProvider
 import net.thunderbird.wear.BuildConfig
+import net.thunderbird.wear.provider.ThunderWrenFeatureThemeProvider
+import net.thunderbird.wear.provider.ThunderWrenThemeProvider
 import net.thunderbird.wear.ui.inbox.InboxViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.qualifier.named
@@ -28,6 +32,9 @@ val thunderWrenModule = module {
     single(named("ClientInfoAppVersion")) { BuildConfig.VERSION_NAME }
     single<AppConfig> { DefaultAppConfig(componentsToDisable = emptyList()) }
     single<OAuthConfigurationFactory> { OAuthConfigurationFactory { emptyMap() } }
+
+    single<ThemeProvider> { ThunderWrenThemeProvider() }
+    single<FeatureThemeProvider> { ThunderWrenFeatureThemeProvider() }
 
     viewModel { InboxViewModel(preferences = get()) }
 }
