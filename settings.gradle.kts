@@ -181,6 +181,10 @@ include(
 )
 
 include(
+    ":feature:wear:companion:api",
+)
+
+include(
     ":feature:widget:message-list",
     ":feature:widget:message-list-glance",
     ":feature:widget:shortcut",
