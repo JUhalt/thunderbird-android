@@ -69,7 +69,9 @@ can ignore data it doesn't understand.
   message screen with actions, and an "open on phone" action. The selected mailbox is remembered on the watch.
 - The Tile and the complication show the unified inbox's unread count from the cached mailbox list. A `WearableListenerService` on the
   watch refreshes them when the snapshot changes, even when the app isn't open.
-- When no phone with Thunderbird is reachable, the watch explains that instead of showing placeholder data.
+- When no phone with Thunderbird is reachable, the watch explains that instead of showing placeholder data. It also
+  offers a clearly labeled demo mailbox that lives only on the watch, so people can try the app without a phone. Real
+  data from a phone always replaces the demo.
 
 ## Alternatives Considered
 

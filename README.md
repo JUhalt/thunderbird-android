@@ -12,6 +12,8 @@ It lives in a fork of the Thunderbird for Android repository. The design is prop
 
 > [!IMPORTANT]
 > **Project status: working prototype, not yet tested on real hardware.** The phone and watch sides are implemented and covered by unit and UI tests, but haven't been run on a paired phone and watch yet. The watch needs the Thunderbird phone app **built from this fork**; the Thunderbird app from the Play Store doesn't include the companion.
+>
+> **Just curious?** You don't need a phone. Install only the watch app and tap **Try the demo**.
 
 ---
 
@@ -26,6 +28,8 @@ It lives in a fork of the Thunderbird for Android repository. The design is prop
 | Unread Tile and complication | ✅ | Show the unified inbox's unread count and update when the phone publishes new data. |
 | Encrypted messages | ✅ | Shown as encrypted, with a prompt to read them on the phone. |
 | Works briefly offline | ✅ | The watch keeps the last data the phone sent. |
+| Demo mailbox | ✅ | **Try the demo** on the watch shows a sample mailbox with working actions, no phone needed. Real data from Thunderbird on the phone replaces it automatically. |
+| Phone notifications on the watch | ✅ Improved | Thunderbird's phone notifications now offer **Star** on the watch, and their actions follow your notification action order. |
 | Replying from the watch | ⬜ Not started | Use "Open on phone" for now. |
 | Folders other than the inbox | ⬜ Not started | |
 | Watch notifications | ⬜ Not started | Thunderbird's phone notifications are still bridged to the watch by Wear OS as usual. |
@@ -62,6 +66,14 @@ It lives in a fork of the Thunderbird for Android repository. The design is prop
 * Android SDK Platform **37** (the project's `compileSdk`). Android Studio offers to install it on first sync.
 * A **phone emulator with Google Play** (or a real phone) and a **Wear OS 3+ (API 30+) emulator**, paired with each other.
 
+### Quickest try: the demo (watch only)
+
+1. Create and start a *Wear OS Small Round* emulator (API 30 or newer) in Device Manager.
+2. Select the **`app-thunderwren`** run configuration and run it on the watch.
+3. Tap **Try the demo**. You get "All inboxes" plus a Work and a Personal account with sample messages. Open, star, mark unread, archive, and delete them, switch mailboxes, and add the Tile and complication. Everything stays on the watch.
+
+**Exit demo** at the bottom of the inbox returns to the "Connect your phone" screen. If Thunderbird on a paired phone connects, its real inbox replaces the demo automatically.
+
 ### Pair a phone and a watch emulator
 
 1. In Device Manager, create a phone emulator using a system image **with Google Play**, and a *Wear OS Small Round* emulator (API 30 or newer).
@@ -97,6 +109,7 @@ Or from the command line, with both emulators running:
 ### Troubleshooting
 
 * **The watch says "Connect your phone"**: make sure the phone app is the **`fullDebug`** build from this repository (not `fossDebug` or the Play Store app), that it has at least one account, and that the emulators are paired. Opening Thunderbird on the phone once starts the companion.
+* **CI doesn't run on your fork**: GitHub turns Actions off for forks. Enable it in the repository's **Actions** tab. The `Build - ThunderWren Wear OS application` job builds the watch app.
 * **Gradle sync fails with a version catalog error**: pull the latest `main`. An earlier commit corrupted `gradle/libs.versions.toml`, which is fixed now.
 * **The Gradle daemon runs out of memory**: the project reserves a 10 GB heap (`org.gradle.jvmargs` in `gradle.properties`). On machines with 16 GB of RAM or less, close other apps or lower `-Xmx`.
 
@@ -107,6 +120,9 @@ Or from the command line, with both emulators running:
 - [x] Wear OS app with Compose for Wear OS Material 3.
 - [x] Phone-first companion protocol and RFC ([0010](docs/engineering/rfcs/0010-wear-os-companion.md)).
 - [x] Inboxes, mailbox switching, mail actions, open on phone, and a live Tile and complication.
+- [x] Demo mailbox for trying the watch app without a phone.
+- [x] Star and custom action order for Thunderbird's phone notifications on the watch.
+- [x] Translatable strings, screen reader labels, and a CI build job.
 - [ ] Verify on a real phone and watch, then fix what that turns up.
 - [ ] Reply from the watch (voice or canned replies, sent by the phone).
 - [ ] Respect Thunderbird's notification privacy settings in what the watch shows.
