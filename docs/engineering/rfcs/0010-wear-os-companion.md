@@ -7,8 +7,8 @@
 
 Add a Wear OS companion to Thunderbird for Android. The phone app keeps doing all mail syncing. It publishes a
 compact snapshot of the unified inbox to a paired watch over the Wearable Data Layer. The watch app shows that
-snapshot, sends simple actions back (mark read or unread, star, archive, delete), and can open a message on the phone
-for full reading and replying.
+snapshot, sends simple actions back (mark read or unread, star, archive, delete, mark all as read), sends short
+replies that the phone writes and sends, and can open a message on the phone for full reading.
 
 The watch never stores account credentials and never talks to a mail server.
 
@@ -48,27 +48,39 @@ can ignore data it doesn't understand.
 - **Capabilities**: The phone advertises `thunderbird_wear_companion` and the watch advertises `thunderwren_watch`. Each
   side uses the other's capability to find a peer and to skip work when none is connected.
 - **Mailboxes**: This is a `DataItem` at `/thunderwren/v1/mailboxes` holding `WearMailboxList`. It lists the unified
-  inbox first, then each account's inbox, with the account name, email address, color, and unread count.
+  inbox and its "Unread" and "Starred" views first, then each account's inbox, with the account name, email address,
+  color, monogram, and unread count. It also carries the glance visibility (see Privacy below).
 - **Inbox snapshots**: There is one `DataItem` per mailbox, at `/thunderwren/v1/inbox/<mailbox>`, holding
-  `WearInboxSnapshot`. `<mailbox>` is `unified` or the account UUID. Each snapshot contains the newest 25 messages of
-  that inbox. Each message has an ID, sender, subject, preview, date, read/starred flags, attachment and encryption
-  indicators, and the account color. Separate items keep each one well under the Data Layer's 100 KB limit. They also
-  make switching mailboxes on the watch instant, even while it is disconnected.
+  `WearInboxSnapshot`. `<mailbox>` is `unified`, `unread`, `starred`, or the account UUID. Each snapshot contains the
+  newest 25 messages of that mailbox. Each message has an ID, sender, subject, preview, date, read/starred flags,
+  attachment and encryption indicators, and its account's ID and color. Separate items keep each one well under the
+  Data Layer's 100 KB limit. They also make switching mailboxes on the watch instant, even while it is disconnected.
 - **Publishing**: The phone republishes (debounced) when the message list changes and a watch is paired. It deletes the
   items of accounts that no longer exist. The Data Layer keeps the last published items on the watch.
 - **Requests**: The watch sends `MessageClient.sendRequest` to `/thunderwren/v1/request` with a `WearRequest`:
-  `Refresh`, or `PerformAction(messageId, action)`. The phone answers with a `WearResponse`. An action updates the
-  local store through `MessagingController`, and the resulting message-list change republishes the snapshots.
+  `Refresh`, `PerformAction(messageId, action)`, `MarkAllRead(mailboxId)`, or `Reply(messageId, text)`. The phone
+  answers with a `WearResponse`. Actions update the local store through `MessagingController`, and the resulting
+  message-list change republishes the snapshots. A phone that doesn't know a request answers `UNSUPPORTED_REQUEST`,
+  which the watch explains as "update Thunderbird on your phone".
+- **Replies**: `QuickReplySender` in `legacy:core` builds the reply the way the compose screen would: to the sender or
+  Reply-To address, from the identity the message was sent to, with the account's quoting, signature, Bcc, and read
+  receipt settings, threaded with `In-Reply-To` and `References`. It puts the reply in the Outbox and marks the
+  original as answered. Replies are plain text. Encrypted messages are refused, because the reply would go out
+  unencrypted; the watch offers "open on phone" for them instead. Nothing is sent without a review step on the watch.
 - **Message IDs**: `MessageReference.toIdentityString()` is used as-is. The watch treats it as opaque.
 - **Open on phone**: The watch calls `RemoteActivityHelper` with `thunderwren://open?message=<id>`. A small exported
   trampoline activity in `internal` validates the ID and opens the message in the phone app.
 
 ### Watch app
 
-- Uses Compose for Wear OS Material 3. It has an inbox, a mailbox picker (the unified inbox or a single account), a
-  message screen with actions, and an "open on phone" action. The selected mailbox is remembered on the watch.
-- The Tile and the complication show the unified inbox's unread count from the cached mailbox list. A `WearableListenerService` on the
-  watch refreshes them when the snapshot changes, even when the app isn't open.
+- Uses Compose for Wear OS Material 3. It has an inbox, a mailbox picker (the unified inbox, "Unread", "Starred", or a
+  single account), a message screen with actions, a reply screen (voice, keyboard, or ready-made replies, then a
+  review step), and an "open on phone" action. Messages can be swiped to archive or delete them, and a mailbox can be
+  marked as read after a confirmation. Account monograms show which account a message belongs to. The selected
+  mailbox is remembered on the watch.
+- The Tile shows the unified inbox's unread count and the newest unread messages, which open when tapped. The
+  complication shows the unread count. A `WearableListenerService` on the watch refreshes them when the phone
+  publishes, even when the app isn't open.
 - When no phone with Thunderbird is reachable, the watch explains that instead of showing placeholder data. It also
   offers a clearly labeled demo mailbox that lives only on the watch, so people can try the app without a phone. Real
   data from a phone always replaces the demo.
@@ -80,7 +92,9 @@ can ignore data it doesn't understand.
   A standalone mode could still be added later behind the same watch UI, since the UI only depends on the snapshot
   models.
 - **Rely on bridged phone notifications only**: This needs no new code, but it only covers new mail. It doesn't give
-  users an inbox to browse, and the actions available on bridged notifications are limited.
+  users an inbox to browse, and the actions available on bridged notifications are limited. The companion still
+  improves them: their Wear actions follow the user's notification action order, include Star, and the Reply action
+  takes a voice, keyboard, or ready-made reply that `QuickReplySender` sends.
 - **Custom Bluetooth or network transport**: This avoids Google Play Services but duplicates what the Data Layer
   already provides: pairing, encryption, offline caching, and delivery over the cloud when the devices are apart.
 
@@ -91,8 +105,10 @@ can ignore data it doesn't understand.
   the phone.
 - **Privacy**: Snapshots contain sender names, subjects, and previews. The Data Layer encrypts traffic between paired
   devices, and data stays within the user's Google account. The snapshot is capped in size and has no message bodies.
-  Its contents should respect Thunderbird's existing notification privacy settings (see Open Questions). The mailbox
-  list includes account email addresses.
+  The mailbox list includes account email addresses. The Tile and complication can be seen by people nearby, like a
+  phone's lock screen, so they follow Thunderbird's "lock screen notifications" setting, which the phone publishes as
+  the glance visibility: senders and subjects, senders only, the unread count only (the default), or nothing. Inside
+  the app, which the wearer opens on purpose, everything is shown, as in Thunderbird on an unlocked phone.
 - **Same app identity**: The Data Layer only connects apps with the same application ID and signing key. The watch
   app must therefore use Thunderbird's application ID for each build type (for example `net.thunderbird.android` and
   `net.thunderbird.android.debug`) and be signed with the same key. That is also how Play publishes a Wear OS app
@@ -103,13 +119,14 @@ can ignore data it doesn't understand.
 
 ## Open Questions
 
-1. Should the snapshot respect the "lock screen notification visibility" privacy setting, for example by hiding
-   previews?
-2. Should replies from the watch (voice or canned responses) be sent by the phone in a later version, or stay
-   "open on phone"?
-3. Where should the Wear app live long term: this repository (as `:app-thunderwren` or a renamed module) or a
+1. Where should the Wear app live long term: this repository (as `:app-thunderwren` or a renamed module) or a
    separate one?
-4. Naming: "ThunderWren" is a working title. Would the Thunderbird brand be allowed on the watch app?
+2. Naming: "ThunderWren" is a working title. Would the Thunderbird brand be allowed on the watch app?
+3. Should quick replies (from the watch and from Wear notifications) quote the original message? They currently
+   follow the account's "quote original message when replying" setting, like the compose screen.
+
+Answered in this proposal: the Tile and complication follow the lock screen notification setting (see Privacy), and
+replies from the watch are sent by the phone, as plain text, never for encrypted messages.
 
 ## Outcome
 
