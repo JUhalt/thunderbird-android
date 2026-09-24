@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="thunderbird_blue_bg">#FFFFFF</color>
+    <!-- ThunderWren logo palette -->
+    <color name="ic_launcher_background">#16233F</color>
+    <color name="thunderwren_strap">#2E4A7A</color>
+    <color name="thunderwren_bezel">#C9D3E6</color>
+    <color name="thunderwren_face">#0B1326</color>
+    <color name="thunderwren_envelope">#F4F6FB</color>
+    <color name="thunderwren_envelope_fold">#9AA8C4</color>
+    <color name="thunderwren_bolt">#FFC83D</color>
+    <color name="thunderwren_feather">#B8733A</color>
+    <color name="thunderwren_wing">#8A5226</color>
+    <color name="thunderwren_belly">#E3B27E</color>
+    <color name="thunderwren_eyebrow">#F1D2A8</color>
 </resources>
