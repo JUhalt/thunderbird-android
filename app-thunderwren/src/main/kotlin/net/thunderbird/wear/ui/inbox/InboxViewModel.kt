@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageSummary
+import net.thunderbird.wear.data.DemoModeStore
 import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.SelectedMailboxStore
 
@@ -32,6 +33,8 @@ sealed interface InboxUiState {
         val canSwitchMailbox: Boolean,
         val messages: ImmutableList<WearMessageSummary>,
         val isRefreshing: Boolean,
+        /** The built-in demo mailbox is shown because no phone has published yet. */
+        val isDemo: Boolean = false,
     ) : InboxUiState
 }
 
@@ -39,6 +42,7 @@ sealed interface InboxUiState {
 class InboxViewModel(
     private val phoneConnection: PhoneConnection,
     selectedMailboxStore: SelectedMailboxStore,
+    private val demoModeStore: DemoModeStore,
 ) : ViewModel() {
     private val isRefreshing = MutableStateFlow(false)
 
@@ -58,6 +62,8 @@ class InboxViewModel(
                 }
             }
         }.combine(isRefreshing) { content, refreshing ->
+            content to refreshing
+        }.combine(phoneConnection.isDemo) { (content, refreshing), isDemo ->
             if (content == null) {
                 InboxUiState.NotConnected(isRefreshing = refreshing)
             } else {
@@ -66,6 +72,7 @@ class InboxViewModel(
                     canSwitchMailbox = content.canSwitchMailbox,
                     messages = content.messages,
                     isRefreshing = refreshing,
+                    isDemo = isDemo,
                 )
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), InboxUiState.Loading)
@@ -86,6 +93,15 @@ class InboxViewModel(
                 isRefreshing.value = false
             }
         }
+    }
+
+    /** Shows the demo mailbox until a phone with Thunderbird publishes real data. */
+    fun startDemo() {
+        demoModeStore.setEnabled(true)
+    }
+
+    fun exitDemo() {
+        demoModeStore.setEnabled(false)
     }
 
     private data class InboxContent(

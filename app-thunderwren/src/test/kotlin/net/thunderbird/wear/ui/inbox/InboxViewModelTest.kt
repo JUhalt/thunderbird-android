@@ -9,21 +9,25 @@ import assertk.assertions.isTrue
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import net.thunderbird.components.ui.testing.coroutines.MainDispatcherHelper
+import net.thunderbird.wear.testing.FakeDemoModeStore
 import net.thunderbird.wear.testing.FakePhoneConnection
 import net.thunderbird.wear.testing.FakeSelectedMailboxStore
 import net.thunderbird.wear.testing.UNIFIED
 import net.thunderbird.wear.testing.mailbox
 import net.thunderbird.wear.testing.message
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class InboxViewModelTest {
     private val mainDispatcher = MainDispatcherHelper()
     private val phone = FakePhoneConnection()
     private val selectedMailbox = FakeSelectedMailboxStore()
+    private val demoMode = FakeDemoModeStore()
 
     @BeforeTest
     fun setUp() = mainDispatcher.setUp()
@@ -83,6 +87,17 @@ class InboxViewModelTest {
     }
 
     @Test
+    fun `starting and exiting the demo toggles demo mode`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.startDemo()
+        assertThat(demoMode.isEnabled.value).isTrue()
+
+        viewModel.exitDemo()
+        assertThat(demoMode.isEnabled.value).isFalse()
+    }
+
+    @Test
     fun `mailbox can't be switched with a single mailbox`() = runTest {
         phone.publish(mailboxes = listOf(mailbox(UNIFIED)), inboxes = mapOf(UNIFIED to emptyList()))
         val viewModel = createViewModel()
@@ -103,7 +118,11 @@ class InboxViewModelTest {
         )
     }
 
-    private fun createViewModel() = InboxViewModel(phoneConnection = phone, selectedMailboxStore = selectedMailbox)
+    private fun createViewModel() = InboxViewModel(
+        phoneConnection = phone,
+        selectedMailboxStore = selectedMailbox,
+        demoModeStore = demoMode,
+    )
 
     private fun TestScope.stateOf(viewModel: InboxViewModel): InboxUiState {
         backgroundScope.launch { viewModel.uiState.collect {} }

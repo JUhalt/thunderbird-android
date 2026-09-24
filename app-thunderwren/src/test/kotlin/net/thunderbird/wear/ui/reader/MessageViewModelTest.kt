@@ -10,6 +10,7 @@ import assertk.assertions.isTrue
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import net.thunderbird.components.ui.testing.coroutines.MainDispatcherHelper
@@ -23,6 +24,7 @@ import net.thunderbird.wear.testing.UNIFIED
 import net.thunderbird.wear.testing.mailbox
 import net.thunderbird.wear.testing.message
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MessageViewModelTest {
     private val mainDispatcher = MainDispatcherHelper()
     private val phone = FakePhoneConnection()

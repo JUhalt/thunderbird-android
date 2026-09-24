@@ -50,6 +50,8 @@ android {
 
 dependencies {
     implementation(projects.feature.wear.companion.api)
+    implementation(projects.core.logging.api)
+    implementation(projects.core.logging.implConsole)
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.wear.compose.material3)

@@ -49,6 +49,8 @@ private fun NavGraphBuilder.inboxDestination(navController: NavHostController) {
             onMailboxClick = { navController.navigate(ThunderWrenRoutes.MAILBOXES) },
             onMessageClick = { messageId -> navController.navigate(ThunderWrenRoutes.messageDetail(messageId)) },
             onRefreshClick = viewModel::refresh,
+            onStartDemoClick = viewModel::startDemo,
+            onExitDemoClick = viewModel::exitDemo,
         )
     }
 }

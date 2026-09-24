@@ -6,6 +6,7 @@ import assertk.assertions.isEqualTo
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -15,6 +16,7 @@ import net.thunderbird.wear.testing.FakeSelectedMailboxStore
 import net.thunderbird.wear.testing.UNIFIED
 import net.thunderbird.wear.testing.mailbox
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MailboxPickerViewModelTest {
     private val mainDispatcher = MainDispatcherHelper()
     private val phone = FakePhoneConnection()

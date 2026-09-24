@@ -18,6 +18,12 @@
     <string name="not_connected_text">Open Thunderbird on your paired phone to see your mail here.</string>
     <string name="retry">Try again</string>
 
+    <string name="demo_start">Try the demo</string>
+    <string name="demo_exit">Exit demo</string>
+    <!-- Secondary label of the mailbox button in demo mode. %1$s is the unread count text, e.g. "3 unread". -->
+    <string name="demo_label">Demo · %1$s</string>
+    <string name="demo_explanation">This is a demo mailbox. Your real inbox replaces it once Thunderbird on your phone connects.</string>
+
     <string name="message_unread_indicator">Unread</string>
     <string name="message_starred_indicator">Starred</string>
     <string name="message_no_subject">(No subject)</string>
@@ -35,6 +41,7 @@
     <string name="error_no_phone">Your phone isn\'t connected.</string>
     <string name="error_archive_unavailable">This account has no Archive folder.</string>
     <string name="error_failed">That didn\'t work. Try again on your phone.</string>
+    <string name="error_not_available_in_demo">Not available in the demo.</string>
 
     <string name="tile_unread_count">%1$d unread</string>
     <string name="tile_not_connected">Open Thunderbird on your phone</string>
