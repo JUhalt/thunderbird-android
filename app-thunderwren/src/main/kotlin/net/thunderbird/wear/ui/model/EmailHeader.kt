@@ -1,6 +1,10 @@
+@file:Suppress("MagicNumber")
+
 package net.thunderbird.wear.ui.model
 
 import androidx.compose.ui.graphics.Color
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 
 data class EmailHeader(
     val id: String,
@@ -20,7 +24,7 @@ data class EmailMessage(
 )
 
 object SampleEmailData {
-    val sampleHeaders = listOf(
+    val sampleHeaders: ImmutableList<EmailHeader> = persistentListOf(
         EmailHeader(
             id = "1",
             senderName = "Thunderbird Security",

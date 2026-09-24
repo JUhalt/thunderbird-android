@@ -12,6 +12,7 @@ import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
 
 data class MailFolder(
@@ -40,30 +41,38 @@ fun FolderDrawerSheet(
 ) {
     val listState = rememberScalingLazyListState()
 
-    ScalingLazyColumn(
+    ScreenScaffold(
+        scrollState = listState,
         modifier = modifier.fillMaxSize(),
-        state = listState,
-    ) {
-        item {
-            ListHeader {
-                Text(
-                    text = "Folders & Accounts",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+    ) { contentPadding ->
+        ScalingLazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            state = listState,
+            contentPadding = contentPadding,
+        ) {
+            item {
+                ListHeader {
+                    Text(
+                        text = "Folders & Accounts",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
-        }
 
-        items(DefaultFolders.folders) { folder ->
-            Button(
-                onClick = { onSelectFolder(folder) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp),
-            ) {
-                Text(
-                    text = "${folder.iconEmoji} ${folder.name}" + if (folder.unreadCount > 0) " (${folder.unreadCount})" else "",
-                )
+            items(DefaultFolders.folders) { folder ->
+                Button(
+                    onClick = { onSelectFolder(folder) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                ) {
+                    Text(
+                        text =
+                        "${folder.iconEmoji} ${folder.name}" +
+                            if (folder.unreadCount > 0) " (${folder.unreadCount})" else "",
+                    )
+                }
             }
         }
     }

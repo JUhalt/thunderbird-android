@@ -29,13 +29,14 @@ import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
+import kotlinx.collections.immutable.ImmutableList
 import net.thunderbird.wear.ui.model.EmailHeader
 import net.thunderbird.wear.ui.model.SampleEmailData
 import net.thunderbird.wear.ui.theme.ThunderWrenTheme
 
 @Composable
 fun InboxScreen(
-    headers: List<EmailHeader>,
+    headers: ImmutableList<EmailHeader>,
     onEmailClick: (String) -> Unit,
     onOpenFoldersClick: () -> Unit = {},
     onRefreshClick: () -> Unit = {},
@@ -46,10 +47,11 @@ fun InboxScreen(
     ScreenScaffold(
         scrollState = listState,
         modifier = modifier.fillMaxSize(),
-    ) {
+    ) { contentPadding ->
         ScalingLazyColumn(
             modifier = Modifier.fillMaxSize(),
             state = listState,
+            contentPadding = contentPadding,
         ) {
             item {
                 ListHeader {
@@ -107,53 +109,7 @@ fun EmailCard(
                 .fillMaxWidth()
                 .padding(4.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                // Account Color Bar Indicator
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(header.accountColor),
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-
-                if (header.isUnread) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                }
-
-                Text(
-                    text = header.senderName,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (header.isUnread) FontWeight.Bold else FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-
-                if (header.isStarred) {
-                    Text(
-                        text = "⭐",
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                }
-
-                Text(
-                    text = header.dateText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            EmailCardSenderRow(header = header)
 
             Spacer(modifier = Modifier.height(2.dp))
 
@@ -179,9 +135,63 @@ fun EmailCard(
     }
 }
 
+@Composable
+private fun EmailCardSenderRow(
+    header: EmailHeader,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        // Account Color Bar Indicator
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(header.accountColor),
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+
+        if (header.isUnread) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+        }
+
+        Text(
+            text = header.senderName,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (header.isUnread) FontWeight.Bold else FontWeight.Normal,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+
+        if (header.isStarred) {
+            Text(
+                text = "⭐",
+                style = MaterialTheme.typography.labelSmall,
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+        }
+
+        Text(
+            text = header.dateText,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
 @Preview(device = "id:wearos_small_round", showSystemUi = true)
 @Composable
-fun InboxScreenPreview() {
+private fun InboxScreenPreview() {
     ThunderWrenTheme {
         InboxScreen(
             headers = SampleEmailData.sampleHeaders,
