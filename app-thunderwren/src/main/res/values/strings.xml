@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ThunderWren</string>
+    <string name="brand_name" translatable="false">Thunderbird</string>
     <string name="welcome_thunderwren">Welcome to ThunderWren</string>
     <string name="thunderwren_subtitle">Thunderbird for Wear OS</string>
     <string name="open_inbox">Open Inbox</string>

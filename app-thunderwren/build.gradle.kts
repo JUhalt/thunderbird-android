@@ -32,6 +32,10 @@ android {
         }
     }
 
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     packaging {
         resources {
             excludes += listOf(
@@ -50,6 +54,12 @@ dependencies {
     implementation(projects.core.ui.compose.common)
     implementation(projects.core.featureflag)
     implementation(projects.feature.telemetry.noop)
+    implementation(projects.feature.migration.launcher.noop)
+    implementation(projects.feature.autodiscovery.api)
+    implementation(projects.backend.api)
+    implementation(projects.core.android.common)
+    implementation(projects.feature.mail.message.reader.api)
+    implementation(projects.feature.mail.message.list.internal)
 
     implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.activity.compose)
@@ -65,4 +75,18 @@ dependencies {
     implementation("com.google.guava:guava:33.4.0-android")
 
     debugImplementation(libs.jetbrains.compose.ui.tooling)
+
+    testImplementation(projects.feature.account.api)
+    testImplementation(projects.feature.account.common)
+    testImplementation(projects.feature.mail.message.list.api)
+    testImplementation(projects.feature.widget.messageList)
+    testImplementation(projects.feature.widget.unread)
+    testImplementation(projects.feature.changelog.api)
+    testImplementation(projects.feature.changelog.internal)
+    testImplementation(projects.feature.thundermail.internal.common)
+    testImplementation(projects.plugins.openpgpApiLib.openpgpApi)
+    testImplementation(libs.appauth)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.ext.junit.ktx)
 }
