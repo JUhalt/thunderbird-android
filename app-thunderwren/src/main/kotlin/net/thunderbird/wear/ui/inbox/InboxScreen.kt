@@ -42,6 +42,8 @@ fun InboxScreen(
     onMessageClick: (String) -> Unit,
     onRefreshClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onStartDemoClick: () -> Unit = {},
+    onExitDemoClick: () -> Unit = {},
 ) {
     val listState = rememberScalingLazyListState()
 
@@ -56,8 +58,13 @@ fun InboxScreen(
         ) {
             when (state) {
                 InboxUiState.Loading -> item { Text(text = stringResource(R.string.inbox_loading)) }
-                is InboxUiState.NotConnected -> notConnectedItems(state, onRefreshClick)
-                is InboxUiState.Content -> contentItems(state, onMailboxClick, onMessageClick, onRefreshClick)
+
+                is InboxUiState.NotConnected -> notConnectedItems(state, onRefreshClick, onStartDemoClick)
+
+                is InboxUiState.Content -> {
+                    contentItems(state, onMailboxClick, onMessageClick, onRefreshClick)
+                    if (state.isDemo) demoItems(onExitDemoClick)
+                }
             }
         }
     }
@@ -66,6 +73,7 @@ fun InboxScreen(
 private fun ScalingLazyListScope.notConnectedItems(
     state: InboxUiState.NotConnected,
     onRefreshClick: () -> Unit,
+    onStartDemoClick: () -> Unit,
 ) {
     item {
         ListHeader {
@@ -81,6 +89,32 @@ private fun ScalingLazyListScope.notConnectedItems(
     }
     item {
         RefreshButton(isRefreshing = state.isRefreshing, label = R.string.retry, onClick = onRefreshClick)
+    }
+    item {
+        FilledTonalButton(
+            onClick = onStartDemoClick,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(text = stringResource(R.string.demo_start)) },
+        )
+    }
+}
+
+private fun ScalingLazyListScope.demoItems(onExitDemoClick: () -> Unit) {
+    item {
+        Text(
+            text = stringResource(R.string.demo_explanation),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+    }
+    item {
+        FilledTonalButton(
+            onClick = onExitDemoClick,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(text = stringResource(R.string.demo_exit)) },
+        )
     }
 }
 
@@ -113,7 +147,8 @@ private fun MailboxHeader(
     onClick: () -> Unit,
 ) {
     val mailboxName = state.mailbox.displayName()
-    val unreadText = stringResource(R.string.inbox_unread_count, state.mailbox.unreadCount)
+    val unreadCountText = stringResource(R.string.inbox_unread_count, state.mailbox.unreadCount)
+    val unreadText = if (state.isDemo) stringResource(R.string.demo_label, unreadCountText) else unreadCountText
     val switchDescription = stringResource(R.string.mailbox_switch_description, mailboxName)
 
     FilledTonalButton(

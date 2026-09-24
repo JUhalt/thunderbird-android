@@ -9,11 +9,12 @@ import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.feature.wear.companion.WearMessageSummary
+import net.thunderbird.wear.data.DemoModeStore
 import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.PhoneResult
 import net.thunderbird.wear.data.SelectedMailboxStore
 
-class FakePhoneConnection : PhoneConnection {
+class FakePhoneConnection(isDemo: Boolean = false) : PhoneConnection {
     val mailboxList = MutableStateFlow<WearMailboxList?>(null)
     private val inboxes = mutableMapOf<String, MutableStateFlow<WearInboxSnapshot?>>()
 
@@ -24,6 +25,8 @@ class FakePhoneConnection : PhoneConnection {
     val openedOnPhone = mutableListOf<String>()
 
     override val mailboxes: Flow<WearMailboxList?> = mailboxList
+
+    override val isDemo: Flow<Boolean> = MutableStateFlow(isDemo)
 
     override fun inbox(mailboxId: String): Flow<WearInboxSnapshot?> = inboxFlow(mailboxId)
 
@@ -39,9 +42,11 @@ class FakePhoneConnection : PhoneConnection {
         }
     }
 
+    var refreshResult: PhoneResult = PhoneResult.Success
+
     override suspend fun refresh(): PhoneResult {
         refreshCount++
-        return PhoneResult.Success
+        return refreshResult
     }
 
     override suspend fun performAction(messageId: String, action: WearMessageAction): PhoneResult {
@@ -55,6 +60,15 @@ class FakePhoneConnection : PhoneConnection {
     }
 
     private fun inboxFlow(mailboxId: String) = inboxes.getOrPut(mailboxId) { MutableStateFlow(null) }
+}
+
+class FakeDemoModeStore(initial: Boolean = false) : DemoModeStore {
+    private val enabled = MutableStateFlow(initial)
+    override val isEnabled: StateFlow<Boolean> = enabled
+
+    override fun setEnabled(enabled: Boolean) {
+        this.enabled.value = enabled
+    }
 }
 
 class FakeSelectedMailboxStore(initial: String = WearCompanion.UNIFIED_MAILBOX_ID) : SelectedMailboxStore {

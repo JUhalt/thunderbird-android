@@ -3,7 +3,6 @@ package net.thunderbird.wear.data
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import androidx.wear.remote.interactions.RemoteActivityHelper
 import com.google.android.gms.wearable.CapabilityClient
 import com.google.android.gms.wearable.DataClient
@@ -18,9 +17,11 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import net.thunderbird.core.logging.Logger
 import net.thunderbird.feature.wear.companion.WearCompanion
 import net.thunderbird.feature.wear.companion.WearErrorReason
 import net.thunderbird.feature.wear.companion.WearInboxSnapshot
@@ -33,6 +34,7 @@ import net.thunderbird.feature.wear.companion.WearResponse
 /** [PhoneConnection] over the Wearable Data Layer (Google Play Services). */
 class DataLayerPhoneConnection(
     private val context: Context,
+    private val logger: Logger,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : PhoneConnection {
     private val dataClient = Wearable.getDataClient(context)
@@ -46,6 +48,8 @@ class DataLayerPhoneConnection(
         dataItem(WearCompanion.MAILBOXES_PATH)
             .map { data -> data?.let(WearProtocolCodec::decodeMailboxes) }
             .distinctUntilChanged()
+
+    override val isDemo: Flow<Boolean> = flowOf(false)
 
     override fun inbox(mailboxId: String): Flow<WearInboxSnapshot?> =
         dataItem(WearCompanion.inboxPath(mailboxId))
@@ -95,7 +99,7 @@ class DataLayerPhoneConnection(
                 .nodes
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
             // Play Services isn't available or is being updated.
-            Log.w(TAG, "Couldn't look for a phone", e)
+            logger.warn(TAG, e) { "Couldn't look for a phone" }
             emptySet()
         }
 
@@ -107,7 +111,7 @@ class DataLayerPhoneConnection(
             block()
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
             // The phone went away or Play Services failed; the user can retry.
-            Log.w(TAG, "Request to the phone failed", e)
+            logger.warn(TAG, e) { "Request to the phone failed" }
             PhoneResult.Failed(WearErrorReason.FAILED)
         }
     }
@@ -142,7 +146,7 @@ class DataLayerPhoneConnection(
             send(data)
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
             // Without Play Services there is nothing to show.
-            Log.w(TAG, "Couldn't read $path", e)
+            logger.warn(TAG, e) { "Couldn't read $path" }
             send(null)
         }
 

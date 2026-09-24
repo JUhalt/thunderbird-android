@@ -9,8 +9,12 @@ import assertk.assertThat
 import assertk.assertions.containsExactly
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.wear.ThunderWrenApplication
+import net.thunderbird.wear.data.DemoAwarePhoneConnection
+import net.thunderbird.wear.data.DemoModeStore
+import net.thunderbird.wear.data.DemoPhoneConnection
 import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.SelectedMailboxStore
+import net.thunderbird.wear.testing.FakeDemoModeStore
 import net.thunderbird.wear.testing.FakePhoneConnection
 import net.thunderbird.wear.testing.FakeSelectedMailboxStore
 import net.thunderbird.wear.testing.UNIFIED
@@ -41,6 +45,7 @@ class ThunderWrenAppTest {
             module {
                 single<PhoneConnection> { phone }
                 single<SelectedMailboxStore> { FakeSelectedMailboxStore() }
+                single<DemoModeStore> { FakeDemoModeStore() }
             },
         )
     }
@@ -55,6 +60,32 @@ class ThunderWrenAppTest {
         composeRule.setContent { ThunderWrenApp() }
 
         composeRule.onNodeWithText("Connect your phone").assertIsDisplayed()
+    }
+
+    @Test
+    fun `demo mailbox can be tried without a phone and is replaced by real data`() {
+        val demoModeStore = FakeDemoModeStore()
+        loadKoinModules(
+            module {
+                single<PhoneConnection> {
+                    DemoAwarePhoneConnection(phone = phone, demo = DemoPhoneConnection(), demoModeStore = demoModeStore)
+                }
+                single<DemoModeStore> { demoModeStore }
+            },
+        )
+        composeRule.setContent { ThunderWrenApp() }
+
+        composeRule.onNodeWithText("Try the demo").performClick()
+
+        composeRule.onNodeWithText("Welcome to the demo mailbox").assertIsDisplayed()
+
+        phone.publish(
+            mailboxes = listOf(mailbox(UNIFIED)),
+            inboxes = mapOf(UNIFIED to listOf(message("real", senderName = "Real Sender"))),
+        )
+
+        composeRule.onNodeWithText("Real Sender").assertIsDisplayed()
+        composeRule.onNodeWithText("Welcome to the demo mailbox").assertDoesNotExist()
     }
 
     @Test

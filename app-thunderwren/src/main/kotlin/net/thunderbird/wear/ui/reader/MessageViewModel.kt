@@ -125,6 +125,8 @@ private fun PhoneResult.errorMessage(): Int? = when (this) {
 
     PhoneResult.NoPhone -> R.string.error_no_phone
 
+    PhoneResult.NotAvailableInDemo -> R.string.error_not_available_in_demo
+
     is PhoneResult.Failed -> when (reason) {
         WearErrorReason.ACTION_NOT_AVAILABLE -> R.string.error_archive_unavailable
         WearErrorReason.MESSAGE_NOT_FOUND -> R.string.message_not_found
