@@ -47,22 +47,27 @@ can ignore data it doesn't understand.
 
 - **Capabilities**: The phone advertises `thunderbird_wear_companion` and the watch advertises `thunderwren_watch`. Each
   side uses the other's capability to find a peer and to skip work when none is connected.
-- **Inbox snapshot**: This is a `DataItem` at `/thunderwren/v1/inbox` holding `WearInboxSnapshot`. It contains the
-  unified inbox's unread count and the newest 25 messages. Each message has an ID, sender, subject, preview, date,
-  read/starred flags, attachment and encryption indicators, and the account color. The phone republishes it
-  (debounced) when the message list changes and a watch is connected. The Data Layer keeps the last snapshot on the
-  watch, so the watch can show it while disconnected.
+- **Mailboxes**: This is a `DataItem` at `/thunderwren/v1/mailboxes` holding `WearMailboxList`. It lists the unified
+  inbox first, then each account's inbox, with the account name, email address, color, and unread count.
+- **Inbox snapshots**: There is one `DataItem` per mailbox, at `/thunderwren/v1/inbox/<mailbox>`, holding
+  `WearInboxSnapshot`. `<mailbox>` is `unified` or the account UUID. Each snapshot contains the newest 25 messages of
+  that inbox. Each message has an ID, sender, subject, preview, date, read/starred flags, attachment and encryption
+  indicators, and the account color. Separate items keep each one well under the Data Layer's 100 KB limit. They also
+  make switching mailboxes on the watch instant, even while it is disconnected.
+- **Publishing**: The phone republishes (debounced) when the message list changes and a watch is paired. It deletes the
+  items of accounts that no longer exist. The Data Layer keeps the last published items on the watch.
 - **Requests**: The watch sends `MessageClient.sendRequest` to `/thunderwren/v1/request` with a `WearRequest`:
   `Refresh`, or `PerformAction(messageId, action)`. The phone answers with a `WearResponse`. An action updates the
-  local store through `MessagingController`, and the resulting message-list change republishes the snapshot.
+  local store through `MessagingController`, and the resulting message-list change republishes the snapshots.
 - **Message IDs**: `MessageReference.toIdentityString()` is used as-is. The watch treats it as opaque.
 - **Open on phone**: The watch calls `RemoteActivityHelper` with `thunderwren://open?message=<id>`. A small exported
   trampoline activity in `internal` validates the ID and opens the message in the phone app.
 
 ### Watch app
 
-- Uses Compose for Wear OS Material 3. It has an inbox, a message screen with actions, and an "open on phone" action.
-- The Tile and the complication show the unread count from the cached snapshot. A `WearableListenerService` on the
+- Uses Compose for Wear OS Material 3. It has an inbox, a mailbox picker (the unified inbox or a single account), a
+  message screen with actions, and an "open on phone" action. The selected mailbox is remembered on the watch.
+- The Tile and the complication show the unified inbox's unread count from the cached mailbox list. A `WearableListenerService` on the
   watch refreshes them when the snapshot changes, even when the app isn't open.
 - When no phone with Thunderbird is reachable, the watch explains that instead of showing placeholder data.
 
@@ -84,7 +89,12 @@ can ignore data it doesn't understand.
   the phone.
 - **Privacy**: Snapshots contain sender names, subjects, and previews. The Data Layer encrypts traffic between paired
   devices, and data stays within the user's Google account. The snapshot is capped in size and has no message bodies.
-  Its contents should respect Thunderbird's existing notification privacy settings (see Open Questions).
+  Its contents should respect Thunderbird's existing notification privacy settings (see Open Questions). The mailbox
+  list includes account email addresses.
+- **Same app identity**: The Data Layer only connects apps with the same application ID and signing key. The watch
+  app must therefore use Thunderbird's application ID for each build type (for example `net.thunderbird.android` and
+  `net.thunderbird.android.debug`) and be signed with the same key. That is also how Play publishes a Wear OS app
+  alongside its phone app.
 - **Freshness**: If the phone process isn't running, the watch only gets updates when it asks or when Thunderbird
   syncs. This is acceptable for triage.
 - **Maintenance**: A new app module and three feature modules to keep building.
