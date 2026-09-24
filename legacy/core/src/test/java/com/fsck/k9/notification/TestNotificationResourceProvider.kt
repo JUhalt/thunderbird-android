@@ -90,6 +90,8 @@ class TestNotificationResourceProvider : NotificationResourceProvider {
 
     override fun actionReply(): String = "Reply"
 
+    override fun quickReplyChoices(): List<String> = listOf("OK", "Thanks!")
+
     override fun actionStar(): String = "Star"
 
     override fun actionArchive(): String = "Archive"

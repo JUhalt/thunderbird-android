@@ -143,6 +143,11 @@
     <string name="notification_additional_messages">+ <xliff:g id="additional_messages">%1$d</xliff:g> more on <xliff:g id="account">%2$s</xliff:g></string>
 
     <string name="notification_action_reply">Reply</string>
+    <!-- Ready-made replies offered by the Reply action of new message notifications on a watch -->
+    <string name="notification_quick_reply_ok">OK</string>
+    <string name="notification_quick_reply_thanks">Thanks!</string>
+    <string name="notification_quick_reply_sounds_good">Sounds good.</string>
+    <string name="notification_quick_reply_later">I\'ll reply later.</string>
     <string name="notification_action_mark_as_read">Mark Read</string>
     <string name="notification_action_mark_all_as_read">Mark All Read</string>
     <string name="notification_actions_settings_title">Notification actions</string>

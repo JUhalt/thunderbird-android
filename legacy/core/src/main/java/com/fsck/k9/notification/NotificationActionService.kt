@@ -3,10 +3,13 @@ package com.fsck.k9.notification
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
+import androidx.core.app.RemoteInput
 import app.k9mail.legacy.message.controller.MessageReference
 import com.fsck.k9.Preferences
 import com.fsck.k9.controller.MessageReferenceHelper
 import com.fsck.k9.controller.MessagingController
+import com.fsck.k9.message.QuickReplyResult
+import com.fsck.k9.message.QuickReplySender
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -20,6 +23,7 @@ import org.koin.core.qualifier.named
 class NotificationActionService : Service() {
     private val preferences: Preferences by inject()
     private val messagingController: MessagingController by inject()
+    private val quickReplySender: QuickReplySender by inject()
     private val coroutineScope: CoroutineScope by inject(named("AppCoroutineScope"))
     private val interactionPreferences: InteractionSettingsPreferenceManager by inject()
     private val interactionSettings get() = interactionPreferences.getConfig()
@@ -58,6 +62,7 @@ class NotificationActionService : Service() {
             ACTION_ARCHIVE -> archiveMessages(intent)
             ACTION_SPAM -> markMessageAsSpam(intent, account)
             ACTION_STAR -> markMessagesAsStarred(intent, account)
+            ACTION_QUICK_REPLY -> sendQuickReply(intent, account)
             ACTION_DISMISS -> Log.i("Notification dismissed")
         }
 
@@ -132,6 +137,34 @@ class NotificationActionService : Service() {
             val folderId = messageReference.folderId
             val uid = messageReference.uid
             messagingController.setFlag(account, folderId, uid, Flag.FLAGGED, true)
+        }
+    }
+
+    private fun sendQuickReply(intent: Intent, account: LegacyAccountDto) {
+        Log.i("NotificationActionService sending a quick reply")
+
+        val messageReferenceString = intent.getStringExtra(EXTRA_MESSAGE_REFERENCE)
+        val messageReference = MessageReference.parse(messageReferenceString)
+        if (messageReference == null) {
+            Log.w("Invalid message reference: %s", messageReferenceString)
+            return
+        }
+
+        val text = RemoteInput.getResultsFromIntent(intent)
+            ?.getCharSequence(NotificationActionIntents.EXTRA_QUICK_REPLY_TEXT)
+            ?.toString()
+            ?.trim()
+        if (text.isNullOrEmpty()) {
+            Log.w("Quick reply without text")
+            return
+        }
+
+        val result = quickReplySender.sendReply(messageReference, text)
+        if (result == QuickReplyResult.SENT) {
+            // The message has been dealt with, like after replying to it on the phone.
+            messagingController.setFlag(account, messageReference.folderId, messageReference.uid, Flag.SEEN, true)
+        } else {
+            Log.w("Quick reply wasn't sent: %s", result)
         }
     }
 

@@ -12,11 +12,24 @@ internal const val ACTION_ARCHIVE = "ACTION_ARCHIVE"
 internal const val ACTION_SPAM = "ACTION_SPAM"
 internal const val ACTION_STAR = "ACTION_STAR"
 internal const val ACTION_DISMISS = "ACTION_DISMISS"
+internal const val ACTION_QUICK_REPLY = "ACTION_QUICK_REPLY"
 internal const val EXTRA_ACCOUNT_UUID = "accountUuid"
 internal const val EXTRA_MESSAGE_REFERENCE = "messageReference"
 internal const val EXTRA_MESSAGE_REFERENCES = "messageReferences"
 
 object NotificationActionIntents {
+    /** Key of the [androidx.core.app.RemoteInput] holding the text of a quick reply. */
+    const val EXTRA_QUICK_REPLY_TEXT = "quickReplyText"
+
+    /** Sends the text entered in the notification's [androidx.core.app.RemoteInput] as a reply. */
+    fun createQuickReplyIntent(context: Context, messageReference: MessageReference): Intent {
+        return Intent(context, NotificationActionService::class.java).apply {
+            action = ACTION_QUICK_REPLY
+            putExtra(EXTRA_ACCOUNT_UUID, messageReference.accountUuid)
+            putExtra(EXTRA_MESSAGE_REFERENCE, messageReference.toIdentityString())
+        }
+    }
+
     fun createMarkMessageAsReadIntent(context: Context, messageReference: MessageReference): Intent {
         return Intent(context, NotificationActionService::class.java).apply {
             action = ACTION_MARK_AS_READ

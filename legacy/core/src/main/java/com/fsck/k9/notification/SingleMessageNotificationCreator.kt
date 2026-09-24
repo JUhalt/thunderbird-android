@@ -3,6 +3,7 @@ package com.fsck.k9.notification
 import android.app.Application
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationCompat.WearableExtender
+import androidx.core.app.RemoteInput
 import androidx.core.graphics.drawable.IconCompat
 import com.fsck.k9.notification.NotificationChannelManager.ChannelType
 import kotlinx.coroutines.CoroutineScope
@@ -168,8 +169,24 @@ internal class SingleMessageNotificationCreator(
         val icon = resourceProvider.wearIconReplyAll
         val title = resourceProvider.actionReply()
         val messageReference = notificationData.content.messageReference
-        val action = actionCreator.createReplyPendingIntent(messageReference)
-        val replyAction = NotificationCompat.Action.Builder(icon, title, action).build()
+
+        val replyAction = if (notificationData.content.isEncrypted) {
+            // A quick reply would be sent unencrypted, so open the compose screen on the phone instead.
+            val action = actionCreator.createReplyPendingIntent(messageReference)
+            NotificationCompat.Action.Builder(icon, title, action).build()
+        } else {
+            // The watch offers voice input, a keyboard, and these ready-made replies.
+            val remoteInput = RemoteInput.Builder(NotificationActionIntents.EXTRA_QUICK_REPLY_TEXT)
+                .setLabel(title)
+                .setChoices(resourceProvider.quickReplyChoices().toTypedArray())
+                .build()
+            val action = actionCreator.createQuickReplyPendingIntent(messageReference)
+            NotificationCompat.Action.Builder(icon, title, action)
+                .addRemoteInput(remoteInput)
+                .setAllowGeneratedReplies(true)
+                .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
+                .build()
+        }
 
         addAction(replyAction)
     }

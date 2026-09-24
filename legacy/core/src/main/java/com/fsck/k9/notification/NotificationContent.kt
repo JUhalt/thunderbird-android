@@ -9,4 +9,6 @@ internal data class NotificationContent(
     val subject: String,
     val preview: CharSequence,
     val summary: CharSequence,
+    /** Encrypted messages can't be answered with a quick reply, which would be sent unencrypted. */
+    val isEncrypted: Boolean = false,
 )

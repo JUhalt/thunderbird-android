@@ -9,6 +9,7 @@ import com.fsck.k9.job.jobModule
 import com.fsck.k9.mailstore.mailStoreModule
 import com.fsck.k9.message.extractors.extractorModule
 import com.fsck.k9.message.html.htmlModule
+import com.fsck.k9.message.messageModule
 import com.fsck.k9.message.quote.quoteModule
 import com.fsck.k9.notification.coreNotificationModule
 import com.fsck.k9.power.powerModule
@@ -26,6 +27,7 @@ val legacyCoreModules = listOf(
     extractorModule,
     htmlModule,
     quoteModule,
+    messageModule,
     coreNotificationModule,
     controllerModule,
     controllerPushModule,
