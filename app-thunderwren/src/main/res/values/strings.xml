@@ -1,10 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ThunderWren</string>
-    <string name="brand_name" translatable="false">Thunderbird</string>
-    <string name="welcome_thunderwren">Welcome to ThunderWren</string>
-    <string name="thunderwren_subtitle">Thunderbird for Wear OS</string>
-    <string name="open_inbox">Open Inbox</string>
     <string name="tile_name">Unread Emails</string>
     <string name="complication_name">Unread Count</string>
+
+    <string name="mailbox_unified">All inboxes</string>
+    <string name="mailbox_picker_title">Mailboxes</string>
+    <string name="mailbox_switch_description">Switch mailbox. Showing %1$s.</string>
+
+    <string name="inbox_unread_count">%1$d unread</string>
+    <string name="inbox_empty">No messages</string>
+    <string name="inbox_refresh">Refresh</string>
+    <string name="inbox_refreshing">Refreshing…</string>
+    <string name="inbox_loading">Loading…</string>
+
+    <string name="not_connected_title">Connect your phone</string>
+    <string name="not_connected_text">Open Thunderbird on your paired phone to see your mail here.</string>
+    <string name="retry">Try again</string>
+
+    <string name="message_unread_indicator">Unread</string>
+    <string name="message_starred_indicator">Starred</string>
+    <string name="message_no_subject">(No subject)</string>
+    <string name="message_encrypted">Encrypted message. Open it on your phone to read it.</string>
+    <string name="message_not_found">This message is no longer in the inbox.</string>
+
+    <string name="action_open_on_phone">Open on phone</string>
+    <string name="action_mark_unread">Mark unread</string>
+    <string name="action_mark_read">Mark read</string>
+    <string name="action_star">Star</string>
+    <string name="action_unstar">Unstar</string>
+    <string name="action_archive">Archive</string>
+    <string name="action_delete">Delete</string>
+
+    <string name="error_no_phone">Your phone isn\'t connected.</string>
+    <string name="error_archive_unavailable">This account has no Archive folder.</string>
+    <string name="error_failed">That didn\'t work. Try again on your phone.</string>
+
+    <string name="tile_unread_count">%1$d unread</string>
+    <string name="tile_not_connected">Open Thunderbird on your phone</string>
 </resources>
