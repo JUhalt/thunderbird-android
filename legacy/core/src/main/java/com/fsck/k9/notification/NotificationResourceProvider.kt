@@ -20,6 +20,7 @@ interface NotificationResourceProvider {
     val wearIconArchive: Int
     val wearIconReplyAll: Int
     val wearIconMarkAsSpam: Int
+    val wearIconStar: Int
 
     val pushChannelName: String
     val pushChannelDescription: String

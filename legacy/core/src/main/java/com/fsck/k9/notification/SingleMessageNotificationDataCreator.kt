@@ -68,21 +68,16 @@ internal class SingleMessageNotificationDataCreator(
         )
     }
 
+    // Wear shows every available action in a scrollable list, so there's no cutoff, but the user's order still applies.
     private fun createSingleNotificationWearActions(account: LegacyAccountDto): List<WearNotificationAction> {
-        return buildList {
-            add(WearNotificationAction.Reply)
-            add(WearNotificationAction.MarkAsRead)
-
-            if (isDeleteActionAvailableForWear()) {
-                add(WearNotificationAction.Delete)
-            }
-
-            if (account.hasArchiveFolder()) {
-                add(WearNotificationAction.Archive)
-            }
-
-            if (isSpamActionAvailableForWear(account)) {
-                add(WearNotificationAction.Spam)
+        return parseActionsOrder(notificationSettings.messageActionsOrder).mapNotNull { action ->
+            when (action) {
+                NotificationAction.Reply -> WearNotificationAction.Reply
+                NotificationAction.MarkAsRead -> WearNotificationAction.MarkAsRead
+                NotificationAction.Delete -> WearNotificationAction.Delete.takeIf { isDeleteActionAvailableForWear() }
+                NotificationAction.Archive -> WearNotificationAction.Archive.takeIf { account.hasArchiveFolder() }
+                NotificationAction.Spam -> WearNotificationAction.Spam.takeIf { isSpamActionAvailableForWear(account) }
+                NotificationAction.Star -> WearNotificationAction.Star
             }
         }
     }

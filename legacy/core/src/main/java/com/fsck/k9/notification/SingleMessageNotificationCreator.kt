@@ -156,6 +156,7 @@ internal class SingleMessageNotificationCreator(
                     WearNotificationAction.Delete -> addDeleteAction(notificationData)
                     WearNotificationAction.Archive -> addArchiveAction(notificationData)
                     WearNotificationAction.Spam -> addMarkAsSpamAction(notificationData)
+                    WearNotificationAction.Star -> addStarAction(notificationData)
                 }
             }
         }
@@ -211,6 +212,16 @@ internal class SingleMessageNotificationCreator(
         val spamAction = NotificationCompat.Action.Builder(icon, title, action).build()
 
         addAction(spamAction)
+    }
+
+    private fun WearableExtender.addStarAction(notificationData: SingleNotificationData) {
+        val icon = resourceProvider.wearIconStar
+        val title = resourceProvider.actionStar()
+        val messageReference = notificationData.content.messageReference
+        val action = actionCreator.createMarkMessageAsStarPendingIntent(messageReference)
+        val starAction = NotificationCompat.Action.Builder(icon, title, action).build()
+
+        addAction(starAction)
     }
 
     private fun NotificationBuilder.setLockScreenNotification(

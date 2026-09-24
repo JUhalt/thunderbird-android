@@ -27,6 +27,7 @@ class K9NotificationResourceProvider(private val context: Context) : Notificatio
     override val wearIconArchive: Int = Icons.Outlined.Archive
     override val wearIconReplyAll: Int = Icons.Outlined.Reply
     override val wearIconMarkAsSpam: Int = Icons.Outlined.Report
+    override val wearIconStar: Int = Icons.Outlined.Star
 
     override val pushChannelName: String
         get() = context.getString(R.string.notification_channel_push_title)
