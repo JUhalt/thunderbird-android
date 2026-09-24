@@ -14,9 +14,13 @@ import kotlinx.coroutines.test.runTest
 import net.thunderbird.feature.wear.companion.WearCompanion
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMessageAction
+import net.thunderbird.wear.R
 
 class DemoPhoneConnectionTest {
-    private val demo = DemoPhoneConnection(now = { 1_700_000_000_000 })
+    private val demo = DemoPhoneConnection(
+        getString = { id -> if (id == R.string.demo_account_work) "Work" else "text $id" },
+        now = { 1_700_000_000_000 },
+    )
 
     @Test
     fun `offers the unified inbox and two accounts, with consistent unread counts`() = runTest {

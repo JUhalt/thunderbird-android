@@ -181,6 +181,7 @@ private fun MessageCard(
                     starredDescription.takeIf { message.isStarred },
                     message.senderName,
                     message.subject,
+                    formatMessageDate(message.date),
                 ).joinToString(". ")
             },
         title = {
