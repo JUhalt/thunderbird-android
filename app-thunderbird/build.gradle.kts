@@ -257,6 +257,10 @@ dependencies {
 
     "fossImplementation"(projects.feature.funding.link)
 
+    // The Wear OS companion uses the Wearable Data Layer, which needs Google Play Services.
+    "fossImplementation"(projects.feature.wear.companion.noop)
+    "fullImplementation"(projects.feature.wear.companion.internal)
+
     fullDebugImplementation(projects.feature.funding.googleplay)
     fullDailyImplementation(projects.feature.funding.googleplay)
     fullBetaImplementation(projects.feature.funding.googleplay)

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@array/android_wear_capabilities"
+    >
+    <!-- Lets the watch app find this phone app over the Wearable Data Layer. Must match WearCompanion.PHONE_CAPABILITY. -->
+    <string-array name="android_wear_capabilities" translatable="false">
+        <item>thunderbird_wear_companion</item>
+    </string-array>
+</resources>
