@@ -9,10 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -24,11 +20,11 @@ import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.Card
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
 import net.thunderbird.wear.crypto.PgpMessageHelper
 import net.thunderbird.wear.ui.model.EmailMessage
 import net.thunderbird.wear.ui.model.SampleEmailData
-import net.thunderbird.wear.ui.reply.QuickReplySheet
 import net.thunderbird.wear.ui.theme.ThunderWrenTheme
 
 @Composable
@@ -36,28 +32,19 @@ fun MessageDetailScreen(
     message: EmailMessage,
     onArchiveClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
-    onSendReply: (String) -> Unit = {},
+    onReplyClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    var showReplySheet by remember { mutableStateOf(false) }
+    val listState = rememberScalingLazyListState()
 
-    if (showReplySheet) {
-        QuickReplySheet(
-            recipientName = message.header.senderName,
-            onSendReply = { reply ->
-                showReplySheet = false
-                onSendReply(reply)
-            },
-            onDismiss = { showReplySheet = false },
-        )
-    } else {
-        val listState = rememberScalingLazyListState()
-        val isPgp = PgpMessageHelper.isPgpEncrypted(message.body)
-        val displayBody = PgpMessageHelper.formatPgpSummary(message.body)
-
+    ScreenScaffold(
+        scrollState = listState,
+        modifier = modifier.fillMaxSize(),
+    ) { contentPadding ->
         ScalingLazyColumn(
-            modifier = modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             state = listState,
+            contentPadding = contentPadding,
         ) {
             item {
                 ListHeader {
@@ -70,63 +57,16 @@ fun MessageDetailScreen(
             }
 
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                ) {
-                    Text(
-                        text = message.header.subject,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-
-                    if (isPgp) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "🔒 OpenPGP Encrypted",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.secondary,
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = message.header.senderAddress,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-
-                    Text(
-                        text = message.header.dateText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                MessageHeaderDetails(message = message)
             }
 
             item {
-                Card(
-                    onClick = {},
-                    enabled = false,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                ) {
-                    Text(
-                        text = displayBody,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(4.dp),
-                    )
-                }
+                MessageBody(body = message.body)
             }
 
             item {
                 Button(
-                    onClick = { showReplySheet = true },
+                    onClick = onReplyClick,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp),
@@ -136,36 +76,111 @@ fun MessageDetailScreen(
             }
 
             item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Button(
-                        onClick = onArchiveClick,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(text = "Archive")
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Button(
-                        onClick = onDeleteClick,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(text = "Delete")
-                    }
-                }
+                MessageActions(
+                    onArchiveClick = onArchiveClick,
+                    onDeleteClick = onDeleteClick,
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun MessageHeaderDetails(
+    message: EmailMessage,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+    ) {
+        Text(
+            text = message.header.subject,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+
+        if (PgpMessageHelper.isPgpEncrypted(message.body)) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "🔒 OpenPGP Encrypted",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.secondary,
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = message.header.senderAddress,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        Text(
+            text = message.header.dateText,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun MessageBody(
+    body: String,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        onClick = {},
+        enabled = false,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+    ) {
+        Text(
+            text = PgpMessageHelper.formatPgpSummary(body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(4.dp),
+        )
+    }
+}
+
+@Composable
+private fun MessageActions(
+    onArchiveClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Button(
+            onClick = onArchiveClick,
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(text = "Archive")
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Button(
+            onClick = onDeleteClick,
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(text = "Delete")
         }
     }
 }
 
 @Preview(device = "id:wearos_small_round", showSystemUi = true)
 @Composable
-fun MessageDetailScreenPreview() {
+private fun MessageDetailScreenPreview() {
     ThunderWrenTheme {
         MessageDetailScreen(
             message = SampleEmailData.getSampleMessage("1"),

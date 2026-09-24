@@ -3,6 +3,8 @@ package net.thunderbird.wear.ui.inbox
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fsck.k9.Preferences
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +15,7 @@ import net.thunderbird.wear.ui.model.SampleEmailData
 
 sealed interface InboxUiState {
     data object Loading : InboxUiState
-    data class Success(val headers: List<EmailHeader>, val hasAccounts: Boolean) : InboxUiState
+    data class Success(val headers: ImmutableList<EmailHeader>, val hasAccounts: Boolean) : InboxUiState
     data class Empty(val message: String) : InboxUiState
 }
 
@@ -47,7 +49,7 @@ class InboxViewModel(
                         dateText = "Now",
                         isUnread = true,
                     ),
-                ) + SampleEmailData.sampleHeaders
+                ).plus(SampleEmailData.sampleHeaders).toImmutableList()
                 _uiState.value = InboxUiState.Success(headers = realHeaders, hasAccounts = true)
             } else {
                 // Demo / sample mode when no accounts are configured yet on device

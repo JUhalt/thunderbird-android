@@ -13,24 +13,13 @@ import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
-
-object PresetQuickReplies {
-    val defaultReplies = listOf(
-        "👍 Yes, got it!",
-        "👎 No, sorry.",
-        "😊 Thanks!",
-        "📍 On my way!",
-        "⏳ I'll reply later.",
-        "📞 Call me when free.",
-    )
-}
 
 @Composable
 fun QuickReplySheet(
     recipientName: String,
     onSendReply: (String) -> Unit,
-    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberScalingLazyListState()
@@ -43,39 +32,45 @@ fun QuickReplySheet(
         }
     }
 
-    ScalingLazyColumn(
+    ScreenScaffold(
+        scrollState = listState,
         modifier = modifier.fillMaxSize(),
-        state = listState,
-    ) {
-        item {
-            ListHeader {
-                Text(
-                    text = "Reply to $recipientName",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+    ) { contentPadding ->
+        ScalingLazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            state = listState,
+            contentPadding = contentPadding,
+        ) {
+            item {
+                ListHeader {
+                    Text(
+                        text = "Reply to $recipientName",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
-        }
 
-        item {
-            Button(
-                onClick = { voiceLauncher.launch("Speak your reply") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
-            ) {
-                Text(text = "🎤 Voice Dictation")
+            item {
+                Button(
+                    onClick = { voiceLauncher.launch("Speak your reply") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                ) {
+                    Text(text = "🎤 Voice Dictation")
+                }
             }
-        }
 
-        items(PresetQuickReplies.defaultReplies) { replyText ->
-            Button(
-                onClick = { onSendReply(replyText) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp),
-            ) {
-                Text(text = replyText)
+            items(PresetQuickReplies.defaultReplies) { replyText ->
+                Button(
+                    onClick = { onSendReply(replyText) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                ) {
+                    Text(text = replyText)
+                }
             }
         }
     }

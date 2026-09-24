@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber")
+
 package net.thunderbird.wear.ui.theme
 
 import androidx.compose.runtime.Composable
