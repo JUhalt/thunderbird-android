@@ -114,9 +114,10 @@ class DataLayerPhoneConnection(
 
     /** Emits the data of the item at [path] now and whenever the phone changes or deletes it. */
     private fun dataItem(path: String): Flow<ByteArray?> = callbackFlow {
-        // Without a host the URI matches the item whichever node (phone) published it.
+        // The wildcard host (wear://*/path) matches the item whichever node (phone) published it.
         val uri = Uri.Builder()
             .scheme(PutDataRequest.WEAR_URI_SCHEME)
+            .authority(ANY_NODE)
             .path(path)
             .build()
 
@@ -150,5 +151,6 @@ class DataLayerPhoneConnection(
 
     private companion object {
         const val TAG = "ThunderWren"
+        const val ANY_NODE = "*"
     }
 }

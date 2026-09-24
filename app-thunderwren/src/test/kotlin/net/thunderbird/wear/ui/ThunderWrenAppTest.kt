@@ -1,10 +1,13 @@
 package net.thunderbird.wear.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import assertk.assertThat
+import assertk.assertions.containsExactly
+import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.wear.ThunderWrenApplication
 import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.SelectedMailboxStore
@@ -52,6 +55,27 @@ class ThunderWrenAppTest {
         composeRule.setContent { ThunderWrenApp() }
 
         composeRule.onNodeWithText("Connect your phone").assertIsDisplayed()
+    }
+
+    @Test
+    fun `opens a message and archives it`() {
+        // Real message IDs are MessageReference identity strings with characters that need encoding in routes.
+        val messageId = "#:YWNj+b3VudA==:MQ==:dW/lk"
+        phone.publish(
+            mailboxes = listOf(mailbox(UNIFIED)),
+            inboxes = mapOf(
+                UNIFIED to listOf(message(messageId, senderName = "Ada", subject = "Engine notes", isRead = true)),
+            ),
+        )
+        composeRule.setContent { ThunderWrenApp() }
+
+        composeRule.onNodeWithText("Ada").performClick()
+        composeRule.onNodeWithText("Engine notes").assertIsDisplayed()
+        composeRule.onNodeWithText("Archive").performClick()
+
+        composeRule.waitUntil { phone.performedActions.isNotEmpty() }
+        assertThat(phone.performedActions).containsExactly(messageId to WearMessageAction.ARCHIVE)
+        composeRule.onNodeWithText("All inboxes").assertIsDisplayed()
     }
 
     @Test

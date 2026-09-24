@@ -70,10 +70,16 @@ internal class PlayServicesWearDataLayer(
         }
     }
 
+    /** A URI matching [path] on any node, using the wildcard host `*`. */
     private fun wearUri(path: String): Uri {
         return Uri.Builder()
             .scheme(PutDataRequest.WEAR_URI_SCHEME)
+            .authority(ANY_NODE)
             .path(path)
             .build()
+    }
+
+    private companion object {
+        const val ANY_NODE = "*"
     }
 }
