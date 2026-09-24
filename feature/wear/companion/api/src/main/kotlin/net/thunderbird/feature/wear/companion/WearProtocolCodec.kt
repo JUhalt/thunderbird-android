@@ -21,6 +21,14 @@ object WearProtocolCodec {
         return snapshot.takeIf { it.version == WearCompanion.PROTOCOL_VERSION }
     }
 
+    fun encodeMailboxes(mailboxes: WearMailboxList): ByteArray = encode(WearMailboxList.serializer(), mailboxes)
+
+    /** Returns `null` if [bytes] isn't a mailbox list this version understands. */
+    fun decodeMailboxes(bytes: ByteArray): WearMailboxList? {
+        val mailboxes = decode(WearMailboxList.serializer(), bytes) ?: return null
+        return mailboxes.takeIf { it.version == WearCompanion.PROTOCOL_VERSION }
+    }
+
     fun encodeRequest(request: WearRequest): ByteArray = encode(WearRequest.serializer(), request)
 
     /** Returns `null` if [bytes] isn't a request this version understands. */
