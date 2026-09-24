@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import net.thunderbird.feature.wear.companion.WearCompanion
+import net.thunderbird.feature.wear.companion.WearGlanceVisibility
 import net.thunderbird.feature.wear.companion.WearInboxSnapshot
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMailboxList
@@ -21,7 +22,11 @@ class FakePhoneConnection(isDemo: Boolean = false) : PhoneConnection {
     var refreshCount = 0
     var actionResult: PhoneResult = PhoneResult.Success
     var openOnPhoneResult: PhoneResult = PhoneResult.Success
+    var markAllReadResult: PhoneResult = PhoneResult.Success
+    var replyResult: PhoneResult = PhoneResult.Success
     val performedActions = mutableListOf<Pair<String, WearMessageAction>>()
+    val markedAllRead = mutableListOf<String>()
+    val replies = mutableListOf<Pair<String, String>>()
     val openedOnPhone = mutableListOf<String>()
 
     override val mailboxes: Flow<WearMailboxList?> = mailboxList
@@ -30,8 +35,12 @@ class FakePhoneConnection(isDemo: Boolean = false) : PhoneConnection {
 
     override fun inbox(mailboxId: String): Flow<WearInboxSnapshot?> = inboxFlow(mailboxId)
 
-    fun publish(mailboxes: List<WearMailbox>, inboxes: Map<String, List<WearMessageSummary>>) {
-        mailboxList.value = WearMailboxList(generatedAt = 1, mailboxes = mailboxes)
+    fun publish(
+        mailboxes: List<WearMailbox>,
+        inboxes: Map<String, List<WearMessageSummary>>,
+        glanceVisibility: WearGlanceVisibility = WearGlanceVisibility.EVERYTHING,
+    ) {
+        mailboxList.value = WearMailboxList(generatedAt = 1, mailboxes = mailboxes, glanceVisibility = glanceVisibility)
         for ((mailboxId, messages) in inboxes) {
             inboxFlow(mailboxId).value = WearInboxSnapshot(
                 mailboxId = mailboxId,
@@ -52,6 +61,16 @@ class FakePhoneConnection(isDemo: Boolean = false) : PhoneConnection {
     override suspend fun performAction(messageId: String, action: WearMessageAction): PhoneResult {
         performedActions += messageId to action
         return actionResult
+    }
+
+    override suspend fun markAllRead(mailboxId: String): PhoneResult {
+        markedAllRead += mailboxId
+        return markAllReadResult
+    }
+
+    override suspend fun reply(messageId: String, text: String): PhoneResult {
+        replies += messageId to text
+        return replyResult
     }
 
     override suspend fun openOnPhone(messageId: String): PhoneResult {
@@ -80,13 +99,23 @@ class FakeSelectedMailboxStore(initial: String = WearCompanion.UNIFIED_MAILBOX_I
     }
 }
 
-fun mailbox(id: String, name: String = id, unreadCount: Int = 0) = WearMailbox(
-    id = id,
-    name = if (id == WearCompanion.UNIFIED_MAILBOX_ID) "" else name,
-    email = if (id == WearCompanion.UNIFIED_MAILBOX_ID) "" else "$id@example.com",
-    color = if (id == WearCompanion.UNIFIED_MAILBOX_ID) null else 0xFF0A84FF.toInt(),
-    unreadCount = unreadCount,
-)
+/** A mailbox as the phone publishes it: named with a color and monogram for accounts, unnamed for views. */
+fun mailbox(
+    id: String,
+    name: String = id,
+    unreadCount: Int = 0,
+    monogram: String = name.take(2).uppercase(),
+): WearMailbox {
+    val isAccount = id !in listOf(UNIFIED, UNREAD, STARRED)
+    return WearMailbox(
+        id = id,
+        name = if (isAccount) name else "",
+        email = if (isAccount) "$id@example.com" else "",
+        color = if (isAccount) 0xFF0A84FF.toInt() else null,
+        unreadCount = unreadCount,
+        monogram = if (isAccount) monogram else "",
+    )
+}
 
 fun message(
     id: String,
@@ -94,6 +123,8 @@ fun message(
     subject: String = "Subject $id",
     isRead: Boolean = false,
     isStarred: Boolean = false,
+    isEncrypted: Boolean = false,
+    accountId: String = "",
 ) = WearMessageSummary(
     id = id,
     senderName = senderName,
@@ -104,8 +135,11 @@ fun message(
     isRead = isRead,
     isStarred = isStarred,
     hasAttachments = false,
-    isEncrypted = false,
+    isEncrypted = isEncrypted,
     accountColor = 0xFF0A84FF.toInt(),
+    accountId = accountId,
 )
 
 const val UNIFIED = WearCompanion.UNIFIED_MAILBOX_ID
+const val UNREAD = WearCompanion.UNREAD_MAILBOX_ID
+const val STARRED = WearCompanion.STARRED_MAILBOX_ID

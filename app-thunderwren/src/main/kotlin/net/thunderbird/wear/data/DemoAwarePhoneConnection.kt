@@ -55,6 +55,10 @@ class DemoAwarePhoneConnection(
         return current().performAction(messageId, action)
     }
 
+    override suspend fun markAllRead(mailboxId: String): PhoneResult = current().markAllRead(mailboxId)
+
+    override suspend fun reply(messageId: String, text: String): PhoneResult = current().reply(messageId, text)
+
     override suspend fun openOnPhone(messageId: String): PhoneResult = current().openOnPhone(messageId)
 
     private suspend fun current(): PhoneConnection = source.first() ?: phone

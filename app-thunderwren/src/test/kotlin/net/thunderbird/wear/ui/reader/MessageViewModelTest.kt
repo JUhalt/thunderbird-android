@@ -16,11 +16,13 @@ import kotlinx.coroutines.test.runTest
 import net.thunderbird.components.ui.testing.coroutines.MainDispatcherHelper
 import net.thunderbird.feature.wear.companion.WearErrorReason
 import net.thunderbird.feature.wear.companion.WearMessageAction
+import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
 import net.thunderbird.wear.data.PhoneResult
 import net.thunderbird.wear.testing.FakePhoneConnection
-import net.thunderbird.wear.testing.FakeSelectedMailboxStore
+import net.thunderbird.wear.testing.STARRED
 import net.thunderbird.wear.testing.UNIFIED
+import net.thunderbird.wear.testing.UNREAD
 import net.thunderbird.wear.testing.mailbox
 import net.thunderbird.wear.testing.message
 
@@ -133,13 +135,74 @@ class MessageViewModelTest {
         assertThat(viewModel.uiState.value.errorMessage).isEqualTo(R.string.error_no_phone)
     }
 
-    private fun publish(vararg messages: net.thunderbird.feature.wear.companion.WearMessageSummary) {
+    @Test
+    fun `message opened from the unread view stays open after it's read`() = runTest {
+        phone.publish(
+            mailboxes = listOf(mailbox(UNIFIED), mailbox(UNREAD)),
+            inboxes = mapOf(UNIFIED to listOf(message("m1")), UNREAD to listOf(message("m1"))),
+        )
+        val viewModel = createViewModel("m1", mailboxId = UNREAD)
+        advanceUntilIdle()
+
+        // The phone applies MARK_READ: the message leaves the unread view but is still in the unified inbox.
+        phone.publish(
+            mailboxes = listOf(mailbox(UNIFIED), mailbox(UNREAD)),
+            inboxes = mapOf(UNIFIED to listOf(message("m1", isRead = true)), UNREAD to emptyList()),
+        )
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.message?.isRead).isEqualTo(true)
+    }
+
+    @Test
+    fun `old message opened from the starred view is kept after it's unstarred`() = runTest {
+        phone.publish(
+            mailboxes = listOf(mailbox(UNIFIED), mailbox(STARRED)),
+            inboxes = mapOf(UNIFIED to emptyList(), STARRED to listOf(message("m1", isRead = true, isStarred = true))),
+        )
+        val viewModel = createViewModel("m1", mailboxId = STARRED)
+        advanceUntilIdle()
+
+        phone.publish(
+            mailboxes = listOf(mailbox(UNIFIED), mailbox(STARRED)),
+            inboxes = mapOf(UNIFIED to emptyList(), STARRED to emptyList()),
+        )
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.message?.id).isEqualTo("m1")
+    }
+
+    @Test
+    fun `account is shown when there are several accounts`() = runTest {
+        phone.publish(
+            mailboxes = listOf(mailbox(UNIFIED), mailbox("work", name = "Work"), mailbox("home", name = "Home")),
+            inboxes = mapOf(UNIFIED to listOf(message("m1", isRead = true, accountId = "home"))),
+        )
+        val viewModel = createViewModel("m1")
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.account?.name).isEqualTo("Home")
+    }
+
+    @Test
+    fun `encrypted messages can't be replied to on the watch`() = runTest {
+        publish(message("m1", isRead = true, isEncrypted = true), message("m2", isRead = true))
+
+        val encrypted = createViewModel("m1")
+        val plain = createViewModel("m2")
+        advanceUntilIdle()
+
+        assertThat(encrypted.uiState.value.canReply).isFalse()
+        assertThat(plain.uiState.value.canReply).isTrue()
+    }
+
+    private fun publish(vararg messages: WearMessageSummary) {
         phone.publish(mailboxes = listOf(mailbox(UNIFIED)), inboxes = mapOf(UNIFIED to messages.toList()))
     }
 
-    private fun createViewModel(messageId: String) = MessageViewModel(
+    private fun createViewModel(messageId: String, mailboxId: String = UNIFIED) = MessageViewModel(
         messageId = messageId,
+        mailboxId = mailboxId,
         phoneConnection = phone,
-        selectedMailboxStore = FakeSelectedMailboxStore(),
     )
 }

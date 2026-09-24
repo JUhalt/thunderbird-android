@@ -2,6 +2,7 @@ package net.thunderbird.wear.ui.reader
 
 /** User actions on the message screen. */
 interface MessageActions {
+    fun onReply()
     fun onOpenOnPhone()
     fun onToggleRead()
     fun onToggleStar()

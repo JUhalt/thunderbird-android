@@ -16,6 +16,7 @@ import net.thunderbird.wear.data.SharedPreferencesSelectedMailboxStore
 import net.thunderbird.wear.ui.inbox.InboxViewModel
 import net.thunderbird.wear.ui.mailbox.MailboxPickerViewModel
 import net.thunderbird.wear.ui.reader.MessageViewModel
+import net.thunderbird.wear.ui.reply.ReplyViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -36,11 +37,10 @@ val thunderWrenModule = module {
 
     viewModel { InboxViewModel(phoneConnection = get(), selectedMailboxStore = get(), demoModeStore = get()) }
     viewModel { MailboxPickerViewModel(phoneConnection = get(), selectedMailboxStore = get()) }
-    viewModel { parameters ->
-        MessageViewModel(
-            messageId = parameters.get(),
-            phoneConnection = get(),
-            selectedMailboxStore = get(),
-        )
+    viewModel { (messageId: String, mailboxId: String) ->
+        MessageViewModel(messageId = messageId, mailboxId = mailboxId, phoneConnection = get())
+    }
+    viewModel { (messageId: String, mailboxId: String) ->
+        ReplyViewModel(messageId = messageId, mailboxId = mailboxId, phoneConnection = get())
     }
 }

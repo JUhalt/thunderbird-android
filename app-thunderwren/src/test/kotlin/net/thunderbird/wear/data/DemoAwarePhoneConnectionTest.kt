@@ -95,4 +95,23 @@ class DemoAwarePhoneConnectionTest {
 
         assertThat(connection.isDemo.first()).isTrue()
     }
+
+    @Test
+    fun `replies and mark all read go to the demo while it's shown, and to the phone after`() = runTest {
+        demo.publish(mailboxes = listOf(mailbox(UNIFIED)), inboxes = emptyMap())
+        demoMode.setEnabled(true)
+
+        connection.reply("demo-1", "Thanks!")
+        connection.markAllRead(UNIFIED)
+
+        assertThat(demo.replies).containsExactly("demo-1" to "Thanks!")
+        assertThat(demo.markedAllRead).containsExactly(UNIFIED)
+
+        phone.publish(mailboxes = listOf(mailbox(UNIFIED)), inboxes = emptyMap())
+        connection.reply("real-1", "OK")
+        connection.markAllRead("work")
+
+        assertThat(phone.replies).containsExactly("real-1" to "OK")
+        assertThat(phone.markedAllRead).containsExactly("work")
+    }
 }

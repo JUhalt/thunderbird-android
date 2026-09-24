@@ -12,6 +12,7 @@ import kotlin.test.Test
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import net.thunderbird.feature.wear.companion.WearCompanion
+import net.thunderbird.feature.wear.companion.WearGlanceVisibility
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.wear.R
@@ -23,14 +24,16 @@ class DemoPhoneConnectionTest {
     )
 
     @Test
-    fun `offers the unified inbox and two accounts, with consistent unread counts`() = runTest {
+    fun `offers the unified inbox, its views, and two accounts, with consistent unread counts`() = runTest {
         val mailboxes = demo.mailboxes.first()?.mailboxes.orEmpty()
 
-        assertThat(
-            mailboxes.map {
-                it.id
-            },
-        ).containsExactly(WearCompanion.UNIFIED_MAILBOX_ID, "demo-work", "demo-personal")
+        assertThat(mailboxes.map { it.id }).containsExactly(
+            WearCompanion.UNIFIED_MAILBOX_ID,
+            WearCompanion.UNREAD_MAILBOX_ID,
+            WearCompanion.STARRED_MAILBOX_ID,
+            "demo-work",
+            "demo-personal",
+        )
 
         val unified = demo.inbox(WearCompanion.UNIFIED_MAILBOX_ID).first()
         val work = demo.inbox("demo-work").first()
@@ -78,12 +81,47 @@ class DemoPhoneConnectionTest {
     }
 
     @Test
-    fun `account mailboxes carry names and colors`() = runTest {
+    fun `account mailboxes carry names, colors, and monograms`() = runTest {
         val work = demo.mailboxes.first()?.mailboxes?.first { it.id == "demo-work" }
 
         assertThat(work).isNotNull().all {
             prop(WearMailbox::name).isEqualTo("Work")
             prop(WearMailbox::color).isNotNull()
+            prop(WearMailbox::monogram).isEqualTo("WO")
         }
+    }
+
+    @Test
+    fun `unread and starred views contain only unread and starred messages`() = runTest {
+        val unread = demo.inbox(WearCompanion.UNREAD_MAILBOX_ID).first()?.messages.orEmpty()
+        val starred = demo.inbox(WearCompanion.STARRED_MAILBOX_ID).first()?.messages.orEmpty()
+
+        assertThat(unread.all { !it.isRead }).isTrue()
+        assertThat(unread.size).isEqualTo(demo.mailboxes.first()!!.unifiedUnreadCount)
+        assertThat(starred.all { it.isStarred }).isTrue()
+        assertThat(starred.isNotEmpty()).isTrue()
+    }
+
+    @Test
+    fun `mark all read in an account leaves other accounts alone`() = runTest {
+        val result = demo.markAllRead("demo-work")
+
+        val mailboxes = demo.mailboxes.first()!!.mailboxes
+        assertThat(result).isEqualTo(PhoneResult.Success)
+        assertThat(mailboxes.first { it.id == "demo-work" }.unreadCount).isEqualTo(0)
+        assertThat(mailboxes.first { it.id == "demo-personal" }.unreadCount > 0).isTrue()
+    }
+
+    @Test
+    fun `messages know their account and the Tile may show everything`() = runTest {
+        val messages = demo.inbox(WearCompanion.UNIFIED_MAILBOX_ID).first()?.messages.orEmpty()
+
+        assertThat(messages.map { it.accountId }.toSet()).isEqualTo(setOf("demo-work", "demo-personal"))
+        assertThat(demo.mailboxes.first()?.glanceVisibility).isEqualTo(WearGlanceVisibility.EVERYTHING)
+    }
+
+    @Test
+    fun `replies can be tried`() = runTest {
+        assertThat(demo.reply("demo-welcome", "Thanks!")).isEqualTo(PhoneResult.Success)
     }
 }
