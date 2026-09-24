@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+
+        <!-- Receives requests from the watch app and notices when a watch connects. -->
+        <service
+            android:name="net.thunderbird.feature.wear.companion.internal.WearCompanionListenerService"
+            android:exported="true"
+            >
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.REQUEST_RECEIVED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/thunderwren/v1/request"
+                    android:scheme="wear"
+                    />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.CAPABILITY_CHANGED" />
+                <data
+                    android:host="*"
+                    android:path="/thunderwren_watch"
+                    android:scheme="wear"
+                    />
+            </intent-filter>
+        </service>
+
+        <!-- Opened by the watch app (RemoteActivityHelper) to show a message on the phone. -->
+        <activity
+            android:name="net.thunderbird.feature.wear.companion.internal.OpenOnPhoneActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            >
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="open"
+                    android:scheme="thunderwren"
+                    />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

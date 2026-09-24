@@ -182,6 +182,8 @@ include(
 
 include(
     ":feature:wear:companion:api",
+    ":feature:wear:companion:internal",
+    ":feature:wear:companion:noop",
 )
 
 include(
