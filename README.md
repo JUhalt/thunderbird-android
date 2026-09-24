@@ -31,40 +31,40 @@ It lives in a fork of the Thunderbird for Android repository. The design is prop
 
 ## ✅ What works today
 
-| Area | Status | Notes |
-|---|---|---|
-| Inbox on the watch | ✅ | The newest 25 messages with sender, subject, preview, date, and unread/starred state. |
-| All inboxes, Unread, Starred, or one account | ✅ | Tap the mailbox name at the top of the inbox to switch. "Unread" and "Starred" filter all inboxes. The watch remembers your choice. |
-| Account monograms | ✅ | In mixed views, each message shows its account's monogram and color, as in Thunderbird. |
-| Swipe to archive or delete | ✅ | Swipe a message to the left. A full swipe archives it. Screen readers get the same actions. |
-| Mark read/unread, star, archive, delete | ✅ | Sent to the phone, which applies them like the phone app does. Opening a message marks it as read. |
-| Mark all as read | ✅ | At the end of any mailbox, after a confirmation. |
-| Reply from the watch | ✅ | Speak, type, or pick a ready-made reply, review it, and send. Thunderbird on the phone sends it from the right account, with your signature and quoting settings, and marks the message as answered. Encrypted messages are answered on the phone. |
-| Open on phone | ✅ | Opens the message in Thunderbird on the phone, for reading in full. |
-| Tile | ✅ | Shows the unread count and the newest unread messages. Tap one to open it. |
-| Complication | ✅ | Shows the unread count on your watch face. |
-| Privacy | ✅ | The Tile and complication follow Thunderbird's **Lock Screen Notifications** setting (senders and subjects, senders only, count only, or nothing). The default is count only. |
-| Encrypted messages | ✅ | Shown as encrypted, with a prompt to read them on the phone. |
-| Works briefly offline | ✅ | The watch keeps the last data the phone sent. |
-| Demo mailbox | ✅ | **Try the demo** on the watch shows a sample mailbox where everything above works, no phone needed. Real data from Thunderbird on the phone replaces it automatically. |
-| Phone notifications on the watch | ✅ Improved | Thunderbird's notifications offer **Reply** (voice, keyboard, or ready-made replies, sent by the phone) and **Star** on the watch, and their actions follow your notification action order. |
-| Folders other than the inbox | ⬜ Not started | |
-| Standalone mode (no phone) | ⬜ Not planned yet | See the RFC for why the phone does the syncing. |
+|                     Area                     |      Status       |                                                                                                                       Notes                                                                                                                        |
+|----------------------------------------------|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Inbox on the watch                           | ✅                 | The newest 25 messages with sender, subject, preview, date, and unread/starred state.                                                                                                                                                              |
+| All inboxes, Unread, Starred, or one account | ✅                 | Tap the mailbox name at the top of the inbox to switch. "Unread" and "Starred" filter all inboxes. The watch remembers your choice.                                                                                                                |
+| Account monograms                            | ✅                 | In mixed views, each message shows its account's monogram and color, as in Thunderbird.                                                                                                                                                            |
+| Swipe to archive or delete                   | ✅                 | Swipe a message to the left. A full swipe archives it. Screen readers get the same actions.                                                                                                                                                        |
+| Mark read/unread, star, archive, delete      | ✅                 | Sent to the phone, which applies them like the phone app does. Opening a message marks it as read.                                                                                                                                                 |
+| Mark all as read                             | ✅                 | At the end of any mailbox, after a confirmation.                                                                                                                                                                                                   |
+| Reply from the watch                         | ✅                 | Speak, type, or pick a ready-made reply, review it, and send. Thunderbird on the phone sends it from the right account, with your signature and quoting settings, and marks the message as answered. Encrypted messages are answered on the phone. |
+| Open on phone                                | ✅                 | Opens the message in Thunderbird on the phone, for reading in full.                                                                                                                                                                                |
+| Tile                                         | ✅                 | Shows the unread count and the newest unread messages. Tap one to open it.                                                                                                                                                                         |
+| Complication                                 | ✅                 | Shows the unread count on your watch face.                                                                                                                                                                                                         |
+| Privacy                                      | ✅                 | The Tile and complication follow Thunderbird's **Lock Screen Notifications** setting (senders and subjects, senders only, count only, or nothing). The default is count only.                                                                      |
+| Encrypted messages                           | ✅                 | Shown as encrypted, with a prompt to read them on the phone.                                                                                                                                                                                       |
+| Works briefly offline                        | ✅                 | The watch keeps the last data the phone sent.                                                                                                                                                                                                      |
+| Demo mailbox                                 | ✅                 | **Try the demo** on the watch shows a sample mailbox where everything above works, no phone needed. Real data from Thunderbird on the phone replaces it automatically.                                                                             |
+| Phone notifications on the watch             | ✅ Improved        | Thunderbird's notifications offer **Reply** (voice, keyboard, or ready-made replies, sent by the phone) and **Star** on the watch, and their actions follow your notification action order.                                                        |
+| Folders other than the inbox                 | ⬜ Not started     |                                                                                                                                                                                                                                                    |
+| Standalone mode (no phone)                   | ⬜ Not planned yet | See the RFC for why the phone does the syncing.                                                                                                                                                                                                    |
 
 ---
 
 ## 🧱 How it works
 
 ```
- Phone: Thunderbird (full/Play build)             Watch: ThunderWren
- ┌──────────────────────────────────┐             ┌──────────────────────────┐
- │ :feature:wear:companion:internal │─ mailboxes ▶│ Inbox, mailbox picker,   │
- │  • publishes each mailbox        │─ inboxes ──▶│ message and reply        │
- │  • applies watch actions         │◀─ requests ─│ screens, Tile,           │
- │  • sends replies                 │             │ complication             │
- │  • "open on phone" entry point   │             │                          │
- └──────────────────────────────────┘             └──────────────────────────┘
-                 both use :feature:wear:companion:api (protocol)
+Phone: Thunderbird (full/Play build)             Watch: ThunderWren
+┌──────────────────────────────────┐             ┌──────────────────────────┐
+│ :feature:wear:companion:internal │─ mailboxes ▶│ Inbox, mailbox picker,   │
+│  • publishes each mailbox        │─ inboxes ──▶│ message and reply        │
+│  • applies watch actions         │◀─ requests ─│ screens, Tile,           │
+│  • sends replies                 │             │ complication             │
+│  • "open on phone" entry point   │             │                          │
+└──────────────────────────────────┘             └──────────────────────────┘
+                both use :feature:wear:companion:api (protocol)
 ```
 
 * **`:feature:wear:companion:api`**: the shared protocol, covering Data Layer paths, message and mailbox models, and the JSON codec.
