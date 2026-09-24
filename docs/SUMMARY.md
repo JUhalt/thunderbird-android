@@ -41,6 +41,7 @@ generator, in this case, **mdbook**. It defines the structure and navigation of 
     - [Template](engineering/rfcs/0000-rfc-template.md)
     - [Proposed]()
       - [0009 - UUIDv7 Identifier Migration](engineering/rfcs/0009-uuidv7-identifier-migration.md)
+      - [0010 - Wear OS Companion (Phone-First)](engineering/rfcs/0010-wear-os-companion.md)
     - [Accepted]()
       - [0001 - Changelog System Replacement](engineering/rfcs/0001-changelog-system-replacement.md)
       - [0002 - Thundermail – Add an Account interim screen](engineering/rfcs/0002-thundermail-add-an-account-interim-screen.md)
