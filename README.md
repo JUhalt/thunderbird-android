@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="images/thunderwren/thunderwren-logo.svg" width="160" alt="ThunderWren logo: a round watch showing a wren with a lightning-bolt tail perched on an envelope">
+</p>
+
 # ThunderWren 🐦⚡
 
 **A Wear OS email client prototype built on Thunderbird for Android.**
@@ -78,6 +82,8 @@ ThunderWren is an experiment in bringing privacy-focused, open-source email to s
 4. Select the **`app-thunderwren`** run configuration and the watch emulator, then click **Run ▶️** (`Shift + F10`).
 
 The debug build installs as **ThunderWren** with the application ID `net.thunderbird.wear.debug`.
+
+Debug builds are large (~150 MB) because they aren't shrunk. `./gradlew :app-thunderwren:assembleRelease` runs R8 and resource shrinking and produces a ~15 MB APK.
 
 ### Command line
 
