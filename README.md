@@ -15,6 +15,13 @@ It lives in a fork of the Thunderbird for Android repository. The design is prop
 >
 > **Just curious?** You don't need a phone. Install only the watch app and tap **Try the demo**.
 
+<p align="center">
+  <img src="images/thunderwren/screenshots/2-inbox-all.png" width="200" alt="Inbox showing All inboxes with unread messages">
+  <img src="images/thunderwren/screenshots/3-mailbox-picker.png" width="200" alt="Mailbox picker with All inboxes, Work, and Personal">
+  <img src="images/thunderwren/screenshots/5-message.png" width="200" alt="A message opened on the watch">
+</p>
+<p align="center"><em>The demo mailbox, rendered from the real watch UI.</em></p>
+
 ---
 
 ## ✅ What works today
