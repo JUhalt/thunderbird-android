@@ -242,6 +242,52 @@ class SingleMessageNotificationDataCreatorTest {
         assertThat(result.wearActions).doesNotContain(WearNotificationAction.Spam)
     }
 
+    @Test
+    fun `wear actions include star`() {
+        val result = createSingleNotificationData()
+
+        assertThat(result.wearActions).contains(WearNotificationAction.Star)
+    }
+
+    @Test
+    fun `wear actions follow the configured action order`() {
+        fakeInteractionPreferences.setConfirmDeleteFromNotification(false)
+        fakeNotificationPreferences.setMessageActions(
+            order = listOf("star", "delete", "reply", "mark_as_read"),
+            cutoff = 3,
+        )
+
+        val result = createSingleNotificationData()
+
+        assertThat(result.wearActions).containsExactly(
+            WearNotificationAction.Star,
+            WearNotificationAction.Delete,
+            WearNotificationAction.Reply,
+            WearNotificationAction.MarkAsRead,
+        )
+    }
+
+    @Test
+    fun `wear actions aren't limited by the phone's action cutoff`() {
+        fakeNotificationPreferences.setMessageActions(
+            order = listOf("reply", "mark_as_read", "star"),
+            cutoff = 1,
+        )
+
+        val result = createSingleNotificationData()
+
+        assertThat(result.actions).containsExactly(NotificationAction.Reply)
+        assertThat(result.wearActions).contains(WearNotificationAction.Star)
+    }
+
+    private fun createSingleNotificationData() = notificationDataCreator.createSingleNotificationData(
+        account = account,
+        notificationId = 0,
+        content = createNotificationContent(),
+        timestamp = 0,
+        addLockScreenNotification = false,
+    )
+
     private fun setMessageActions(cutoff: Int) {
         fakeNotificationPreferences.setMessageActions(
             order = listOf("reply", "mark_as_read", "delete", "archive", "spam"),
