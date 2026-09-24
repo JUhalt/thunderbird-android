@@ -8,6 +8,9 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import kotlin.test.Test
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -96,6 +99,23 @@ class WearSnapshotPublisherTest {
         assertThat(dataLayer.published).isEmpty()
     }
 
+    @Test
+    fun `changed setting republishes, but the current value doesn't`() = runTest {
+        val setting = MutableStateFlow("MESSAGE_COUNT")
+        val publisher = createPublisher(settingChanges = setting)
+        publisher.start()
+        advanceTimeBy(3.seconds)
+        dataLayer.published.clear()
+
+        setting.value = "MESSAGE_COUNT"
+        advanceTimeBy(3.seconds)
+        assertThat(dataLayer.published).isEmpty()
+
+        setting.value = "EVERYTHING"
+        advanceTimeBy(3.seconds)
+        assertThat(dataLayer.published).hasSize(1)
+    }
+
     private fun TestScope.advanceTimeBy(duration: kotlin.time.Duration) {
         testScheduler.advanceTimeBy(duration)
         testScheduler.runCurrent()
@@ -104,6 +124,7 @@ class WearSnapshotPublisherTest {
     private fun TestScope.createPublisher(
         unreadCount: Int = 0,
         source: WearPublicationSource = WearPublicationSource { publication(unreadCount) },
+        settingChanges: Flow<Any> = emptyFlow(),
     ): WearSnapshotPublisher {
         val dispatcher = StandardTestDispatcher(testScheduler)
         return WearSnapshotPublisher(
@@ -111,6 +132,7 @@ class WearSnapshotPublisherTest {
             dataLayer = dataLayer,
             messageListRepository = repository,
             logger = TestLogger(),
+            settingChanges = settingChanges,
             coroutineScope = backgroundScope,
             ioDispatcher = dispatcher,
         )

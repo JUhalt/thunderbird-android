@@ -50,6 +50,7 @@ class WearMessageSummaryMapperTest {
                 hasAttachments = true,
                 isEncrypted = false,
                 accountColor = 0x112233,
+                accountId = "account-1",
             ),
         )
     }

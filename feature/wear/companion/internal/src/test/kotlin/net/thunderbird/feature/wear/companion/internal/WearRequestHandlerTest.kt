@@ -8,6 +8,7 @@ import assertk.assertions.isEqualTo
 import kotlin.test.Test
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
+import net.thunderbird.feature.wear.companion.WearCompanion
 import net.thunderbird.feature.wear.companion.WearErrorReason
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.feature.wear.companion.WearProtocolCodec
@@ -18,6 +19,8 @@ class WearRequestHandlerTest {
 
     private val publisher = FakeWearInboxPublisher()
     private val actions = FakeWearMessageActions()
+    private val mailboxActions = FakeWearMailboxActions()
+    private val replySender = FakeWearReplySender()
 
     @Test
     fun `undecodable request is rejected`() = runTest {
@@ -73,6 +76,49 @@ class WearRequestHandlerTest {
         assertThat(publisher.requestPublishCount).isEqualTo(0)
     }
 
+    @Test
+    fun `reply is sent without surrounding whitespace and the inbox is republished`() = runTest {
+        val reference = MessageReference("account", 3, "uid")
+
+        val response = handle(WearRequest.Reply(reference.toIdentityString(), "  On my way  "))
+
+        assertThat(response).isEqualTo(WearResponse.Ok)
+        assertThat(replySender.replies).containsExactly(reference to "On my way")
+        assertThat(publisher.requestPublishCount).isEqualTo(1)
+    }
+
+    @Test
+    fun `empty or overly long replies are rejected`() = runTest {
+        val messageId = MessageReference("account", 3, "uid").toIdentityString()
+
+        val emptyResponse = handle(WearRequest.Reply(messageId, "   "))
+        val longResponse = handle(WearRequest.Reply(messageId, "x".repeat(WearCompanion.MAX_REPLY_LENGTH + 1)))
+
+        assertThat(emptyResponse).isEqualTo(WearResponse.Error(WearErrorReason.UNSUPPORTED_REQUEST))
+        assertThat(longResponse).isEqualTo(WearResponse.Error(WearErrorReason.UNSUPPORTED_REQUEST))
+        assertThat(replySender.replies).isEmpty()
+    }
+
+    @Test
+    fun `reply that couldn't be sent is reported`() = runTest {
+        replySender.response = WearResponse.Error(WearErrorReason.ACTION_NOT_AVAILABLE)
+        val reference = MessageReference("account", 3, "uid")
+
+        val response = handle(WearRequest.Reply(reference.toIdentityString(), "Thanks!"))
+
+        assertThat(response).isEqualTo(WearResponse.Error(WearErrorReason.ACTION_NOT_AVAILABLE))
+        assertThat(publisher.requestPublishCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `mark all read is applied to the mailbox and the inbox is republished`() = runTest {
+        val response = handle(WearRequest.MarkAllRead(WearCompanion.STARRED_MAILBOX_ID))
+
+        assertThat(response).isEqualTo(WearResponse.Ok)
+        assertThat(mailboxActions.markedAllRead).containsExactly(WearCompanion.STARRED_MAILBOX_ID)
+        assertThat(publisher.requestPublishCount).isEqualTo(1)
+    }
+
     private suspend fun kotlinx.coroutines.test.TestScope.handle(request: WearRequest): WearResponse? {
         return handle(WearProtocolCodec.encodeRequest(request))
     }
@@ -81,6 +127,8 @@ class WearRequestHandlerTest {
         val handler = WearRequestHandler(
             publisher = publisher,
             messageActions = actions,
+            mailboxActions = mailboxActions,
+            replySender = replySender,
             ioDispatcher = StandardTestDispatcher(testScheduler),
         )
         return WearProtocolCodec.decodeResponse(handler.handle(requestData))

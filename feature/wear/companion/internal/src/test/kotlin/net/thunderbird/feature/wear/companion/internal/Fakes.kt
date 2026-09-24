@@ -24,8 +24,11 @@ internal class FakeWearDataLayer(var isPaired: Boolean = true) : WearDataLayer {
     }
 }
 
-internal class FakeMessageListRepository : MessageListRepository {
+internal class FakeMessageListRepository(
+    private val messages: Map<String, List<MessageDetailsAccessor>> = emptyMap(),
+) : MessageListRepository {
     val listeners = mutableListOf<MessageListChangedListener>()
+    val queries = mutableListOf<Pair<String, List<String>>>()
 
     fun notifyChanged() = listeners.forEach { it.onMessageListChanged() }
 
@@ -49,7 +52,10 @@ internal class FakeMessageListRepository : MessageListRepository {
         selectionArgs: Array<String>,
         sortOrder: String,
         messageMapper: MessageMapper<T>,
-    ): List<T> = error("not used")
+    ): List<T> {
+        queries += accountUuid to selectionArgs.toList()
+        return messages[accountUuid].orEmpty().map(messageMapper::map)
+    }
 
     override fun <T> getThreadedMessages(
         accountUuid: String,
@@ -86,6 +92,24 @@ internal class FakeWearMessageActions(var response: WearResponse = WearResponse.
 
     override fun perform(reference: MessageReference, action: WearMessageAction): WearResponse {
         performed += reference to action
+        return response
+    }
+}
+
+internal class FakeWearMailboxActions(var response: WearResponse = WearResponse.Ok) : WearMailboxActions {
+    val markedAllRead = mutableListOf<String>()
+
+    override fun markAllRead(mailboxId: String): WearResponse {
+        markedAllRead += mailboxId
+        return response
+    }
+}
+
+internal class FakeWearReplySender(var response: WearResponse = WearResponse.Ok) : WearReplySender {
+    val replies = mutableListOf<Pair<MessageReference, String>>()
+
+    override fun reply(reference: MessageReference, text: String): WearResponse {
+        replies += reference to text
         return response
     }
 }

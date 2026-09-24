@@ -4,21 +4,23 @@ import app.k9mail.legacy.mailstore.MessageListRepository
 import app.k9mail.legacy.message.controller.MessageCountsProvider
 import com.fsck.k9.helper.MessageHelper
 import com.fsck.k9.mailstore.MessageColumns
-import com.fsck.k9.search.getLegacyAccounts
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import net.thunderbird.core.android.account.LegacyAccount
 import net.thunderbird.core.android.account.LegacyAccountManager
+import net.thunderbird.core.preference.LockScreenNotificationVisibility
+import net.thunderbird.feature.account.avatar.AvatarMonogramCreator
+import net.thunderbird.feature.account.storage.profile.AvatarTypeDto
 import net.thunderbird.feature.search.legacy.LocalMessageSearch
-import net.thunderbird.feature.search.legacy.SearchAccount
 import net.thunderbird.feature.search.legacy.sql.SqlWhereClause
 import net.thunderbird.feature.wear.companion.WearCompanion
+import net.thunderbird.feature.wear.companion.WearGlanceVisibility
 import net.thunderbird.feature.wear.companion.WearInboxSnapshot
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageSummary
 
-/** Everything the phone publishes for the watch: the mailbox list and one inbox snapshot per mailbox. */
+/** Everything the phone publishes for the watch: the mailbox list and one snapshot per mailbox. */
 internal data class WearPublication(
     val mailboxes: WearMailboxList,
     val inboxes: List<WearInboxSnapshot>,
@@ -29,71 +31,73 @@ internal fun interface WearPublicationSource {
 }
 
 /**
- * Loads the unified inbox (the same set of folders the message list widget shows) and each account's inbox.
+ * Loads the unified inbox, its unread and starred views, and each account's inbox.
  */
 @OptIn(ExperimentalTime::class)
+@Suppress("LongParameterList")
 internal class InboxPublicationSource(
     private val accountManager: LegacyAccountManager,
     private val messageListRepository: MessageListRepository,
     private val messageCountsProvider: MessageCountsProvider,
     private val messageHelper: MessageHelper,
+    private val monogramCreator: AvatarMonogramCreator,
+    private val lockScreenNotificationVisibility: () -> LockScreenNotificationVisibility,
     private val clock: Clock,
 ) : WearPublicationSource {
 
     override fun load(): WearPublication {
         val generatedAt = clock.now().toEpochMilliseconds()
-
-        // The title and detail are only used for display, which the watch does itself.
-        val unifiedInbox = SearchAccount.createUnifiedFoldersSearch(title = "", detail = "")
-        val unifiedSearch = unifiedInbox.relatedSearch
-        val unifiedSnapshot = WearInboxSnapshot(
-            mailboxId = WearCompanion.UNIFIED_MAILBOX_ID,
-            generatedAt = generatedAt,
-            unreadCount = messageCountsProvider.getMessageCounts(unifiedInbox).unread,
-            messages = loadMessages(unifiedSearch.getLegacyAccounts(accountManager), unifiedSearch),
-        )
-
         val accounts = accountManager.getAccounts()
-        val accountSnapshots = accounts.map { account -> loadAccountInbox(account, generatedAt) }
 
-        val mailboxes = listOf(
+        val viewSnapshots = WearMailboxSearches.unifiedViewIds.map { mailboxId ->
+            loadSnapshot(mailboxId, accounts, WearMailboxSearches.unifiedView(mailboxId), generatedAt)
+        }
+        val accountSnapshots = accounts.map { account ->
+            val search = WearMailboxSearches.accountInbox(account.uuid, account.inboxFolderId)
+            loadSnapshot(account.uuid, listOf(account), search, generatedAt)
+        }
+
+        val mailboxes = viewSnapshots.map { snapshot ->
             WearMailbox(
-                id = WearCompanion.UNIFIED_MAILBOX_ID,
+                id = snapshot.mailboxId,
                 name = "",
                 email = "",
                 color = null,
-                unreadCount = unifiedSnapshot.unreadCount,
-            ),
-        ) + accounts.zip(accountSnapshots) { account, snapshot ->
+                unreadCount = snapshot.unreadCount,
+            )
+        } + accounts.zip(accountSnapshots) { account, snapshot ->
             WearMailbox(
                 id = account.uuid,
-                name = account.name?.takeIf { it.isNotBlank() } ?: account.email,
+                name = account.displayName,
                 email = account.email,
                 color = account.profile.color,
                 unreadCount = snapshot.unreadCount,
+                monogram = account.monogram(),
             )
         }
 
         return WearPublication(
-            mailboxes = WearMailboxList(generatedAt = generatedAt, mailboxes = mailboxes),
-            inboxes = listOf(unifiedSnapshot) + accountSnapshots,
+            mailboxes = WearMailboxList(
+                generatedAt = generatedAt,
+                mailboxes = mailboxes,
+                glanceVisibility = lockScreenNotificationVisibility().toGlanceVisibility(),
+            ),
+            inboxes = viewSnapshots + accountSnapshots,
         )
     }
 
-    private fun loadAccountInbox(account: LegacyAccount, generatedAt: Long): WearInboxSnapshot {
-        // The inbox folder is unknown until the account's folder list has been synced for the first time.
-        val search = account.inboxFolderId?.let { inboxFolderId ->
-            LocalMessageSearch().apply {
-                addAccountUuid(account.uuid)
-                addAllowedFolder(inboxFolderId)
-            }
-        }
-
+    /** [search] is `null` for an account whose inbox isn't known yet; its snapshot is empty. */
+    private fun loadSnapshot(
+        mailboxId: String,
+        accounts: List<LegacyAccount>,
+        search: LocalMessageSearch?,
+        generatedAt: Long,
+    ): WearInboxSnapshot {
         return WearInboxSnapshot(
-            mailboxId = account.uuid,
+            mailboxId = mailboxId,
             generatedAt = generatedAt,
             unreadCount = search?.let { messageCountsProvider.getMessageCounts(it).unread } ?: 0,
-            messages = search?.let { loadMessages(listOf(account), it) }.orEmpty(),
+            messages = search?.let { loadMessages(accounts, it) }.orEmpty(),
         )
     }
 
@@ -122,7 +126,29 @@ internal class InboxPublicationSource(
             .take(WearCompanion.MAX_MESSAGES)
     }
 
-    private companion object {
+    private val LegacyAccount.displayName: String
+        get() = name?.takeIf { it.isNotBlank() } ?: email
+
+    /** The monogram the phone shows for the account, or one made from its name if it shows a picture or icon. */
+    private fun LegacyAccount.monogram(): String {
+        val avatar = profile.avatar
+        return avatar.avatarMonogram?.takeIf { avatar.avatarType == AvatarTypeDto.MONOGRAM && it.isNotBlank() }
+            ?: monogramCreator.create(name, email)
+    }
+
+    companion object {
+        /** Newest first, like the message list. */
         const val SORT_ORDER = "${MessageColumns.DATE} DESC, ${MessageColumns.ID} DESC"
     }
+}
+
+/**
+ * The watch's Tile and complication can be seen by people nearby, like a phone's lock screen, so they follow the lock
+ * screen notification setting.
+ */
+internal fun LockScreenNotificationVisibility.toGlanceVisibility(): WearGlanceVisibility = when (this) {
+    LockScreenNotificationVisibility.EVERYTHING -> WearGlanceVisibility.EVERYTHING
+    LockScreenNotificationVisibility.SENDERS -> WearGlanceVisibility.SENDERS
+    LockScreenNotificationVisibility.MESSAGE_COUNT -> WearGlanceVisibility.COUNT
+    LockScreenNotificationVisibility.APP_NAME, LockScreenNotificationVisibility.NOTHING -> WearGlanceVisibility.NOTHING
 }

@@ -63,19 +63,42 @@ class WearProtocolCodecTest {
                     unreadCount = 5,
                 ),
                 WearMailbox(
+                    id = WearCompanion.UNREAD_MAILBOX_ID,
+                    name = "",
+                    email = "",
+                    color = null,
+                    unreadCount = 5,
+                ),
+                WearMailbox(
                     id = "uuid-1",
                     name = "Work",
                     email = "me@work.example",
                     color = 0xFF00FF00.toInt(),
                     unreadCount = 3,
+                    monogram = "WO",
                 ),
             ),
+            glanceVisibility = WearGlanceVisibility.SENDERS,
         )
 
         val result = WearProtocolCodec.decodeMailboxes(WearProtocolCodec.encodeMailboxes(mailboxes))
 
         assertThat(result).isEqualTo(mailboxes)
         assertThat(result?.unifiedUnreadCount).isEqualTo(5)
+        assertThat(result?.account("uuid-1")?.monogram).isEqualTo("WO")
+        assertThat(result?.account(WearCompanion.UNREAD_MAILBOX_ID)).isNull()
+    }
+
+    @Test
+    fun `mailbox list without newer fields shows only the count at a glance`() {
+        val json = """
+            {"version":1,"generatedAt":5,"mailboxes":[{"id":"a","name":"A","email":"a@b.c","color":1,"unreadCount":2}]}
+        """.trimIndent()
+
+        val result = WearProtocolCodec.decodeMailboxes(json.encodeToByteArray())
+
+        assertThat(result?.glanceVisibility).isEqualTo(WearGlanceVisibility.COUNT)
+        assertThat(result?.mailboxes?.single()?.monogram).isEqualTo("")
     }
 
     @Test
@@ -92,6 +115,8 @@ class WearProtocolCodecTest {
         val requests = listOf(
             WearRequest.Refresh,
             WearRequest.PerformAction(messageId = "#:abc", action = WearMessageAction.ARCHIVE),
+            WearRequest.Reply(messageId = "#:abc", text = "On my way 🚲"),
+            WearRequest.MarkAllRead(mailboxId = WearCompanion.STARRED_MAILBOX_ID),
         )
 
         for (request in requests) {
@@ -112,7 +137,11 @@ class WearProtocolCodecTest {
 
     @Test
     fun `responses survive a round trip`() {
-        val responses = listOf(WearResponse.Ok, WearResponse.Error(WearErrorReason.MESSAGE_NOT_FOUND))
+        val responses = listOf(
+            WearResponse.Ok,
+            WearResponse.Error(WearErrorReason.MESSAGE_NOT_FOUND),
+            WearResponse.Error(WearErrorReason.MAILBOX_NOT_FOUND),
+        )
 
         for (response in responses) {
             val result = WearProtocolCodec.decodeResponse(WearProtocolCodec.encodeResponse(response))
@@ -134,6 +163,7 @@ class WearProtocolCodecTest {
             hasAttachments = true,
             isEncrypted = false,
             accountColor = 0xFF0A84FF.toInt(),
+            accountId = "account",
         )
     }
 }

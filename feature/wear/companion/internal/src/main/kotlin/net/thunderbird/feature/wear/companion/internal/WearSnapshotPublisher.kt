@@ -10,8 +10,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -29,7 +33,8 @@ internal interface WearInboxPublisher {
 }
 
 /**
- * Keeps the watch's copy of the mailboxes current by republishing whenever the message list changes.
+ * Keeps the watch's copy of the mailboxes current by republishing whenever the message list changes, or
+ * [settingChanges] emits a changed value of a setting that affects what is published.
  *
  * Nothing is loaded or sent while no watch with the watch app is paired.
  */
@@ -39,6 +44,7 @@ internal class WearSnapshotPublisher(
     private val dataLayer: WearDataLayer,
     private val messageListRepository: MessageListRepository,
     private val logger: Logger,
+    private val settingChanges: Flow<Any> = emptyFlow(),
     private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : WearInboxPublisher {
@@ -59,6 +65,10 @@ internal class WearSnapshotPublisher(
                 .onStart { emit(Unit) }
                 .debounce(PUBLISH_DEBOUNCE)
                 .collect { publishIfWatchPaired() }
+        }
+        coroutineScope.launch {
+            // The first value is the current one, which the initial publication already contains.
+            settingChanges.distinctUntilChanged().drop(1).collect { requestPublish() }
         }
     }
 
