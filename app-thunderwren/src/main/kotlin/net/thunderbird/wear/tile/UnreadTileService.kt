@@ -77,7 +77,16 @@ class UnreadTileService : TileService() {
         }
 
         val content = LayoutElementBuilders.Column.Builder()
-            .setModifiers(ModifiersBuilders.Modifiers.Builder().setClickable(openApp).build())
+            .setModifiers(
+                ModifiersBuilders.Modifiers.Builder()
+                    .setClickable(openApp)
+                    .setSemantics(
+                        ModifiersBuilders.Semantics.Builder()
+                            .setContentDescription(getString(R.string.tile_description, status))
+                            .build(),
+                    )
+                    .build(),
+            )
             .addContent(LayoutElementBuilders.Text.Builder().setText(getString(R.string.app_name)).build())
             .addContent(LayoutElementBuilders.Text.Builder().setText(status).setMaxLines(2).build())
             .build()

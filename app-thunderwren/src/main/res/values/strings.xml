@@ -22,6 +22,20 @@
     <string name="demo_exit">Exit demo</string>
     <!-- Secondary label of the mailbox button in demo mode. %1$s is the unread count text, e.g. "3 unread". -->
     <string name="demo_label">Demo · %1$s</string>
+    <string name="demo_account_work">Work</string>
+    <string name="demo_account_personal">Personal</string>
+    <string name="demo_sender_billing">Billing</string>
+    <string name="demo_welcome_subject">Welcome to the demo mailbox</string>
+    <string name="demo_welcome_preview">Tap a message to read it, then try Star or Archive. Swipe right to go back. Nothing here is sent anywhere.</string>
+    <string name="demo_standup_subject">Standup moved to 10:30</string>
+    <string name="demo_standup_preview">Quick heads-up: the room is booked at 10, so we\'ll meet at 10:30 today.</string>
+    <string name="demo_switch_subject">Switch between inboxes</string>
+    <string name="demo_switch_preview">Tap \"All inboxes\" at the top of the list to see a single account\'s inbox instead.</string>
+    <string name="demo_encrypted_subject">Contract draft</string>
+    <string name="demo_hike_subject">Saturday hike?</string>
+    <string name="demo_hike_preview">Weather looks great. Meet at the trailhead at 8? I\'ll bring snacks.</string>
+    <string name="demo_invoice_subject">Your invoice is ready</string>
+    <string name="demo_invoice_preview">Invoice #1042 for September is attached. No action needed.</string>
     <string name="demo_explanation">This is a demo mailbox. Your real inbox replaces it once Thunderbird on your phone connects.</string>
 
     <string name="message_unread_indicator">Unread</string>
@@ -45,4 +59,6 @@
 
     <string name="tile_unread_count">%1$d unread</string>
     <string name="tile_not_connected">Open Thunderbird on your phone</string>
+    <!-- Screen reader description of the Tile. %1$s is the unread count or the "not connected" text. -->
+    <string name="tile_description">%1$s. Opens ThunderWren.</string>
 </resources>

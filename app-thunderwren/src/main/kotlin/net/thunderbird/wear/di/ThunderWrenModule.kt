@@ -28,7 +28,7 @@ val thunderWrenModule = module {
     single<PhoneConnection> {
         DemoAwarePhoneConnection(
             phone = DataLayerPhoneConnection(context = androidContext(), logger = get()),
-            demo = DemoPhoneConnection(),
+            demo = DemoPhoneConnection(getString = androidContext()::getString),
             demoModeStore = get(),
         )
     }

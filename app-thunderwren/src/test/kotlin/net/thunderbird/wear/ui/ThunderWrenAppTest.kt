@@ -1,9 +1,11 @@
 package net.thunderbird.wear.ui
 
+import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import assertk.assertThat
 import assertk.assertions.containsExactly
@@ -68,7 +70,13 @@ class ThunderWrenAppTest {
         loadKoinModules(
             module {
                 single<PhoneConnection> {
-                    DemoAwarePhoneConnection(phone = phone, demo = DemoPhoneConnection(), demoModeStore = demoModeStore)
+                    DemoAwarePhoneConnection(
+                        phone = phone,
+                        demo = DemoPhoneConnection(
+                            getString = ApplicationProvider.getApplicationContext<Context>()::getString,
+                        ),
+                        demoModeStore = demoModeStore,
+                    )
                 }
                 single<DemoModeStore> { demoModeStore }
             },

@@ -15,6 +15,7 @@ import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.feature.wear.companion.WearMessageSummary
+import net.thunderbird.wear.R
 
 /**
  * A made-up mailbox that lives only on the watch, so ThunderWren can be tried without a phone.
@@ -22,8 +23,22 @@ import net.thunderbird.feature.wear.companion.WearMessageSummary
  * Actions change the in-memory messages the same way the phone would; nothing is sent anywhere.
  */
 class DemoPhoneConnection(
+    private val getString: (Int) -> String,
     private val now: () -> Long = System::currentTimeMillis,
 ) : PhoneConnection {
+    private val work = DemoAccount(
+        id = "demo-work",
+        name = getString(R.string.demo_account_work),
+        email = "you@work.example",
+        color = WORK_COLOR,
+    )
+    private val personal = DemoAccount(
+        id = "demo-personal",
+        name = getString(R.string.demo_account_personal),
+        email = "you@home.example",
+        color = PERSONAL_COLOR,
+    )
+    private val accounts = listOf(work, personal)
     private val messages = MutableStateFlow(createMessages())
 
     override val isDemo: Flow<Boolean> = flowOf(true)
@@ -39,7 +54,7 @@ class DemoPhoneConnection(
                     color = null,
                     unreadCount = messages.count { !it.summary.isRead },
                 ),
-            ) + ACCOUNTS.map { account ->
+            ) + accounts.map { account ->
                 WearMailbox(
                     id = account.id,
                     name = account.name,
@@ -128,54 +143,53 @@ class DemoPhoneConnection(
         return listOf(
             message(
                 id = "welcome",
-                account = PERSONAL,
+                account = personal,
                 sender = "ThunderWren",
-                subject = "Welcome to the demo mailbox",
-                preview = "Tap a message to read it, then try Star or Archive. Swipe right to go back. " +
-                    "Nothing here is sent anywhere.",
+                subject = getString(R.string.demo_welcome_subject),
+                preview = getString(R.string.demo_welcome_preview),
                 age = 2.minutes,
             ),
             message(
                 id = "standup",
-                account = WORK,
+                account = work,
                 sender = "Priya Natarajan",
-                subject = "Standup moved to 10:30",
-                preview = "Quick heads-up: the room is booked at 10, so we'll meet at 10:30 today.",
+                subject = getString(R.string.demo_standup_subject),
+                preview = getString(R.string.demo_standup_preview),
                 age = 25.minutes,
             ),
             message(
                 id = "switch",
-                account = PERSONAL,
+                account = personal,
                 sender = "ThunderWren",
-                subject = "Switch between inboxes",
-                preview = "Tap \"All inboxes\" at the top of the list to see a single account's inbox instead.",
+                subject = getString(R.string.demo_switch_subject),
+                preview = getString(R.string.demo_switch_preview),
                 age = 1.hours,
                 isStarred = true,
             ),
             message(
                 id = "encrypted",
-                account = WORK,
+                account = work,
                 sender = "Jonas Weber",
-                subject = "Contract draft",
+                subject = getString(R.string.demo_encrypted_subject),
                 preview = "",
                 age = 3.hours,
                 isEncrypted = true,
             ),
             message(
                 id = "hike",
-                account = PERSONAL,
+                account = personal,
                 sender = "Sam Okafor",
-                subject = "Saturday hike?",
-                preview = "Weather looks great. Meet at the trailhead at 8? I'll bring snacks.",
+                subject = getString(R.string.demo_hike_subject),
+                preview = getString(R.string.demo_hike_preview),
                 age = 1.days,
                 isRead = true,
             ),
             message(
                 id = "invoice",
-                account = WORK,
-                sender = "Billing",
-                subject = "Your invoice is ready",
-                preview = "Invoice #1042 for September is attached. No action needed.",
+                account = work,
+                sender = getString(R.string.demo_sender_billing),
+                subject = getString(R.string.demo_invoice_subject),
+                preview = getString(R.string.demo_invoice_preview),
                 age = 2.days,
                 isRead = true,
             ),
@@ -187,13 +201,7 @@ class DemoPhoneConnection(
     private data class DemoAccount(val id: String, val name: String, val email: String, val color: Int)
 
     private companion object {
-        val WORK = DemoAccount(id = "demo-work", name = "Work", email = "you@work.example", color = 0xFF0A84FF.toInt())
-        val PERSONAL = DemoAccount(
-            id = "demo-personal",
-            name = "Personal",
-            email = "you@home.example",
-            color = 0xFFFFA23A.toInt(),
-        )
-        val ACCOUNTS = listOf(WORK, PERSONAL)
+        const val WORK_COLOR = 0xFF0A84FF.toInt()
+        const val PERSONAL_COLOR = 0xFFFFA23A.toInt()
     }
 }
