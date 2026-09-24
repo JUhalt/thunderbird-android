@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ThunderWren logo: a round watch whose face shows a wren with a lightning-bolt tail, perched on an envelope. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="1.25"
+        android:scaleY="1.25">
+
+        <!-- Straps -->
+        <path
+            android:fillColor="@color/thunderwren_strap"
+            android:pathData="M43,16 h22 a3,3 0 0 1 3,3 v16 h-28 v-16 a3,3 0 0 1 3,-3 z" />
+        <path
+            android:fillColor="@color/thunderwren_strap"
+            android:pathData="M40,73 h28 v16 a3,3 0 0 1 -3,3 h-22 a3,3 0 0 1 -3,-3 z" />
+
+        <!-- Crown -->
+        <path
+            android:fillColor="@color/thunderwren_bezel"
+            android:pathData="M77,50 h3 a1.5,1.5 0 0 1 1.5,1.5 v5 a1.5,1.5 0 0 1 -1.5,1.5 h-3 z" />
+
+        <!-- Case and face -->
+        <path
+            android:fillColor="@color/thunderwren_bezel"
+            android:pathData="M30,54 a24,24 0 1 0 48,0 a24,24 0 1 0 -48,0 z" />
+        <path
+            android:fillColor="@color/thunderwren_face"
+            android:pathData="M33.5,54 a20.5,20.5 0 1 0 41,0 a20.5,20.5 0 1 0 -41,0 z" />
+
+        <!-- Envelope -->
+        <path
+            android:fillColor="@color/thunderwren_envelope"
+            android:pathData="M42.5,60 h21 a1.5,1.5 0 0 1 1.5,1.5 v8.5 a1.5,1.5 0 0 1 -1.5,1.5 h-21 a1.5,1.5 0 0 1 -1.5,-1.5 v-8.5 a1.5,1.5 0 0 1 1.5,-1.5 z" />
+        <path
+            android:pathData="M41.8,61 L53,67.3 L64.2,61"
+            android:strokeWidth="1.3"
+            android:strokeColor="@color/thunderwren_envelope_fold"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+
+        <!-- Wren -->
+        <group
+            android:translateX="-2.2"
+            android:translateY="0.5">
+
+            <!-- Lightning-bolt tail -->
+            <group
+                android:pivotX="47.5"
+                android:pivotY="51"
+                android:rotation="-22"
+                android:scaleX="0.8"
+                android:scaleY="0.8">
+                <path
+                    android:fillColor="@color/thunderwren_bolt"
+                    android:pathData="M46.5,29.5 L40.8,41.5 L46,41.5 L43,52 L53,37.8 L47.6,37.8 L51.2,29.5 z" />
+            </group>
+
+            <!-- Body and head -->
+            <path
+                android:fillColor="@color/thunderwren_feather"
+                android:pathData="M45.5,53.5 C45.5,47 51,43.5 57,43.5 C63.5,43.5 67,48 66.5,53 C66,58.5 61,60.5 56,60.5 C50,60.5 45.5,58.5 45.5,53.5 z" />
+            <path
+                android:fillColor="@color/thunderwren_feather"
+                android:pathData="M57.5,44 a6.3,6.3 0 1 0 12.6,0 a6.3,6.3 0 1 0 -12.6,0 z" />
+
+            <!-- Wing, belly, and eyebrow stripe -->
+            <path
+                android:fillColor="@color/thunderwren_wing"
+                android:pathData="M49.5,51.5 C53,48 58,47.5 61.5,49.5 C58.5,54 53,54.5 49.5,51.5 z" />
+            <path
+                android:fillColor="@color/thunderwren_belly"
+                android:pathData="M53,59.3 C58,60 63.5,58 65.8,53.5 C64.5,58.8 60,61.2 53,59.3 z" />
+            <path
+                android:pathData="M62.2,41.6 C64.5,40.2 67.5,40.4 69.4,42"
+                android:strokeWidth="1"
+                android:strokeColor="@color/thunderwren_eyebrow"
+                android:strokeLineCap="round" />
+
+            <!-- Beak and eye -->
+            <path
+                android:fillColor="@color/thunderwren_bolt"
+                android:pathData="M69.6,43.2 L74.6,44.6 L69.6,46 z" />
+            <path
+                android:fillColor="@color/thunderwren_face"
+                android:pathData="M65,43.6 a1.35,1.35 0 1 0 2.7,0 a1.35,1.35 0 1 0 -2.7,0 z" />
+        </group>
+    </group>
+</vector>
