@@ -61,6 +61,9 @@ interface NotificationResourceProvider {
     fun actionDelete(): String
     fun actionDeleteAll(): String
     fun actionReply(): String
+
+    /** Ready-made replies offered by the Reply action on a watch. */
+    fun quickReplyChoices(): List<String>
     fun actionStar(): String
     fun actionArchive(): String
     fun actionArchiveAll(): String

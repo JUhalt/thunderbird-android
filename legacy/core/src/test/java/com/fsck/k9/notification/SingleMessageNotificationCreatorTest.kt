@@ -8,7 +8,10 @@ import androidx.core.app.NotificationCompat
 import androidx.test.core.app.ApplicationProvider
 import app.k9mail.legacy.message.controller.MessageReference
 import assertk.assertThat
+import assertk.assertions.containsExactly
+import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
+import assertk.assertions.isSameInstanceAs
 import com.fsck.k9.mail.Address
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,8 +28,10 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
 
 class SingleMessageNotificationCreatorTest : RobolectricTest() {
     private val mainDispatcher = MainDispatcherHelper(UnconfinedTestDispatcher())
@@ -36,6 +41,9 @@ class SingleMessageNotificationCreatorTest : RobolectricTest() {
     private val builder = mockBuilder<NotificationCompat.Builder> {
         on { build() } doReturn notification
     }
+
+    private val replyPendingIntent = mock<PendingIntent>()
+    private val quickReplyPendingIntent = mock<PendingIntent>()
 
     private lateinit var testSubject: SingleMessageNotificationCreator
 
@@ -81,6 +89,41 @@ class SingleMessageNotificationCreatorTest : RobolectricTest() {
         assertThat(resourceProvider.avatarCalls).isEqualTo(0)
     }
 
+    @Test
+    fun `wear reply action offers a quick reply with ready-made replies`() = runTest {
+        testSubject.createSingleNotification(
+            baseNotificationData = createBaseNotificationData(),
+            singleNotificationData = createSingleNotificationData(wearActions = listOf(WearNotificationAction.Reply)),
+        ).join()
+
+        val replyAction = wearActions().single()
+        assertThat(replyAction.actionIntent).isSameInstanceAs(quickReplyPendingIntent)
+        val remoteInput = replyAction.remoteInputs.orEmpty().single()
+        assertThat(remoteInput.resultKey).isEqualTo(NotificationActionIntents.EXTRA_QUICK_REPLY_TEXT)
+        assertThat(remoteInput.choices.orEmpty().map { it.toString() }).containsExactly("OK", "Thanks!")
+    }
+
+    @Test
+    fun `wear reply action for an encrypted message opens the compose screen instead`() = runTest {
+        testSubject.createSingleNotification(
+            baseNotificationData = createBaseNotificationData(),
+            singleNotificationData = createSingleNotificationData(
+                wearActions = listOf(WearNotificationAction.Reply),
+                isEncrypted = true,
+            ),
+        ).join()
+
+        val replyAction = wearActions().single()
+        assertThat(replyAction.actionIntent).isSameInstanceAs(replyPendingIntent)
+        assertThat(replyAction.remoteInputs.orEmpty().toList()).isEmpty()
+    }
+
+    private fun wearActions(): List<NotificationCompat.Action> {
+        val captor = argumentCaptor<NotificationCompat.Extender>()
+        verify(builder).extend(captor.capture())
+        return captor.allValues.filterIsInstance<NotificationCompat.WearableExtender>().single().actions
+    }
+
     private fun createNotificationHelper(): NotificationHelper {
         return mock {
             on { createNotificationBuilder(any(), any()) } doReturn builder
@@ -92,6 +135,8 @@ class SingleMessageNotificationCreatorTest : RobolectricTest() {
         return mock {
             on { createViewMessagePendingIntent(any()) } doReturn pendingIntent
             on { createDismissMessagePendingIntent(any()) } doReturn pendingIntent
+            on { createReplyPendingIntent(any()) } doReturn replyPendingIntent
+            on { createQuickReplyPendingIntent(any()) } doReturn quickReplyPendingIntent
         }
     }
 
@@ -111,7 +156,10 @@ class SingleMessageNotificationCreatorTest : RobolectricTest() {
         )
     }
 
-    private fun createSingleNotificationData(): SingleNotificationData {
+    private fun createSingleNotificationData(
+        wearActions: List<WearNotificationAction> = emptyList(),
+        isEncrypted: Boolean = false,
+    ): SingleNotificationData {
         return SingleNotificationData(
             notificationId = 23,
             isSilent = true,
@@ -122,9 +170,10 @@ class SingleMessageNotificationCreatorTest : RobolectricTest() {
                 subject = "Subject",
                 preview = "Preview",
                 summary = "Summary",
+                isEncrypted = isEncrypted,
             ),
             actions = emptyList(),
-            wearActions = emptyList(),
+            wearActions = wearActions,
             addLockScreenNotification = false,
         )
     }

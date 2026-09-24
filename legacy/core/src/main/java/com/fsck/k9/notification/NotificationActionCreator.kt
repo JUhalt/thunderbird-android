@@ -22,6 +22,12 @@ interface NotificationActionCreator {
 
     fun createReplyPendingIntent(messageReference: MessageReference): PendingIntent
 
+    /**
+     * Sends the text of the action's [androidx.core.app.RemoteInput] as a reply, without opening the app. The
+     * [PendingIntent] is mutable so the system can add the text.
+     */
+    fun createQuickReplyPendingIntent(messageReference: MessageReference): PendingIntent
+
     fun createMarkMessageAsReadPendingIntent(messageReference: MessageReference): PendingIntent
 
     fun createMarkAllAsReadPendingIntent(

@@ -107,6 +107,13 @@ class K9NotificationResourceProvider(private val context: Context) : Notificatio
 
     override fun actionReply(): String = context.getString(R.string.notification_action_reply)
 
+    override fun quickReplyChoices(): List<String> = listOf(
+        R.string.notification_quick_reply_ok,
+        R.string.notification_quick_reply_thanks,
+        R.string.notification_quick_reply_sounds_good,
+        R.string.notification_quick_reply_later,
+    ).map(context::getString)
+
     override fun actionStar(): String = context.getString(R.string.notification_action_star)
 
     override fun actionArchive(): String = context.getString(R.string.notification_action_archive)

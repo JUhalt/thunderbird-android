@@ -100,6 +100,14 @@ internal class K9NotificationActionCreator(
         return PendingIntentCompat.getActivity(context, 0, intent, FLAG_UPDATE_CURRENT, false)!!
     }
 
+    override fun createQuickReplyPendingIntent(messageReference: MessageReference): PendingIntent {
+        val intent = NotificationActionIntents.createQuickReplyIntent(context, messageReference).apply {
+            data = Uri.parse("data:,quickReply/${messageReference.toIdentityString()}")
+        }
+        // Mutable, so the system can add the reply text from the RemoteInput.
+        return PendingIntentCompat.getService(context, 0, intent, FLAG_UPDATE_CURRENT, true)!!
+    }
+
     override fun createMarkMessageAsReadPendingIntent(messageReference: MessageReference): PendingIntent {
         val intent = NotificationActionIntents.createMarkMessageAsReadIntent(context, messageReference).apply {
             data = Uri.parse("data:,markAsRead/${messageReference.toIdentityString()}")
