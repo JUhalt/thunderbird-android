@@ -1,5 +1,6 @@
 package net.thunderbird.wear.ui.inbox
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -45,7 +46,8 @@ fun InboxScreen(
     onStartDemoClick: () -> Unit = {},
     onExitDemoClick: () -> Unit = {},
 ) {
-    val listState = rememberScalingLazyListState()
+    // Start with the first item (the header) at the top instead of centered, so it isn't hidden under the clock.
+    val listState = rememberScalingLazyListState(initialCenterItemIndex = 0)
 
     ScreenScaffold(
         scrollState = listState,
@@ -197,21 +199,23 @@ private fun MessageCard(
             )
         },
         time = { Text(text = formatMessageDate(message.date)) },
-        subtitle = {
+    ) {
+        Column {
             Text(
                 text = message.subject.ifEmpty { stringResource(R.string.message_no_subject) },
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (message.isRead) FontWeight.Normal else FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-        },
-    ) {
-        Text(
-            text = if (message.isEncrypted) stringResource(R.string.message_encrypted) else message.preview,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
+            Text(
+                text = if (message.isEncrypted) stringResource(R.string.message_encrypted) else message.preview,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

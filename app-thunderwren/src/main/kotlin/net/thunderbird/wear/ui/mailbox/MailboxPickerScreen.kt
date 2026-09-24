@@ -30,7 +30,8 @@ fun MailboxPickerScreen(
     onMailboxClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val listState = rememberScalingLazyListState()
+    // Start with the first item (the header) at the top instead of centered, so it isn't hidden under the clock.
+    val listState = rememberScalingLazyListState(initialCenterItemIndex = 0)
 
     ScreenScaffold(
         scrollState = listState,
