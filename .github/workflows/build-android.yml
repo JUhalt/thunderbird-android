@@ -110,6 +110,23 @@ jobs:
       - name: Build Thunderbird application
         run: ./gradlew :app-thunderbird:assemble -Pci=true
 
+  build-thunderwren:
+    name: Build - ThunderWren Wear OS application
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    needs: [build-common]
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+
+      - name: Setup Gradle environment
+        uses: ./.github/actions/setup-gradle
+
+      - name: Build ThunderWren application
+        run: ./gradlew :app-thunderwren:assemble -Pci=true
+
   check-badging-thunderbird:
     name: Check - Thunderbird badging
     runs-on: ubuntu-latest
