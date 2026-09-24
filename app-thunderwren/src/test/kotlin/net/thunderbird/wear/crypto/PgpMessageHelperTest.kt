@@ -53,6 +53,6 @@ class PgpMessageHelperTest {
         val result = testSubject.formatPgpSummary(encryptedBody)
 
         // Assert
-        assertThat(result).isEqualTo("🔒 [OpenPGP Encrypted Message]\nDecryption key synced from Thunderbird Companion.")
+        assertThat(result).isEqualTo("🔒 [OpenPGP Encrypted Message]\nOpen this message on your phone to decrypt it.")
     }
 }

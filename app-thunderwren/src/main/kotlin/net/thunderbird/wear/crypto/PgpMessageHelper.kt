@@ -11,7 +11,7 @@ object PgpMessageHelper {
 
     fun formatPgpSummary(bodyText: String): String {
         return if (isPgpEncrypted(bodyText)) {
-            "🔒 [OpenPGP Encrypted Message]\nDecryption key synced from Thunderbird Companion."
+            "🔒 [OpenPGP Encrypted Message]\nOpen this message on your phone to decrypt it."
         } else {
             bodyText
         }
