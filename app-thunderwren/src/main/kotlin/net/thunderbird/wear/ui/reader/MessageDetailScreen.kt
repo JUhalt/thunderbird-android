@@ -1,38 +1,40 @@
 package net.thunderbird.wear.ui.reader
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
+import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material3.Button
-import androidx.wear.compose.material3.Card
+import androidx.wear.compose.material3.FilledTonalButton
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.OpenOnPhoneDialog
+import androidx.wear.compose.material3.OpenOnPhoneDialogDefaults
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
-import net.thunderbird.wear.crypto.PgpMessageHelper
-import net.thunderbird.wear.ui.model.EmailMessage
-import net.thunderbird.wear.ui.model.SampleEmailData
+import androidx.wear.compose.material3.curvedText
+import net.thunderbird.feature.wear.companion.WearMessageSummary
+import net.thunderbird.wear.R
+import net.thunderbird.wear.ui.common.formatMessageDate
+import net.thunderbird.wear.ui.preview.PreviewData
 import net.thunderbird.wear.ui.theme.ThunderWrenTheme
 
 @Composable
 fun MessageDetailScreen(
-    message: EmailMessage,
-    onArchiveClick: () -> Unit = {},
-    onDeleteClick: () -> Unit = {},
-    onReplyClick: () -> Unit = {},
+    state: MessageUiState,
+    actions: MessageActions,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberScalingLazyListState()
@@ -46,81 +48,101 @@ fun MessageDetailScreen(
             state = listState,
             contentPadding = contentPadding,
         ) {
-            item {
-                ListHeader {
-                    Text(
-                        text = message.header.senderName,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+            val message = state.message
+            when {
+                state.isLoading -> item { Text(text = stringResource(R.string.inbox_loading)) }
+
+                message == null -> item {
+                    Text(text = stringResource(R.string.message_not_found), textAlign = TextAlign.Center)
                 }
-            }
 
-            item {
-                MessageHeaderDetails(message = message)
-            }
-
-            item {
-                MessageBody(body = message.body)
-            }
-
-            item {
-                Button(
-                    onClick = onReplyClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                ) {
-                    Text(text = "🎤 Quick Reply")
-                }
-            }
-
-            item {
-                MessageActions(
-                    onArchiveClick = onArchiveClick,
-                    onDeleteClick = onDeleteClick,
-                )
+                else -> messageItems(message, state, actions)
             }
         }
     }
+
+    val openOnPhoneText = OpenOnPhoneDialogDefaults.text
+    val openOnPhoneTextStyle = OpenOnPhoneDialogDefaults.curvedTextStyle
+    OpenOnPhoneDialog(
+        visible = state.showOpenOnPhoneConfirmation,
+        onDismissRequest = actions::onDismissOpenOnPhoneConfirmation,
+        curvedText = { curvedText(text = openOnPhoneText, style = openOnPhoneTextStyle) },
+    )
 }
 
-@Composable
-private fun MessageHeaderDetails(
-    message: EmailMessage,
-    modifier: Modifier = Modifier,
+private fun ScalingLazyListScope.messageItems(
+    message: WearMessageSummary,
+    state: MessageUiState,
+    actions: MessageActions,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-    ) {
-        Text(
-            text = message.header.subject,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+    item {
+        ListHeader {
+            Text(text = message.senderName, color = MaterialTheme.colorScheme.primary)
+        }
+    }
 
-        if (PgpMessageHelper.isPgpEncrypted(message.body)) {
-            Spacer(modifier = Modifier.height(2.dp))
+    item { MessageHeader(message) }
+
+    item {
+        Text(
+            text = if (message.isEncrypted) stringResource(R.string.message_encrypted) else message.preview,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
+        )
+    }
+
+    state.errorMessage?.let { errorMessage ->
+        item {
             Text(
-                text = "🔒 OpenPGP Encrypted",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.secondary,
+                text = stringResource(errorMessage),
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
             )
         }
+    }
 
+    item {
+        Button(
+            onClick = actions::onOpenOnPhone,
+            enabled = !state.isBusy,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(text = stringResource(R.string.action_open_on_phone)) },
+        )
+    }
+    item {
+        ActionButton(
+            label = if (message.isRead) R.string.action_mark_unread else R.string.action_mark_read,
+            enabled = !state.isBusy,
+            onClick = actions::onToggleRead,
+        )
+    }
+    item {
+        ActionButton(
+            label = if (message.isStarred) R.string.action_unstar else R.string.action_star,
+            enabled = !state.isBusy,
+            onClick = actions::onToggleStar,
+        )
+    }
+    item { ActionButton(label = R.string.action_archive, enabled = !state.isBusy, onClick = actions::onArchive) }
+    item { ActionButton(label = R.string.action_delete, enabled = !state.isBusy, onClick = actions::onDelete) }
+}
+
+@Composable
+private fun MessageHeader(message: WearMessageSummary) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+        Text(
+            text = message.subject.ifEmpty { stringResource(R.string.message_no_subject) },
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
         Spacer(modifier = Modifier.height(4.dp))
-
         Text(
-            text = message.header.senderAddress,
+            text = message.senderAddress,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-
         Text(
-            text = message.header.dateText,
+            text = formatMessageDate(message.date),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -128,54 +150,13 @@ private fun MessageHeaderDetails(
 }
 
 @Composable
-private fun MessageBody(
-    body: String,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        onClick = {},
-        enabled = false,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-    ) {
-        Text(
-            text = PgpMessageHelper.formatPgpSummary(body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(4.dp),
-        )
-    }
-}
-
-@Composable
-private fun MessageActions(
-    onArchiveClick: () -> Unit,
-    onDeleteClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Button(
-            onClick = onArchiveClick,
-            modifier = Modifier.weight(1f),
-        ) {
-            Text(text = "Archive")
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Button(
-            onClick = onDeleteClick,
-            modifier = Modifier.weight(1f),
-        ) {
-            Text(text = "Delete")
-        }
-    }
+private fun ActionButton(label: Int, enabled: Boolean, onClick: () -> Unit) {
+    FilledTonalButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text(text = stringResource(label)) },
+    )
 }
 
 @Preview(device = "id:wearos_small_round", showSystemUi = true)
@@ -183,7 +164,8 @@ private fun MessageActions(
 private fun MessageDetailScreenPreview() {
     ThunderWrenTheme {
         MessageDetailScreen(
-            message = SampleEmailData.getSampleMessage("1"),
+            state = MessageUiState(isLoading = false, message = PreviewData.messages.first()),
+            actions = PreviewData.noOpMessageActions,
         )
     }
 }

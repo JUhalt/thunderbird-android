@@ -1,45 +1,46 @@
 package net.thunderbird.wear.ui.inbox
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
+import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material3.Button
-import androidx.wear.compose.material3.Card
+import androidx.wear.compose.material3.FilledTonalButton
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
-import kotlinx.collections.immutable.ImmutableList
-import net.thunderbird.wear.ui.model.EmailHeader
-import net.thunderbird.wear.ui.model.SampleEmailData
+import androidx.wear.compose.material3.TitleCard
+import net.thunderbird.feature.wear.companion.WearMessageSummary
+import net.thunderbird.wear.R
+import net.thunderbird.wear.ui.common.ColorDot
+import net.thunderbird.wear.ui.common.accountColorIcon
+import net.thunderbird.wear.ui.common.displayName
+import net.thunderbird.wear.ui.common.formatMessageDate
+import net.thunderbird.wear.ui.preview.PreviewData
 import net.thunderbird.wear.ui.theme.ThunderWrenTheme
 
 @Composable
 fun InboxScreen(
-    headers: ImmutableList<EmailHeader>,
-    onEmailClick: (String) -> Unit,
-    onOpenFoldersClick: () -> Unit = {},
-    onRefreshClick: () -> Unit = {},
+    state: InboxUiState,
+    onMailboxClick: () -> Unit,
+    onMessageClick: (String) -> Unit,
+    onRefreshClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberScalingLazyListState()
@@ -53,140 +54,147 @@ fun InboxScreen(
             state = listState,
             contentPadding = contentPadding,
         ) {
-            item {
-                ListHeader {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "Inbox",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Button(
-                            onClick = onOpenFoldersClick,
-                        ) {
-                            Text(text = "📁")
-                        }
-                    }
-                }
-            }
-
-            items(headers, key = { it.id }) { header ->
-                EmailCard(
-                    header = header,
-                    onClick = { onEmailClick(header.id) },
-                )
-            }
-
-            item {
-                Button(
-                    onClick = onRefreshClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                ) {
-                    Text(text = "🔄 Refresh Mail")
-                }
+            when (state) {
+                InboxUiState.Loading -> item { Text(text = stringResource(R.string.inbox_loading)) }
+                is InboxUiState.NotConnected -> notConnectedItems(state, onRefreshClick)
+                is InboxUiState.Content -> contentItems(state, onMailboxClick, onMessageClick, onRefreshClick)
             }
         }
     }
 }
 
-@Composable
-fun EmailCard(
-    header: EmailHeader,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
+private fun ScalingLazyListScope.notConnectedItems(
+    state: InboxUiState.NotConnected,
+    onRefreshClick: () -> Unit,
 ) {
-    Card(
+    item {
+        ListHeader {
+            Text(text = stringResource(R.string.not_connected_title))
+        }
+    }
+    item {
+        Text(
+            text = stringResource(R.string.not_connected_text),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+    item {
+        RefreshButton(isRefreshing = state.isRefreshing, label = R.string.retry, onClick = onRefreshClick)
+    }
+}
+
+private fun ScalingLazyListScope.contentItems(
+    state: InboxUiState.Content,
+    onMailboxClick: () -> Unit,
+    onMessageClick: (String) -> Unit,
+    onRefreshClick: () -> Unit,
+) {
+    item {
+        MailboxHeader(state = state, onClick = onMailboxClick)
+    }
+
+    if (state.messages.isEmpty()) {
+        item { Text(text = stringResource(R.string.inbox_empty)) }
+    }
+
+    items(state.messages, key = { it.id }) { message ->
+        MessageCard(message = message, onClick = { onMessageClick(message.id) })
+    }
+
+    item {
+        RefreshButton(isRefreshing = state.isRefreshing, label = R.string.inbox_refresh, onClick = onRefreshClick)
+    }
+}
+
+@Composable
+private fun MailboxHeader(
+    state: InboxUiState.Content,
+    onClick: () -> Unit,
+) {
+    val mailboxName = state.mailbox.displayName()
+    val unreadText = stringResource(R.string.inbox_unread_count, state.mailbox.unreadCount)
+    val switchDescription = stringResource(R.string.mailbox_switch_description, mailboxName)
+
+    FilledTonalButton(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(4.dp),
-        ) {
-            EmailCardSenderRow(header = header)
+        enabled = state.canSwitchMailbox,
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = "$switchDescription $unreadText" },
+        icon = accountColorIcon(state.mailbox.color),
+        secondaryLabel = { Text(text = unreadText, maxLines = 1) },
+        label = { Text(text = mailboxName, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+    )
+}
 
-            Spacer(modifier = Modifier.height(2.dp))
+@Composable
+private fun MessageCard(
+    message: WearMessageSummary,
+    onClick: () -> Unit,
+) {
+    val unreadDescription = stringResource(R.string.message_unread_indicator)
+    val starredDescription = stringResource(R.string.message_starred_indicator)
 
+    TitleCard(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                contentDescription = listOfNotNull(
+                    unreadDescription.takeIf { !message.isRead },
+                    starredDescription.takeIf { message.isStarred },
+                    message.senderName,
+                    message.subject,
+                ).joinToString(". ")
+            },
+        title = {
+            if (!message.isRead) {
+                ColorDot(MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.width(6.dp))
+            }
             Text(
-                text = header.subject,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (header.isUnread) FontWeight.SemiBold else FontWeight.Normal,
-                color = MaterialTheme.colorScheme.onSurface,
+                text = message.senderName,
+                fontWeight = if (message.isRead) FontWeight.Normal else FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
+        },
+        time = { Text(text = formatMessageDate(message.date)) },
+        subtitle = {
             Text(
-                text = header.snippet,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
+                text = message.subject.ifEmpty { stringResource(R.string.message_no_subject) },
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-        }
+        },
+    ) {
+        Text(
+            text = if (message.isEncrypted) stringResource(R.string.message_encrypted) else message.preview,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
 @Composable
-private fun EmailCardSenderRow(
-    header: EmailHeader,
-    modifier: Modifier = Modifier,
+private fun RefreshButton(
+    isRefreshing: Boolean,
+    label: Int,
+    onClick: () -> Unit,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        // Account Color Bar Indicator
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .clip(CircleShape)
-                .background(header.accountColor),
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-
-        if (header.isUnread) {
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-        }
-
-        Text(
-            text = header.senderName,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (header.isUnread) FontWeight.Bold else FontWeight.Normal,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-
-        if (header.isStarred) {
-            Text(
-                text = "⭐",
-                style = MaterialTheme.typography.labelSmall,
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-        }
-
-        Text(
-            text = header.dateText,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+    Button(
+        onClick = onClick,
+        enabled = !isRefreshing,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        label = {
+            Text(text = stringResource(if (isRefreshing) R.string.inbox_refreshing else label))
+        },
+    )
 }
 
 @Preview(device = "id:wearos_small_round", showSystemUi = true)
@@ -194,8 +202,23 @@ private fun EmailCardSenderRow(
 private fun InboxScreenPreview() {
     ThunderWrenTheme {
         InboxScreen(
-            headers = SampleEmailData.sampleHeaders,
-            onEmailClick = {},
+            state = PreviewData.inboxContent,
+            onMailboxClick = {},
+            onMessageClick = {},
+            onRefreshClick = {},
+        )
+    }
+}
+
+@Preview(device = "id:wearos_small_round", showSystemUi = true)
+@Composable
+private fun InboxScreenNotConnectedPreview() {
+    ThunderWrenTheme {
+        InboxScreen(
+            state = InboxUiState.NotConnected(isRefreshing = false),
+            onMailboxClick = {},
+            onMessageClick = {},
+            onRefreshClick = {},
         )
     }
 }

@@ -1,10 +1,10 @@
 package net.thunderbird.wear.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -12,14 +12,15 @@ import androidx.navigation.navArgument
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
-import net.thunderbird.wear.ui.folder.FolderDrawerSheet
 import net.thunderbird.wear.ui.inbox.InboxScreen
-import net.thunderbird.wear.ui.inbox.InboxUiState
 import net.thunderbird.wear.ui.inbox.InboxViewModel
-import net.thunderbird.wear.ui.model.SampleEmailData
+import net.thunderbird.wear.ui.mailbox.MailboxPickerScreen
+import net.thunderbird.wear.ui.mailbox.MailboxPickerViewModel
+import net.thunderbird.wear.ui.reader.MessageActions
 import net.thunderbird.wear.ui.reader.MessageDetailScreen
-import net.thunderbird.wear.ui.reply.QuickReplySheet
+import net.thunderbird.wear.ui.reader.MessageViewModel
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 @Composable
 fun ThunderWrenNavigation(
@@ -33,48 +34,34 @@ fun ThunderWrenNavigation(
         modifier = modifier,
     ) {
         inboxDestination(navController)
-        foldersDestination(navController)
+        mailboxesDestination(navController)
         messageDetailDestination(navController)
-        quickReplyDestination(navController)
     }
 }
-
-private val messageIdArguments = listOf(
-    navArgument(ThunderWrenRoutes.ARG_MESSAGE_ID) { type = NavType.StringType },
-)
-
-private fun NavBackStackEntry.messageId(): String =
-    arguments?.getString(ThunderWrenRoutes.ARG_MESSAGE_ID) ?: "1"
 
 private fun NavGraphBuilder.inboxDestination(navController: NavHostController) {
     composable(ThunderWrenRoutes.INBOX) {
         val viewModel: InboxViewModel = koinViewModel()
-        val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-        val headers = when (val state = uiState) {
-            is InboxUiState.Success -> state.headers
-            else -> SampleEmailData.sampleHeaders
-        }
+        val state by viewModel.uiState.collectAsStateWithLifecycle()
 
         InboxScreen(
-            headers = headers,
-            onEmailClick = { messageId ->
-                navController.navigate(ThunderWrenRoutes.messageDetail(messageId))
-            },
-            onOpenFoldersClick = {
-                navController.navigate(ThunderWrenRoutes.FOLDERS)
-            },
-            onRefreshClick = {
-                viewModel.loadInbox()
-            },
+            state = state,
+            onMailboxClick = { navController.navigate(ThunderWrenRoutes.MAILBOXES) },
+            onMessageClick = { messageId -> navController.navigate(ThunderWrenRoutes.messageDetail(messageId)) },
+            onRefreshClick = viewModel::refresh,
         )
     }
 }
 
-private fun NavGraphBuilder.foldersDestination(navController: NavHostController) {
-    composable(ThunderWrenRoutes.FOLDERS) {
-        FolderDrawerSheet(
-            onSelectFolder = {
+private fun NavGraphBuilder.mailboxesDestination(navController: NavHostController) {
+    composable(ThunderWrenRoutes.MAILBOXES) {
+        val viewModel: MailboxPickerViewModel = koinViewModel()
+        val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+        MailboxPickerScreen(
+            state = state,
+            onMailboxClick = { mailboxId ->
+                viewModel.select(mailboxId)
                 navController.popBackStack()
             },
         )
@@ -84,31 +71,26 @@ private fun NavGraphBuilder.foldersDestination(navController: NavHostController)
 private fun NavGraphBuilder.messageDetailDestination(navController: NavHostController) {
     composable(
         route = ThunderWrenRoutes.MESSAGE_DETAIL,
-        arguments = messageIdArguments,
+        arguments = listOf(navArgument(ThunderWrenRoutes.ARG_MESSAGE_ID) { type = NavType.StringType }),
     ) { backStackEntry ->
-        val messageId = backStackEntry.messageId()
-        val message = SampleEmailData.getSampleMessage(messageId)
+        val messageId = backStackEntry.arguments?.getString(ThunderWrenRoutes.ARG_MESSAGE_ID).orEmpty()
+        val viewModel: MessageViewModel = koinViewModel { parametersOf(messageId) }
+        val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+        LaunchedEffect(state.isClosed) {
+            if (state.isClosed) navController.popBackStack()
+        }
 
         MessageDetailScreen(
-            message = message,
-            onArchiveClick = { navController.popBackStack() },
-            onDeleteClick = { navController.popBackStack() },
-            onReplyClick = { navController.navigate(ThunderWrenRoutes.quickReply(messageId)) },
-        )
-    }
-}
-
-private fun NavGraphBuilder.quickReplyDestination(navController: NavHostController) {
-    composable(
-        route = ThunderWrenRoutes.QUICK_REPLY,
-        arguments = messageIdArguments,
-    ) { backStackEntry ->
-        val message = SampleEmailData.getSampleMessage(backStackEntry.messageId())
-
-        QuickReplySheet(
-            recipientName = message.header.senderName,
-            // Sending is not implemented yet; return to the message.
-            onSendReply = { navController.popBackStack() },
+            state = state,
+            actions = object : MessageActions {
+                override fun onOpenOnPhone() = viewModel.openOnPhone()
+                override fun onToggleRead() = viewModel.toggleRead()
+                override fun onToggleStar() = viewModel.toggleStar()
+                override fun onArchive() = viewModel.archive()
+                override fun onDelete() = viewModel.delete()
+                override fun onDismissOpenOnPhoneConfirmation() = viewModel.dismissOpenOnPhoneConfirmation()
+            },
         )
     }
 }
