@@ -19,7 +19,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -67,6 +68,7 @@ dependencies {
     implementation(libs.androidx.wear.compose.foundation)
     implementation(libs.androidx.wear.compose.navigation)
     implementation(libs.androidx.wear.tooling.preview)
+    implementation(libs.jetbrains.compose.components.ui.preview)
     implementation(libs.androidx.wear.tiles)
     implementation(libs.androidx.wear.protolayout)
     implementation(libs.androidx.wear.protolayout.material)
