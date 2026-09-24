@@ -18,8 +18,14 @@ object WearCompanion {
     /** Capability advertised by the watch app. */
     const val WATCH_CAPABILITY = "thunderwren_watch"
 
-    /** Data Layer path of the [WearInboxSnapshot] published by the phone. */
-    const val INBOX_PATH = "/thunderwren/v1/inbox"
+    /** Data Layer path of the [WearMailboxList] published by the phone. */
+    const val MAILBOXES_PATH = "/thunderwren/v1/mailboxes"
+
+    /** Prefix of the Data Layer paths of the [WearInboxSnapshot]s published by the phone, one per mailbox. */
+    const val INBOX_PATH_PREFIX = "/thunderwren/v1/inbox/"
+
+    /** [WearMailbox.id] of the unified inbox. Account mailboxes use the account's UUID. */
+    const val UNIFIED_MAILBOX_ID = "unified"
 
     /** Message path the watch sends [WearRequest]s to. */
     const val REQUEST_PATH = "/thunderwren/v1/request"
@@ -33,6 +39,9 @@ object WearCompanion {
     const val OPEN_ON_PHONE_SCHEME = "thunderwren"
     const val OPEN_ON_PHONE_HOST = "open"
     const val OPEN_ON_PHONE_MESSAGE_PARAMETER = "message"
+
+    /** Data Layer path of the [WearInboxSnapshot] for the mailbox with [mailboxId]. */
+    fun inboxPath(mailboxId: String): String = INBOX_PATH_PREFIX + mailboxId
 
     /** URI the watch opens on the phone to show a message there. */
     fun openOnPhoneUri(messageId: String): String {

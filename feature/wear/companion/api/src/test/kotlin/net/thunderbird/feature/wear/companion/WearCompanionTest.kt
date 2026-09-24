@@ -17,6 +17,11 @@ class WearCompanionTest {
     }
 
     @Test
+    fun `inbox path is the prefix followed by the mailbox ID`() {
+        assertThat(WearCompanion.inboxPath("uuid-1")).isEqualTo("/thunderwren/v1/inbox/uuid-1")
+    }
+
+    @Test
     fun `parsing rejects URIs that weren't created by openOnPhoneUri`() {
         assertThat(WearCompanion.parseOpenOnPhoneUri("https://example.com/?message=x")).isNull()
         assertThat(WearCompanion.parseOpenOnPhoneUri("thunderwren://open?message=")).isNull()
