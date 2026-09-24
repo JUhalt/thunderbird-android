@@ -12,6 +12,9 @@ dependencies {
     implementation(projects.core.android.account)
     implementation(projects.core.common)
     implementation(projects.core.logging.api)
+    implementation(projects.core.preference.api)
+    implementation(projects.feature.account.avatar.api)
+    implementation(projects.feature.account.storage.api)
     implementation(projects.feature.search.implLegacy)
     implementation(projects.legacy.core)
     implementation(projects.legacy.mailstore)
@@ -23,4 +26,5 @@ dependencies {
 
     testImplementation(projects.core.logging.testing)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockito.kotlin)
 }

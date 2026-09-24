@@ -27,6 +27,12 @@ object WearCompanion {
     /** [WearMailbox.id] of the unified inbox. Account mailboxes use the account's UUID. */
     const val UNIFIED_MAILBOX_ID = "unified"
 
+    /** [WearMailbox.id] of the unread messages in the unified inbox. */
+    const val UNREAD_MAILBOX_ID = "unread"
+
+    /** [WearMailbox.id] of the starred messages in the unified inbox. */
+    const val STARRED_MAILBOX_ID = "starred"
+
     /** Message path the watch sends [WearRequest]s to. */
     const val REQUEST_PATH = "/thunderwren/v1/request"
 
@@ -35,6 +41,9 @@ object WearCompanion {
 
     /** Maximum length of [WearMessageSummary.preview]. */
     const val MAX_PREVIEW_LENGTH = 300
+
+    /** Maximum length of [WearRequest.Reply.text]. Longer replies belong on the phone. */
+    const val MAX_REPLY_LENGTH = 2_000
 
     const val OPEN_ON_PHONE_SCHEME = "thunderwren"
     const val OPEN_ON_PHONE_HOST = "open"

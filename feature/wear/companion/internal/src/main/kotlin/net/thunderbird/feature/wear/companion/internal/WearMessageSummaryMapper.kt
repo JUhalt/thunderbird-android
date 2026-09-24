@@ -44,6 +44,7 @@ internal class WearMessageSummaryMapper(
             hasAttachments = message.hasAttachments,
             isEncrypted = preview.previewType == PreviewType.ENCRYPTED,
             accountColor = accountColor,
+            accountId = accountUuid,
         )
     }
 }

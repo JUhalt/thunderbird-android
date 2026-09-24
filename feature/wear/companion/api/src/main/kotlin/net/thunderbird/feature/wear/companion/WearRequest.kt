@@ -18,6 +18,26 @@ sealed interface WearRequest {
         val messageId: String,
         val action: WearMessageAction,
     ) : WearRequest
+
+    /**
+     * Asks the phone to send [text] as a reply to the sender of the message with [messageId].
+     *
+     * The phone sends it from the account the message belongs to, like a reply written there, and marks the message
+     * as answered. [text] is at most [WearCompanion.MAX_REPLY_LENGTH] characters.
+     */
+    @Serializable
+    @SerialName("reply")
+    data class Reply(
+        val messageId: String,
+        val text: String,
+    ) : WearRequest
+
+    /** Asks the phone to mark every message in the mailbox with [mailboxId] as read. */
+    @Serializable
+    @SerialName("mark_all_read")
+    data class MarkAllRead(
+        val mailboxId: String,
+    ) : WearRequest
 }
 
 @Serializable
@@ -50,8 +70,14 @@ enum class WearErrorReason {
     /** The message no longer exists or its account was removed. */
     MESSAGE_NOT_FOUND,
 
-    /** The action isn't possible for this message, for example archiving without an archive folder. */
+    /**
+     * The action isn't possible for this message, for example archiving without an archive folder, or replying to an
+     * encrypted message.
+     */
     ACTION_NOT_AVAILABLE,
+
+    /** The mailbox no longer exists, for example because its account was removed. */
+    MAILBOX_NOT_FOUND,
 
     /** Something went wrong on the phone. */
     FAILED,
