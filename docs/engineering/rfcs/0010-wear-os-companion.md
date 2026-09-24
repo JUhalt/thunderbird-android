@@ -31,12 +31,12 @@ A prototype that ran the full Thunderbird engine on the watch showed the costs o
 
 Following [ADR 0009](../adr/0009-api-internal-split.md):
 
-| Module | Contents |
-|---|---|
-| `:feature:wear:companion:api` | Plain Kotlin (JVM). Data Layer paths, capability names, the serializable protocol models, and the JSON codec. Shared by the phone and the watch. |
-| `:feature:wear:companion:internal` | Phone side (Android). Builds and publishes snapshots, handles watch requests, and hosts the "open on phone" entry point. |
-| `:feature:wear:companion:noop` | Empty implementation for builds without Google Play Services, following the `feature:funding` pattern. |
-| `:app-thunderwren` | The Wear OS app. Depends only on `:feature:wear:companion:api`. |
+|               Module               |                                                                     Contents                                                                     |
+|------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `:feature:wear:companion:api`      | Plain Kotlin (JVM). Data Layer paths, capability names, the serializable protocol models, and the JSON codec. Shared by the phone and the watch. |
+| `:feature:wear:companion:internal` | Phone side (Android). Builds and publishes snapshots, handles watch requests, and hosts the "open on phone" entry point.                         |
+| `:feature:wear:companion:noop`     | Empty implementation for builds without Google Play Services, following the `feature:funding` pattern.                                           |
+| `:app-thunderwren`                 | The Wear OS app. Depends only on `:feature:wear:companion:api`.                                                                                  |
 
 `:app-thunderbird` binds `internal` in the `full` flavor and `noop` in the `foss` flavor.
 
