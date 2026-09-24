@@ -4,21 +4,14 @@
 
 # ThunderWren 🐦⚡
 
-**A Wear OS email client prototype built on Thunderbird for Android.**
+**A Wear OS companion for Thunderbird for Android.**
 
-ThunderWren is an experiment in bringing privacy-focused, open-source email to smartwatches running Wear OS 3+. It lives inside a fork of the Thunderbird for Android repository so it can reuse the Thunderbird/K-9 Mail engine, and its wrist-first UI is built with **Wear OS Compose Material 3**.
+ThunderWren brings your Thunderbird inbox to smartwatches running Wear OS 3+. Thunderbird on your phone keeps doing the mail syncing. The watch shows your inboxes, lets you triage messages with a tap, and hands off to the phone for reading in full or replying. The watch never stores your passwords or connects to a mail server.
+
+It lives in a fork of the Thunderbird for Android repository. The design is proposed upstream in [RFC 0010](docs/engineering/rfcs/0010-wear-os-companion.md).
 
 > [!IMPORTANT]
-> **Project status: early prototype.** The app builds and runs on a Wear OS emulator, and the Thunderbird mail engine starts up inside it. The screens, the Tile, and the complication still show **sample data**, though. The watch can't yet add an account, sync mail, or send anything. See [What works today](#-what-works-today) for the exact state.
-
----
-
-## 🎯 Vision & Goals
-
-* **Wrist-first experience**: an interface for small, round displays using Wear OS Compose Material 3 (`AppScaffold`, `ScreenScaffold`, `ScalingLazyColumn`, swipe-to-dismiss navigation).
-* **Companion and standalone modes**: read and triage email on the watch over Wi-Fi/LTE, or pair with Thunderbird on the phone for account setup and notifications.
-* **Powered by the Thunderbird engine**: reuse Thunderbird's account storage, IMAP/POP3 backends, OAuth, and OpenPGP foundations instead of reimplementing them.
-* **Privacy and open source**: no telemetry (the watch app uses Thunderbird's no-op telemetry module) and no tracking.
+> **Project status: working prototype, not yet tested on real hardware.** The phone and watch sides are implemented and covered by unit and UI tests, but haven't been run on a paired phone and watch yet. The watch needs the Thunderbird phone app **built from this fork**; the Thunderbird app from the Play Store doesn't include the companion.
 
 ---
 
@@ -26,39 +19,37 @@ ThunderWren is an experiment in bringing privacy-focused, open-source email to s
 
 | Area | Status | Notes |
 |---|---|---|
-| Wear OS app module (`:app-thunderwren`) | ✅ Working | Builds, installs, and launches on Wear OS 3+ (API 30+). |
-| Thunderbird engine and dependency injection | ✅ Working | Koin graph verified by `DependencyInjectionTest`; startup covered by the Robolectric `AppStartupTest`. |
-| Inbox, message, folder, and quick-reply screens | 🟡 UI only | Real Wear M3 screens with rotary/scroll indicators and swipe-back, showing **sample messages**. |
-| Reading configured accounts | 🟡 Partial | `InboxViewModel` reads accounts from Thunderbird's `Preferences`, but the watch has no way to add one yet. |
-| Unread Tile and complication | 🟡 Placeholder | Registered with the system; always shows **"2"** unread. |
-| Voice dictation and quick replies | 🟡 UI only | Launches speech recognition and shows canned replies; **nothing is sent**. |
-| Archive / Delete / Mark read | 🟡 UI only | Buttons navigate back; no mail action is performed. |
-| Folder switcher | 🟡 UI only | Static folder list; selecting a folder doesn't change the inbox. |
-| OpenPGP | 🟡 Detection only | Detects ASCII-armored PGP messages and asks you to open them on the phone. No decryption on the watch. |
-| Phone companion sync | 🔴 Not started | `PhoneSyncListenerService` only logs incoming Data Layer events. The phone app doesn't send anything yet. |
+| Inbox on the watch | ✅ | The newest 25 messages with sender, subject, preview, date, and unread/starred state. |
+| Unified inbox or one account | ✅ | Tap the mailbox name at the top of the inbox to switch between "All inboxes" and each account. The watch remembers your choice. |
+| Mark read/unread, star, archive, delete | ✅ | Sent to the phone, which applies them like the phone app does. Opening a message marks it as read. |
+| Open on phone | ✅ | Opens the message in Thunderbird on the phone, for reading in full and replying. |
+| Unread Tile and complication | ✅ | Show the unified inbox's unread count and update when the phone publishes new data. |
+| Encrypted messages | ✅ | Shown as encrypted, with a prompt to read them on the phone. |
+| Works briefly offline | ✅ | The watch keeps the last data the phone sent. |
+| Replying from the watch | ⬜ Not started | Use "Open on phone" for now. |
+| Folders other than the inbox | ⬜ Not started | |
+| Watch notifications | ⬜ Not started | Thunderbird's phone notifications are still bridged to the watch by Wear OS as usual. |
+| Standalone mode (no phone) | ⬜ Not planned yet | See the RFC for why the phone does the syncing. |
 
 ---
 
-## 🗺️ Roadmap
+## 🧱 How it works
 
-### Done
-- [x] `:app-thunderwren` Wear OS module targeting Wear OS 3+ (minSdk 30).
-- [x] Wear Compose Material 3 theme with the Thunderbird palette and OLED-black background.
-- [x] Inbox, message detail, folder list, and quick-reply screens with swipe-to-dismiss navigation.
-- [x] Thunderbird engine (Koin, `K9`, `Core`) running in the watch app, with a verified dependency graph.
-- [x] Tile, complication, and Data Layer listener registered (placeholder content).
+```
+ Phone: Thunderbird (full/Play build)             Watch: ThunderWren
+ ┌──────────────────────────────────┐             ┌──────────────────────────┐
+ │ :feature:wear:companion:internal │─ mailboxes ▶│ Inbox, mailbox picker,   │
+ │  • publishes each inbox          │─ inboxes ──▶│ message screen, Tile,    │
+ │  • applies watch actions         │◀─ requests ─│ complication             │
+ │  • "open on phone" entry point   │             │                          │
+ └──────────────────────────────────┘             └──────────────────────────┘
+                 both use :feature:wear:companion:api (protocol)
+```
 
-### Next: make it a real mail client
-- [ ] Show real messages: back the inbox, message, and folder screens with the local message store instead of sample data.
-- [ ] Account setup: provision accounts from the paired phone over the Wearable Data Layer (plus a standalone setup path).
-- [ ] Mail actions: wire Archive, Delete, Mark read, and Star to `MessagingController`.
-- [ ] Sending: send quick and voice replies through the account's SMTP settings.
-- [ ] Live Tile and complication: drive the unread count from the message store and refresh on sync.
-- [ ] Battery-aware sync: WorkManager-based periodic sync tuned for watches.
-- [ ] Notifications: bridge or generate watch notifications with inline actions.
-
-### Upstream proposal
-- [ ] Present the prototype on [thunderbird/thunderbird-android#6969](https://github.com/thunderbird/thunderbird-android/issues/6969) (the open Wear OS port request) once real mail flows end to end.
+* **`:feature:wear:companion:api`**: the shared protocol, covering Data Layer paths, message and mailbox models, and the JSON codec.
+* **`:feature:wear:companion:internal`**: the phone side, included in Thunderbird's `full` (Play) flavor. It publishes the mailbox list and one inbox snapshot per mailbox over the Wearable Data Layer. It also applies actions through `MessagingController` and opens messages on request.
+* **`:feature:wear:companion:noop`**: included in the `foss` (F-Droid) flavor instead, because the Data Layer needs Google Play Services.
+* **`:app-thunderwren`**: the Wear OS app. It depends only on the protocol module.
 
 ---
 
@@ -69,50 +60,57 @@ ThunderWren is an experiment in bringing privacy-focused, open-source email to s
 * A recent **Android Studio** release that supports Android Gradle Plugin **9.4**. If Gradle sync says the AGP version is unsupported, update Android Studio.
 * Gradle JDK **17 or newer**. Android Studio's bundled JDK works.
 * Android SDK Platform **37** (the project's `compileSdk`). Android Studio offers to install it on first sync.
-* A **Wear OS emulator**: in Device Manager, create a *Wear OS Small Round* (or Large Round) device with a **Wear OS 3 (API 30) or newer** system image.
+* A **phone emulator with Google Play** (or a real phone) and a **Wear OS 3+ (API 30+) emulator**, paired with each other.
 
-### Run in Android Studio
+### Pair a phone and a watch emulator
 
-1. Clone the repository and open the folder in Android Studio:
-   ```bash
-   git clone https://github.com/JUhalt/thunderbird-android.git
-   ```
-2. Let Gradle sync finish. The first sync of this multi-module project can take several minutes.
-3. Start the Wear OS emulator.
-4. Select the **`app-thunderwren`** run configuration and the watch emulator, then click **Run ▶️** (`Shift + F10`).
+1. In Device Manager, create a phone emulator using a system image **with Google Play**, and a *Wear OS Small Round* emulator (API 30 or newer).
+2. Start both, then use **Tools → Device Manager → ⋮ → Pair Wearable** (Android Studio's pairing assistant) to pair them. It installs the Wear OS companion app on the phone.
 
-The debug build installs as **ThunderWren** with the application ID `net.thunderbird.wear.debug`.
+### Install both apps
 
-Debug builds are large (~150 MB) because they aren't shrunk. `./gradlew :app-thunderwren:assembleRelease` runs R8 and resource shrinking and produces a ~15 MB APK.
+The phone app and the watch app must have the **same application ID and signing key**, or the Data Layer won't connect them. Debug builds from the same computer satisfy both (`net.thunderbird.android.debug`, signed with your debug key).
 
-### Command line
+1. Select the **`app-thunderbird`** run configuration with the **`fullDebug`** build variant (*Build → Select Build Variant*), and run it on the **phone**. Set up a mail account in it.
+2. Select the **`app-thunderwren`** run configuration and run it on the **watch**.
+
+Or from the command line, with both emulators running:
 
 ```bash
-./gradlew :app-thunderwren:installDebug        # build and install on a running watch emulator
-./gradlew :app-thunderwren:testDebugUnitTest   # unit, DI, and app-startup tests
+./gradlew :app-thunderbird:installFullDebug      # installs on the phone (pick it with ANDROID_SERIAL if needed)
+./gradlew :app-thunderwren:installDebug          # installs on the watch
+```
+
+### Tests and checks
+
+```bash
+./gradlew :feature:wear:companion:api:test :feature:wear:companion:internal:testDebugUnitTest
+./gradlew :app-thunderwren:testDebugUnitTest     # view models, DI, app startup, and UI tests
 ./gradlew :app-thunderwren:detekt :app-thunderwren:spotlessCheck :app-thunderwren:lintDebug
 ```
 
 ### Try the Tile and complication
 
-* **Tile**: long-press the watch face, or swipe to the tiles carousel and add **"Unread Emails"**.
+* **Tile**: swipe to the tiles carousel on the watch and add **"Unread Emails"**.
 * **Complication**: long-press the watch face → *Customize* → pick a complication slot → **ThunderWren / Unread Count**.
 
 ### Troubleshooting
 
-* **Gradle sync fails with a version catalog error** (for example `InvalidUserDataException` while resolving `foojay-resolver-convention`): pull the latest `main`. An earlier commit corrupted `gradle/libs.versions.toml`, which is fixed now.
-* **The app crashes at launch**: run `./gradlew :app-thunderwren:testDebugUnitTest`. `DependencyInjectionTest` and `AppStartupTest` name the missing dependency or failing component, which is faster than reading logcat.
+* **The watch says "Connect your phone"**: make sure the phone app is the **`fullDebug`** build from this repository (not `fossDebug` or the Play Store app), that it has at least one account, and that the emulators are paired. Opening Thunderbird on the phone once starts the companion.
+* **Gradle sync fails with a version catalog error**: pull the latest `main`. An earlier commit corrupted `gradle/libs.versions.toml`, which is fixed now.
 * **The Gradle daemon runs out of memory**: the project reserves a 10 GB heap (`org.gradle.jvmargs` in `gradle.properties`). On machines with 16 GB of RAM or less, close other apps or lower `-Xmx`.
 
 ---
 
-## 🧱 Repository Architecture
+## 🗺️ Roadmap
 
-ThunderWren is built inside the Thunderbird for Android multi-module workspace:
-
-* **`:app-thunderwren`**: the Wear OS app. It contains the watch UI (`ui/`), Tile (`tile/`), complication (`complication/`), Data Layer listener (`sync/`), and its Koin module (`di/ThunderWrenModule.kt`), which combines `appCommonModule` with watch-specific definitions.
-* **`:app-thunderbird` / `:app-k9mail`**: the upstream phone apps. They are unchanged in this fork.
-* **`feature:*`, `core:*`, `legacy:*`, `backend:*`**: the shared engine: accounts, storage, mail protocols, and DI modules.
+- [x] Wear OS app with Compose for Wear OS Material 3.
+- [x] Phone-first companion protocol and RFC ([0010](docs/engineering/rfcs/0010-wear-os-companion.md)).
+- [x] Inboxes, mailbox switching, mail actions, open on phone, and a live Tile and complication.
+- [ ] Verify on a real phone and watch, then fix what that turns up.
+- [ ] Reply from the watch (voice or canned replies, sent by the phone).
+- [ ] Respect Thunderbird's notification privacy settings in what the watch shows.
+- [ ] Present on [thunderbird/thunderbird-android#6969](https://github.com/thunderbird/thunderbird-android/issues/6969), the open Wear OS request.
 
 For architectural guidelines, see [`docs/architecture/`](docs/architecture/README.md) and [`AGENTS.md`](AGENTS.md). The original upstream README is preserved in [`README.upstream.md`](README.upstream.md).
 
