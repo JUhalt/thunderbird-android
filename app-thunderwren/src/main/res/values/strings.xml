@@ -5,7 +5,12 @@
     <string name="complication_name">Unread Count</string>
 
     <string name="mailbox_unified">All inboxes</string>
+    <!-- The unread messages of all inboxes -->
+    <string name="mailbox_unread">Unread</string>
+    <!-- The starred messages of all inboxes -->
+    <string name="mailbox_starred">Starred</string>
     <string name="mailbox_picker_title">Mailboxes</string>
+    <string name="mailbox_picker_accounts">Accounts</string>
     <string name="mailbox_switch_description">Switch mailbox. Showing %1$s.</string>
 
     <string name="inbox_unread_count">%1$d unread</string>
@@ -13,6 +18,10 @@
     <string name="inbox_refresh">Refresh</string>
     <string name="inbox_refreshing">Refreshing…</string>
     <string name="inbox_loading">Loading…</string>
+    <string name="inbox_mark_all_read">Mark all as read</string>
+    <string name="inbox_marking_all_read">Marking as read…</string>
+    <!-- Title of the confirmation dialog. %1$s is the mailbox name, for example "All inboxes". -->
+    <string name="inbox_mark_all_read_confirmation">Mark everything in %1$s as read?</string>
 
     <string name="not_connected_title">Connect your phone</string>
     <string name="not_connected_text">Open Thunderbird on your paired phone to see your mail here.</string>
@@ -26,11 +35,11 @@
     <string name="demo_account_personal">Personal</string>
     <string name="demo_sender_billing">Billing</string>
     <string name="demo_welcome_subject">Welcome to the demo mailbox</string>
-    <string name="demo_welcome_preview">Tap a message to read it, then try Star or Archive. Swipe right to go back. Nothing here is sent anywhere.</string>
+    <string name="demo_welcome_preview">Tap a message to read, star, or reply to it. Swipe a message to the left to archive or delete it. Nothing here is sent anywhere.</string>
     <string name="demo_standup_subject">Standup moved to 10:30</string>
     <string name="demo_standup_preview">Quick heads-up: the room is booked at 10, so we\'ll meet at 10:30 today.</string>
     <string name="demo_switch_subject">Switch between inboxes</string>
-    <string name="demo_switch_preview">Tap \"All inboxes\" at the top of the list to see a single account\'s inbox instead.</string>
+    <string name="demo_switch_preview">Tap \"All inboxes\" at the top of the list to see only unread or starred messages, or a single account.</string>
     <string name="demo_encrypted_subject">Contract draft</string>
     <string name="demo_hike_subject">Saturday hike?</string>
     <string name="demo_hike_preview">Weather looks great. Meet at the trailhead at 8? I\'ll bring snacks.</string>
@@ -43,7 +52,10 @@
     <string name="message_no_subject">(No subject)</string>
     <string name="message_encrypted">Encrypted message. Open it on your phone to read it.</string>
     <string name="message_not_found">This message is no longer in the inbox.</string>
+    <!-- Screen reader description of the account a message belongs to. %1$s is the account name. -->
+    <string name="message_account">Account: %1$s</string>
 
+    <string name="action_reply">Reply</string>
     <string name="action_open_on_phone">Open on phone</string>
     <string name="action_mark_unread">Mark unread</string>
     <string name="action_mark_read">Mark read</string>
@@ -52,13 +64,37 @@
     <string name="action_archive">Archive</string>
     <string name="action_delete">Delete</string>
 
+    <!-- %1$s is the sender's name -->
+    <string name="reply_title">Reply to %1$s</string>
+    <string name="reply_speak_or_type">Speak or type</string>
+    <string name="reply_review_title">Your reply</string>
+    <string name="reply_send">Send</string>
+    <string name="reply_sending">Sending…</string>
+    <string name="reply_change">Change</string>
+    <!-- Shown briefly after a reply was handed to the phone -->
+    <string name="reply_sent">Sent</string>
+    <string name="reply_note">Thunderbird on your phone sends it from the account the message was sent to.</string>
+    <string name="reply_input_unavailable">Voice and keyboard input aren\'t available on this watch.</string>
+    <string name="quick_reply_ok">OK</string>
+    <string name="quick_reply_thanks">Thanks!</string>
+    <string name="quick_reply_sounds_good">Sounds good.</string>
+    <string name="quick_reply_on_my_way">On my way.</string>
+    <string name="quick_reply_later">I\'ll reply later.</string>
+
     <string name="error_no_phone">Your phone isn\'t connected.</string>
     <string name="error_archive_unavailable">This account has no Archive folder.</string>
     <string name="error_failed">That didn\'t work. Try again on your phone.</string>
     <string name="error_not_available_in_demo">Not available in the demo.</string>
+    <string name="error_reply_unavailable">You can\'t reply to this message from your watch. Open it on your phone.</string>
+    <string name="error_update_phone_app">Update Thunderbird on your phone to do this from your watch.</string>
+    <string name="error_mailbox_not_found">This mailbox no longer exists.</string>
 
     <string name="tile_unread_count">%1$d unread</string>
     <string name="tile_not_connected">Open Thunderbird on your phone</string>
+    <!-- Shown on the Tile when Thunderbird\'s lock screen setting hides even the number of messages -->
+    <string name="tile_open_app">Tap to see your mail</string>
+    <!-- Screen reader description of a message on the Tile. %1$s is the sender, %2$s the subject or empty. -->
+    <string name="tile_message_description">%1$s. %2$s. Opens the message.</string>
     <!-- Screen reader description of the Tile. %1$s is the unread count or the "not connected" text. -->
     <string name="tile_description">%1$s. Opens ThunderWren.</string>
 </resources>

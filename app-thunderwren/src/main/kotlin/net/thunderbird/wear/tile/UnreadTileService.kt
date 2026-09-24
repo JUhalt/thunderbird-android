@@ -1,8 +1,6 @@
 package net.thunderbird.wear.tile
 
-import androidx.wear.protolayout.ActionBuilders
 import androidx.wear.protolayout.LayoutElementBuilders
-import androidx.wear.protolayout.ModifiersBuilders
 import androidx.wear.protolayout.ResourceBuilders
 import androidx.wear.protolayout.TimelineBuilders
 import androidx.wear.tiles.RequestBuilders
@@ -16,13 +14,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import net.thunderbird.wear.R
-import net.thunderbird.wear.ThunderWrenActivity
 import net.thunderbird.wear.data.PhoneConnection
-import net.thunderbird.wear.sync.currentUnreadCount
+import net.thunderbird.wear.sync.currentGlance
 import org.koin.android.ext.android.inject
 
-/** Tile showing the unified inbox's unread count. Tapping it opens the app. */
+/**
+ * Tile showing the unified inbox's unread count and, if Thunderbird's privacy setting allows it, the newest unread
+ * messages. Tapping a message opens it; tapping anything else opens the app.
+ */
 class UnreadTileService : TileService() {
     private val phoneConnection: PhoneConnection by inject()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -31,7 +30,9 @@ class UnreadTileService : TileService() {
         val tile = SettableFuture.create<TileBuilders.Tile>()
         serviceScope.launch {
             try {
-                tile.set(createTile(phoneConnection.currentUnreadCount()))
+                val glance = phoneConnection.currentGlance(maxMessages = UnreadTileLayout.MAX_MESSAGES)
+                val screenWidthDp = requestParams.deviceConfiguration.screenWidthDp
+                tile.set(createTile(UnreadTileLayout(this@UnreadTileService).create(glance, screenWidthDp)))
             } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
                 tile.setException(e)
             }
@@ -55,42 +56,7 @@ class UnreadTileService : TileService() {
         super.onDestroy()
     }
 
-    private fun createTile(unreadCount: Int?): TileBuilders.Tile {
-        val openApp = ModifiersBuilders.Clickable.Builder()
-            .setId(CLICKABLE_ID_OPEN_APP)
-            .setOnClick(
-                ActionBuilders.LaunchAction.Builder()
-                    .setAndroidActivity(
-                        ActionBuilders.AndroidActivity.Builder()
-                            .setPackageName(packageName)
-                            .setClassName(ThunderWrenActivity::class.java.name)
-                            .build(),
-                    )
-                    .build(),
-            )
-            .build()
-
-        val status = if (unreadCount == null) {
-            getString(R.string.tile_not_connected)
-        } else {
-            getString(R.string.tile_unread_count, unreadCount)
-        }
-
-        val content = LayoutElementBuilders.Column.Builder()
-            .setModifiers(
-                ModifiersBuilders.Modifiers.Builder()
-                    .setClickable(openApp)
-                    .setSemantics(
-                        ModifiersBuilders.Semantics.Builder()
-                            .setContentDescription(getString(R.string.tile_description, status))
-                            .build(),
-                    )
-                    .build(),
-            )
-            .addContent(LayoutElementBuilders.Text.Builder().setText(getString(R.string.app_name)).build())
-            .addContent(LayoutElementBuilders.Text.Builder().setText(status).setMaxLines(2).build())
-            .build()
-
+    private fun createTile(content: LayoutElementBuilders.LayoutElement): TileBuilders.Tile {
         return TileBuilders.Tile.Builder()
             .setResourcesVersion(RESOURCES_VERSION)
             .setTileTimeline(
@@ -107,6 +73,5 @@ class UnreadTileService : TileService() {
 
     private companion object {
         const val RESOURCES_VERSION = "1"
-        const val CLICKABLE_ID_OPEN_APP = "open_app"
     }
 }

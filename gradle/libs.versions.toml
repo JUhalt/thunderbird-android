@@ -225,6 +225,7 @@ androidx-wear-compose-navigation = { module = "androidx.wear.compose:compose-nav
 androidx-wear-tooling-preview = { module = "androidx.wear:wear-tooling-preview", version = "1.0.0" }
 androidx-wear-tiles = { module = "androidx.wear.tiles:tiles", version.ref = "androidxWearTiles" }
 androidx-wear-remote-interactions = { module = "androidx.wear:wear-remote-interactions", version = "1.2.0" }
+androidx-wear-input = { module = "androidx.wear:wear-input", version = "1.2.0" }
 androidx-wear-protolayout = { module = "androidx.wear.protolayout:protolayout", version.ref = "androidxWearProtolayout" }
 androidx-wear-protolayout-material = { module = "androidx.wear.protolayout:protolayout-material", version.ref = "androidxWearProtolayout" }
 androidx-wear-watchface-complications-data-source = { module = "androidx.wear.watchface:watchface-complications-data-source", version.ref = "androidxWearWatchface" }

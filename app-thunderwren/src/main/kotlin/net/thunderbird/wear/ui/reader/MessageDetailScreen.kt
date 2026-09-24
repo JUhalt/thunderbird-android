@@ -1,23 +1,32 @@
 package net.thunderbird.wear.ui.reader
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material3.Button
+import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.FilledTonalButton
+import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.OpenOnPhoneDialog
@@ -25,8 +34,10 @@ import androidx.wear.compose.material3.OpenOnPhoneDialogDefaults
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.curvedText
+import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
+import net.thunderbird.wear.ui.common.AccountMonogram
 import net.thunderbird.wear.ui.common.formatMessageDate
 import net.thunderbird.wear.ui.preview.PreviewData
 import net.thunderbird.wear.ui.theme.ThunderWrenTheme
@@ -82,7 +93,7 @@ private fun ScalingLazyListScope.messageItems(
         }
     }
 
-    item { MessageHeader(message) }
+    item { MessageHeader(message, state.account) }
 
     item {
         Text(
@@ -103,14 +114,8 @@ private fun ScalingLazyListScope.messageItems(
         }
     }
 
-    item {
-        Button(
-            onClick = actions::onOpenOnPhone,
-            enabled = !state.isBusy,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(text = stringResource(R.string.action_open_on_phone)) },
-        )
-    }
+    replyItems(state, actions)
+
     item {
         ActionButton(
             label = if (message.isRead) R.string.action_mark_unread else R.string.action_mark_read,
@@ -129,8 +134,35 @@ private fun ScalingLazyListScope.messageItems(
     item { ActionButton(label = R.string.action_delete, enabled = !state.isBusy, onClick = actions::onDelete) }
 }
 
+/** Reply, if possible, and open on phone. Without a reply button, opening on the phone is the main action. */
+private fun ScalingLazyListScope.replyItems(state: MessageUiState, actions: MessageActions) {
+    if (state.canReply) {
+        item {
+            Button(
+                onClick = actions::onReply,
+                enabled = !state.isBusy,
+                modifier = Modifier.fillMaxWidth(),
+                icon = { Icon(painterResource(R.drawable.ic_reply), contentDescription = null) },
+                label = { Text(text = stringResource(R.string.action_reply)) },
+            )
+        }
+    }
+    item {
+        Button(
+            onClick = actions::onOpenOnPhone,
+            enabled = !state.isBusy,
+            modifier = Modifier.fillMaxWidth(),
+            colors = if (state.canReply) ButtonDefaults.filledTonalButtonColors() else ButtonDefaults.buttonColors(),
+            icon = { Icon(painterResource(R.drawable.ic_phone), contentDescription = null) },
+            label = { Text(text = stringResource(R.string.action_open_on_phone)) },
+        )
+    }
+}
+
 @Composable
-private fun MessageHeader(message: WearMessageSummary) {
+private fun MessageHeader(message: WearMessageSummary, account: WearMailbox?) {
+    val accountDescription = account?.let { stringResource(R.string.message_account, it.name) }
+
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         Text(
             text = message.subject.ifEmpty { stringResource(R.string.message_no_subject) },
@@ -148,6 +180,25 @@ private fun MessageHeader(message: WearMessageSummary) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (account != null && accountDescription != null) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.semantics(mergeDescendants = true) {
+                    contentDescription = accountDescription
+                },
+            ) {
+                AccountMonogram(account = account, size = 18.dp)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = account.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
     }
 }
 

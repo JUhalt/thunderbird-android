@@ -62,6 +62,14 @@ class DataLayerPhoneConnection(
         return sendRequest(WearRequest.PerformAction(messageId, action))
     }
 
+    override suspend fun markAllRead(mailboxId: String): PhoneResult {
+        return sendRequest(WearRequest.MarkAllRead(mailboxId))
+    }
+
+    override suspend fun reply(messageId: String, text: String): PhoneResult {
+        return sendRequest(WearRequest.Reply(messageId, text))
+    }
+
     override suspend fun openOnPhone(messageId: String): PhoneResult = withContext(ioDispatcher) {
         val phone = findPhone() ?: return@withContext PhoneResult.NoPhone
         val intent = Intent(Intent.ACTION_VIEW)

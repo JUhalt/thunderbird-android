@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import net.thunderbird.feature.wear.companion.WearCompanion
+import net.thunderbird.feature.wear.companion.WearGlanceVisibility
 import net.thunderbird.feature.wear.companion.WearInboxSnapshot
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMailboxList
@@ -44,31 +45,38 @@ class DemoPhoneConnection(
     override val isDemo: Flow<Boolean> = flowOf(true)
 
     override val mailboxes: Flow<WearMailboxList?> = messages.map { messages ->
+        val unifiedViews = UNIFIED_VIEW_IDS.map { mailboxId ->
+            WearMailbox(
+                id = mailboxId,
+                name = "",
+                email = "",
+                color = null,
+                unreadCount = messages.count { it.isIn(mailboxId) && !it.summary.isRead },
+            )
+        }
+        val accountInboxes = accounts.map { account ->
+            WearMailbox(
+                id = account.id,
+                name = account.name,
+                email = account.email,
+                color = account.color,
+                unreadCount = messages.count { it.isIn(account.id) && !it.summary.isRead },
+                // The same monogram Thunderbird creates for a new account: the first two letters of its name.
+                monogram = account.name.take(2).uppercase(),
+            )
+        }
+
         WearMailboxList(
             generatedAt = now(),
-            mailboxes = listOf(
-                WearMailbox(
-                    id = WearCompanion.UNIFIED_MAILBOX_ID,
-                    name = "",
-                    email = "",
-                    color = null,
-                    unreadCount = messages.count { !it.summary.isRead },
-                ),
-            ) + accounts.map { account ->
-                WearMailbox(
-                    id = account.id,
-                    name = account.name,
-                    email = account.email,
-                    color = account.color,
-                    unreadCount = messages.count { it.accountId == account.id && !it.summary.isRead },
-                )
-            },
+            mailboxes = unifiedViews + accountInboxes,
+            // Show everything the Tile can do; there is nothing private in the demo.
+            glanceVisibility = WearGlanceVisibility.EVERYTHING,
         )
     }
 
     override fun inbox(mailboxId: String): Flow<WearInboxSnapshot?> = messages.map { messages ->
         val inboxMessages = messages
-            .filter { mailboxId == WearCompanion.UNIFIED_MAILBOX_ID || it.accountId == mailboxId }
+            .filter { it.isIn(mailboxId) }
             .map { it.summary }
             .sortedByDescending { it.date }
 
@@ -101,7 +109,26 @@ class DemoPhoneConnection(
         return PhoneResult.Success
     }
 
+    override suspend fun markAllRead(mailboxId: String): PhoneResult {
+        messages.update { messages ->
+            messages.map { message ->
+                if (message.isIn(mailboxId)) message.copy(summary = message.summary.copy(isRead = true)) else message
+            }
+        }
+        return PhoneResult.Success
+    }
+
+    // Nothing is sent, but the reply screens can be tried.
+    override suspend fun reply(messageId: String, text: String): PhoneResult = PhoneResult.Success
+
     override suspend fun openOnPhone(messageId: String): PhoneResult = PhoneResult.NotAvailableInDemo
+
+    private fun DemoMessage.isIn(mailboxId: String): Boolean = when (mailboxId) {
+        WearCompanion.UNIFIED_MAILBOX_ID -> true
+        WearCompanion.UNREAD_MAILBOX_ID -> !summary.isRead
+        WearCompanion.STARRED_MAILBOX_ID -> summary.isStarred
+        else -> accountId == mailboxId
+    }
 
     private fun WearMessageSummary.apply(action: WearMessageAction): WearMessageSummary = when (action) {
         WearMessageAction.MARK_READ -> copy(isRead = true)
@@ -137,6 +164,7 @@ class DemoPhoneConnection(
                 hasAttachments = false,
                 isEncrypted = isEncrypted,
                 accountColor = account.color,
+                accountId = account.id,
             ),
         )
 
@@ -201,6 +229,11 @@ class DemoPhoneConnection(
     private data class DemoAccount(val id: String, val name: String, val email: String, val color: Int)
 
     private companion object {
+        val UNIFIED_VIEW_IDS = listOf(
+            WearCompanion.UNIFIED_MAILBOX_ID,
+            WearCompanion.UNREAD_MAILBOX_ID,
+            WearCompanion.STARRED_MAILBOX_ID,
+        )
         const val WORK_COLOR = 0xFF0A84FF.toInt()
         const val PERSONAL_COLOR = 0xFFFFA23A.toInt()
     }

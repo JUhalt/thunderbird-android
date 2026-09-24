@@ -19,7 +19,7 @@ import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.wear.R
-import net.thunderbird.wear.ui.common.accountColorIcon
+import net.thunderbird.wear.ui.common.accountIcon
 import net.thunderbird.wear.ui.common.displayName
 import net.thunderbird.wear.ui.preview.PreviewData
 import net.thunderbird.wear.ui.theme.ThunderWrenTheme
@@ -48,7 +48,26 @@ fun MailboxPickerScreen(
                 }
             }
 
-            items(state.mailboxes, key = { it.id }) { mailbox ->
+            // The unified inbox and its views first, then the accounts.
+            val (accounts, views) = state.mailboxes.partition { it.isAccount }
+
+            items(views, key = { it.id }) { mailbox ->
+                MailboxButton(
+                    mailbox = mailbox,
+                    isSelected = mailbox.id == state.selectedMailboxId,
+                    onClick = { onMailboxClick(mailbox.id) },
+                )
+            }
+
+            if (accounts.isNotEmpty()) {
+                item {
+                    ListHeader {
+                        Text(text = stringResource(R.string.mailbox_picker_accounts))
+                    }
+                }
+            }
+
+            items(accounts, key = { it.id }) { mailbox ->
                 MailboxButton(
                     mailbox = mailbox,
                     isSelected = mailbox.id == state.selectedMailboxId,
@@ -71,7 +90,7 @@ private fun MailboxButton(
             .fillMaxWidth()
             .semantics { selected = isSelected },
         colors = if (isSelected) ButtonDefaults.buttonColors() else ButtonDefaults.filledTonalButtonColors(),
-        icon = accountColorIcon(mailbox.color),
+        icon = accountIcon(mailbox),
         secondaryLabel = {
             Text(
                 text = listOfNotNull(

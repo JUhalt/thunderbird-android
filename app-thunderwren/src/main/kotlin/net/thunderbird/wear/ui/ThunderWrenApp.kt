@@ -5,11 +5,18 @@ import androidx.wear.compose.material3.AppScaffold
 import net.thunderbird.wear.ui.navigation.ThunderWrenNavigation
 import net.thunderbird.wear.ui.theme.ThunderWrenTheme
 
+/**
+ * @param openMessageId A message to open, for example one tapped on the Tile. [onMessageOpen] is called once it
+ * has been opened.
+ */
 @Composable
-fun ThunderWrenApp() {
+fun ThunderWrenApp(
+    openMessageId: String? = null,
+    onMessageOpen: () -> Unit = {},
+) {
     ThunderWrenTheme {
         AppScaffold {
-            ThunderWrenNavigation()
+            ThunderWrenNavigation(openMessageId = openMessageId, onMessageOpen = onMessageOpen)
         }
     }
 }

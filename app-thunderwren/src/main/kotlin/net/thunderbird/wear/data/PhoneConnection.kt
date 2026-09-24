@@ -22,6 +22,12 @@ interface PhoneConnection {
 
     suspend fun performAction(messageId: String, action: WearMessageAction): PhoneResult
 
+    /** Marks every message in the mailbox with [mailboxId] as read. */
+    suspend fun markAllRead(mailboxId: String): PhoneResult
+
+    /** Asks the phone to send [text] as a reply to the sender of the message with [messageId]. */
+    suspend fun reply(messageId: String, text: String): PhoneResult
+
     /** Opens the message on the phone so it can be read in full or replied to. */
     suspend fun openOnPhone(messageId: String): PhoneResult
 }

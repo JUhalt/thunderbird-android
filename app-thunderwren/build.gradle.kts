@@ -10,8 +10,8 @@ android {
         // app-thunderbird (including the build type suffixes below). See RFC 0010.
         applicationId = "net.thunderbird.android"
 
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 3
+        versionName = "0.1.0-beta3"
 
         minSdk = 30
         targetSdk = 35
@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.androidx.wear.protolayout.material)
     implementation(libs.androidx.wear.watchface.complications.data.source)
     implementation(libs.androidx.wear.remote.interactions)
+    implementation(libs.androidx.wear.input)
     implementation(libs.play.services.wearable)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation("com.google.guava:guava:33.4.0-android")

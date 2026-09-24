@@ -3,38 +3,44 @@ package net.thunderbird.wear.ui.reader
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import net.thunderbird.feature.wear.companion.WearErrorReason
+import net.thunderbird.feature.wear.companion.WearMailbox
+import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
 import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.PhoneResult
-import net.thunderbird.wear.data.SelectedMailboxStore
+import net.thunderbird.wear.data.message
+import net.thunderbird.wear.ui.common.errorMessage
 
 data class MessageUiState(
     val isLoading: Boolean = true,
     /** The message, or `null` if it's no longer in the inbox (for example archived on the phone). */
     val message: WearMessageSummary? = null,
+    /** The account the message belongs to, if there are several accounts. */
+    val account: WearMailbox? = null,
     val isBusy: Boolean = false,
     @field:StringRes val errorMessage: Int? = null,
     val showOpenOnPhoneConfirmation: Boolean = false,
     /** Set after the message was archived or deleted; the screen should close. */
     val isClosed: Boolean = false,
-)
+) {
+    /** Encrypted messages can only be answered on the phone, which can encrypt the reply. */
+    val canReply: Boolean
+        get() = message != null && !message.isEncrypted
+}
 
-@OptIn(ExperimentalCoroutinesApi::class)
+/** The message with [messageId], opened from the mailbox with [mailboxId]. */
 class MessageViewModel(
     private val messageId: String,
+    mailboxId: String,
     private val phoneConnection: PhoneConnection,
-    selectedMailboxStore: SelectedMailboxStore,
 ) : ViewModel() {
     private val state = MutableStateFlow(MessageUiState())
     val uiState: StateFlow<MessageUiState> = state.asStateFlow()
@@ -43,13 +49,12 @@ class MessageViewModel(
 
     init {
         viewModelScope.launch {
-            selectedMailboxStore.selectedMailboxId
-                .flatMapLatest { mailboxId -> phoneConnection.inbox(mailboxId) }
-                .map { inbox -> inbox?.messages?.firstOrNull { it.id == messageId } }
-                .collect { message ->
-                    state.update { it.copy(isLoading = false, message = message) }
-                    if (message != null) markAsReadOnce(message)
-                }
+            combine(phoneConnection.message(messageId, mailboxId), phoneConnection.mailboxes) { message, mailboxes ->
+                message to message?.let { mailboxes?.accountToLabel(it) }
+            }.collect { (message, account) ->
+                state.update { it.copy(isLoading = false, message = message, account = account) }
+                if (message != null) markAsReadOnce(message)
+            }
         }
     }
 
@@ -63,7 +68,13 @@ class MessageViewModel(
         perform(if (message.isStarred) WearMessageAction.UNSTAR else WearMessageAction.STAR)
     }
 
-    fun archive() = perform(WearMessageAction.ARCHIVE, closeOnSuccess = true)
+    fun archive() {
+        perform(
+            WearMessageAction.ARCHIVE,
+            closeOnSuccess = true,
+            notAvailableMessage = R.string.error_archive_unavailable,
+        )
+    }
 
     fun delete() = perform(WearMessageAction.DELETE, closeOnSuccess = true)
 
@@ -93,12 +104,16 @@ class MessageViewModel(
         }
     }
 
-    private fun perform(action: WearMessageAction, closeOnSuccess: Boolean = false) {
+    private fun perform(
+        action: WearMessageAction,
+        closeOnSuccess: Boolean = false,
+        @StringRes notAvailableMessage: Int = R.string.error_failed,
+    ) {
         runBusy {
             val result = phoneConnection.performAction(messageId, action)
             state.update {
                 it.copy(
-                    errorMessage = result.errorMessage(),
+                    errorMessage = result.errorMessage(notAvailableMessage),
                     isClosed = closeOnSuccess && result == PhoneResult.Success,
                 )
             }
@@ -119,17 +134,7 @@ class MessageViewModel(
     }
 }
 
-@StringRes
-private fun PhoneResult.errorMessage(): Int? = when (this) {
-    PhoneResult.Success -> null
-
-    PhoneResult.NoPhone -> R.string.error_no_phone
-
-    PhoneResult.NotAvailableInDemo -> R.string.error_not_available_in_demo
-
-    is PhoneResult.Failed -> when (reason) {
-        WearErrorReason.ACTION_NOT_AVAILABLE -> R.string.error_archive_unavailable
-        WearErrorReason.MESSAGE_NOT_FOUND -> R.string.message_not_found
-        WearErrorReason.UNSUPPORTED_REQUEST, WearErrorReason.FAILED -> R.string.error_failed
-    }
+/** The message's account, if there's more than one account to tell apart. */
+private fun WearMailboxList.accountToLabel(message: WearMessageSummary): WearMailbox? {
+    return account(message.accountId)?.takeIf { mailboxes.count { it.isAccount } > 1 }
 }

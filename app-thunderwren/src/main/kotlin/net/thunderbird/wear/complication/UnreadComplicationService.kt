@@ -1,9 +1,10 @@
 package net.thunderbird.wear.complication
 
 import android.app.PendingIntent
-import android.content.Intent
+import android.graphics.drawable.Icon
 import androidx.wear.watchface.complications.data.ComplicationData
 import androidx.wear.watchface.complications.data.ComplicationType
+import androidx.wear.watchface.complications.data.MonochromaticImage
 import androidx.wear.watchface.complications.data.NoDataComplicationData
 import androidx.wear.watchface.complications.data.PlainComplicationText
 import androidx.wear.watchface.complications.data.ShortTextComplicationData
@@ -17,10 +18,13 @@ import kotlinx.coroutines.launch
 import net.thunderbird.wear.R
 import net.thunderbird.wear.ThunderWrenActivity
 import net.thunderbird.wear.data.PhoneConnection
-import net.thunderbird.wear.sync.currentUnreadCount
+import net.thunderbird.wear.sync.currentGlance
 import org.koin.android.ext.android.inject
 
-/** Short-text complication showing the unified inbox's unread count. Tapping it opens the app. */
+/**
+ * Short-text complication showing the unified inbox's unread count, or only the app's icon if Thunderbird's privacy
+ * setting hides even that. Tapping it opens the app.
+ */
 class UnreadComplicationService : ComplicationDataSourceService() {
     private val phoneConnection: PhoneConnection by inject()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -37,9 +41,15 @@ class UnreadComplicationService : ComplicationDataSourceService() {
         }
 
         serviceScope.launch {
-            val unreadCount = phoneConnection.currentUnreadCount()
+            val glance = phoneConnection.currentGlance(maxMessages = 0)
             listener.onComplicationData(
-                if (unreadCount == null) NoDataComplicationData() else createData(unreadCount),
+                if (glance ==
+                    null
+                ) {
+                    NoDataComplicationData()
+                } else {
+                    createData(glance.unreadCount)
+                },
             )
         }
     }
@@ -49,20 +59,26 @@ class UnreadComplicationService : ComplicationDataSourceService() {
         super.onDestroy()
     }
 
-    private fun createData(unreadCount: Int): ShortTextComplicationData {
+    /** [unreadCount] is `null` if it may not be shown. */
+    private fun createData(unreadCount: Int?): ShortTextComplicationData {
         val openApp = PendingIntent.getActivity(
             this,
             0,
-            Intent(this, ThunderWrenActivity::class.java),
+            ThunderWrenActivity.createIntent(this),
             PendingIntent.FLAG_IMMUTABLE,
         )
+        val icon = MonochromaticImage.Builder(Icon.createWithResource(this, R.drawable.ic_notification)).build()
+        val description = if (unreadCount == null) {
+            getString(R.string.app_name)
+        } else {
+            getString(R.string.inbox_unread_count, unreadCount)
+        }
 
         return ShortTextComplicationData.Builder(
-            text = PlainComplicationText.Builder(unreadCount.toString()).build(),
-            contentDescription = PlainComplicationText.Builder(
-                getString(R.string.inbox_unread_count, unreadCount),
-            ).build(),
+            text = PlainComplicationText.Builder(unreadCount?.toString().orEmpty()).build(),
+            contentDescription = PlainComplicationText.Builder(description).build(),
         )
+            .setMonochromaticImage(icon)
             .setTapAction(openApp)
             .build()
     }
