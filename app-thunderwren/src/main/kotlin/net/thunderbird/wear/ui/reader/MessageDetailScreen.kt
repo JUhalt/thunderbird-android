@@ -37,7 +37,8 @@ fun MessageDetailScreen(
     actions: MessageActions,
     modifier: Modifier = Modifier,
 ) {
-    val listState = rememberScalingLazyListState()
+    // Start with the first item (the header) at the top instead of centered, so it isn't hidden under the clock.
+    val listState = rememberScalingLazyListState(initialCenterItemIndex = 0)
 
     ScreenScaffold(
         scrollState = listState,
@@ -87,7 +88,8 @@ private fun ScalingLazyListScope.messageItems(
         Text(
             text = if (message.isEncrypted) stringResource(R.string.message_encrypted) else message.preview,
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
+            // Round screens cut off the corners, so keep body text away from the edges.
+            modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp),
         )
     }
 
@@ -129,7 +131,7 @@ private fun ScalingLazyListScope.messageItems(
 
 @Composable
 private fun MessageHeader(message: WearMessageSummary) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         Text(
             text = message.subject.ifEmpty { stringResource(R.string.message_no_subject) },
             style = MaterialTheme.typography.titleMedium,
