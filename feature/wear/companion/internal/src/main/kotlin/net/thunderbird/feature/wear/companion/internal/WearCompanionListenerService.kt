@@ -17,12 +17,13 @@ import org.koin.android.ext.android.inject
 internal class WearCompanionListenerService : WearableListenerService() {
     private val requestHandler: WearRequestHandler by inject()
     private val publisher: WearSnapshotPublisher by inject()
+    private val feature: WearCompanionFeature by inject()
 
     private val serviceScope = CoroutineScope(SupervisorJob())
 
     override fun onCreate() {
         super.onCreate()
-        publisher.start()
+        if (feature.isEnabled()) publisher.start()
     }
 
     override fun onRequest(nodeId: String, path: String, request: ByteArray): Task<ByteArray>? {
@@ -37,7 +38,8 @@ internal class WearCompanionListenerService : WearableListenerService() {
     }
 
     override fun onCapabilityChanged(capabilityInfo: CapabilityInfo) {
-        if (capabilityInfo.name == WearCompanion.WATCH_CAPABILITY && capabilityInfo.nodes.isNotEmpty()) {
+        val isWatch = capabilityInfo.name == WearCompanion.WATCH_CAPABILITY
+        if (isWatch && capabilityInfo.nodes.isNotEmpty() && feature.isEnabled()) {
             publisher.requestPublish()
         }
     }

@@ -11,6 +11,7 @@ dependencies {
 
     implementation(projects.core.android.account)
     implementation(projects.core.common)
+    implementation(projects.core.featureflag)
     implementation(projects.core.logging.api)
     implementation(projects.core.preference.api)
     implementation(projects.feature.account.avatar.api)
