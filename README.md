@@ -11,7 +11,9 @@ ThunderWren brings your Thunderbird inbox to smartwatches running Wear OS 3+. Th
 It lives in a fork of the Thunderbird for Android repository. The design is proposed upstream in [RFC 0010](docs/engineering/rfcs/0010-wear-os-companion.md).
 
 > [!IMPORTANT]
-> **Project status: working prototype, not yet tested on real hardware.** The phone and watch sides are implemented and covered by unit and UI tests, but haven't been run on a paired phone and watch yet. The watch needs the Thunderbird phone app **built from this fork**; the Thunderbird app from the Play Store doesn't include the companion.
+> **Project status: beta (0.1.0-beta4).** The phone and watch sides are implemented, covered by unit and UI tests, and working on paired phone and watch emulators in Android Studio. It hasn't been tried on a physical watch yet. The watch needs the Thunderbird phone app **built from this fork**; the Thunderbird app from the Play Store doesn't include the companion.
+>
+> **Built with AI.** Most of this code was written with an AI coding assistant (Claude Code), directed and tested by the fork's maintainer. It follows the repository's [`AGENTS.md`](AGENTS.md) rules for AI-assisted contributions.
 >
 > **Just curious?** You don't need a phone. Install only the watch app and tap **Try the demo**.
 
@@ -148,7 +150,8 @@ Or from the command line, with both emulators running:
 - [x] Respect Thunderbird's notification privacy settings on the Tile and complication.
 - [x] Swipe to archive or delete, Unread and Starred views, mark all as read, account monograms, and a richer Tile.
 - [x] Feature flags for the phone-side parts, Daily and Beta watch builds, and screens following Thunderbird's MVI pattern.
-- [ ] Verify on a real phone and watch, then fix what that turns up.
+- [x] Tested on paired phone and watch emulators in Android Studio.
+- [ ] Verify on a physical phone and watch, then fix what that turns up.
 - [ ] Present on [thunderbird/thunderbird-android#6969](https://github.com/thunderbird/thunderbird-android/issues/6969), the open Wear OS request.
 
 For architectural guidelines, see [`docs/architecture/`](docs/architecture/README.md) and [`AGENTS.md`](AGENTS.md). The original upstream README is preserved in [`README.upstream.md`](README.upstream.md).
