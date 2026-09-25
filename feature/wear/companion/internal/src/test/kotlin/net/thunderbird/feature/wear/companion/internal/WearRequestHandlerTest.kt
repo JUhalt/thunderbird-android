@@ -21,6 +21,7 @@ class WearRequestHandlerTest {
     private val actions = FakeWearMessageActions()
     private val mailboxActions = FakeWearMailboxActions()
     private val replySender = FakeWearReplySender()
+    private var isCompanionEnabled = true
 
     @Test
     fun `undecodable request is rejected`() = runTest {
@@ -119,18 +120,33 @@ class WearRequestHandlerTest {
         assertThat(publisher.requestPublishCount).isEqualTo(1)
     }
 
+    @Test
+    fun `requests are unsupported while the companion is turned off`() = runTest {
+        isCompanionEnabled = false
+        val reference = MessageReference("account", 3, "uid")
+
+        val refresh = handle(WearRequest.Refresh)
+        val action = handle(WearRequest.PerformAction(reference.toIdentityString(), WearMessageAction.ARCHIVE))
+
+        assertThat(refresh).isEqualTo(WearResponse.Error(WearErrorReason.UNSUPPORTED_REQUEST))
+        assertThat(action).isEqualTo(WearResponse.Error(WearErrorReason.UNSUPPORTED_REQUEST))
+        assertThat(publisher.publishNowCount).isEqualTo(0)
+        assertThat(actions.performed).isEmpty()
+    }
+
     private suspend fun kotlinx.coroutines.test.TestScope.handle(request: WearRequest): WearResponse? {
         return handle(WearProtocolCodec.encodeRequest(request))
     }
 
     private suspend fun kotlinx.coroutines.test.TestScope.handle(requestData: ByteArray): WearResponse? {
-        val handler = WearRequestHandler(
+        val testSubject = WearRequestHandler(
             publisher = publisher,
             messageActions = actions,
             mailboxActions = mailboxActions,
             replySender = replySender,
+            feature = { isCompanionEnabled },
             ioDispatcher = StandardTestDispatcher(testScheduler),
         )
-        return WearProtocolCodec.decodeResponse(handler.handle(requestData))
+        return WearProtocolCodec.decodeResponse(testSubject.handle(requestData))
     }
 }

@@ -11,6 +11,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import net.thunderbird.legacy.logging.Log
+import net.thunderbird.core.featureflag.FeatureFlagProvider
+import net.thunderbird.core.featureflag.keys.GeneratedFeatureFlagKey
 import net.thunderbird.core.preference.notification.NotificationPreferenceManager
 import androidx.core.app.NotificationCompat.Builder as NotificationBuilder
 
@@ -20,6 +22,7 @@ internal class SingleMessageNotificationCreator(
     private val resourceProvider: NotificationResourceProvider,
     private val lockScreenNotificationCreator: LockScreenNotificationCreator,
     private val notificationPreferenceManager: NotificationPreferenceManager,
+    private val featureFlagProvider: FeatureFlagProvider,
     private val application: Application,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -170,8 +173,11 @@ internal class SingleMessageNotificationCreator(
         val title = resourceProvider.actionReply()
         val messageReference = notificationData.content.messageReference
 
-        val replyAction = if (notificationData.content.isEncrypted) {
-            // A quick reply would be sent unencrypted, so open the compose screen on the phone instead.
+        val isQuickReplyEnabled =
+            featureFlagProvider.provide(GeneratedFeatureFlagKey.WEAR_NOTIFICATION_QUICK_REPLY).isEnabled()
+
+        // A quick reply would be sent unencrypted, so encrypted messages open the compose screen on the phone.
+        val replyAction = if (!isQuickReplyEnabled || notificationData.content.isEncrypted) {
             val action = actionCreator.createReplyPendingIntent(messageReference)
             NotificationCompat.Action.Builder(icon, title, action).build()
         } else {

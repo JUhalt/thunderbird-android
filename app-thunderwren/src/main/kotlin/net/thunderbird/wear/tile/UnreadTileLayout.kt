@@ -30,7 +30,7 @@ internal class UnreadTileLayout(private val context: Context) {
             val status = when {
                 glance == null -> context.getString(R.string.tile_not_connected)
                 unreadCount == null -> context.getString(R.string.tile_open_app)
-                else -> context.getString(R.string.tile_unread_count, unreadCount)
+                else -> unreadCountText(unreadCount)
             }
             content.addContent(summary(status))
         } else {
@@ -63,7 +63,7 @@ internal class UnreadTileLayout(private val context: Context) {
     }
 
     private fun unreadHeader(unreadCount: Int): LayoutElementBuilders.LayoutElement {
-        val status = context.getString(R.string.tile_unread_count, unreadCount)
+        val status = unreadCountText(unreadCount)
         return LayoutElementBuilders.Box.Builder()
             .setModifiers(openOnTap(CLICKABLE_ID_OPEN_APP, context.getString(R.string.tile_description, status)))
             .addContent(text(status, TITLE_SIZE_SP, ACCENT_COLOR, isBold = true))
@@ -87,6 +87,10 @@ internal class UnreadTileLayout(private val context: Context) {
         }
 
         return row.build()
+    }
+
+    private fun unreadCountText(unreadCount: Int): String {
+        return context.resources.getQuantityString(R.plurals.unread_count, unreadCount, unreadCount)
     }
 
     private fun text(

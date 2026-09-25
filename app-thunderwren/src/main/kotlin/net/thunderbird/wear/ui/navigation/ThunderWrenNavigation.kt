@@ -9,7 +9,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -18,18 +17,19 @@ import androidx.navigation.navArgument
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
+import net.thunderbird.core.ui.contract.mvi.observe
 import net.thunderbird.feature.wear.companion.WearCompanion
 import net.thunderbird.wear.R
-import net.thunderbird.wear.ui.inbox.InboxActions
+import net.thunderbird.wear.ui.inbox.InboxContract
 import net.thunderbird.wear.ui.inbox.InboxScreen
-import net.thunderbird.wear.ui.inbox.InboxUiState
 import net.thunderbird.wear.ui.inbox.InboxViewModel
+import net.thunderbird.wear.ui.mailbox.MailboxPickerContract
 import net.thunderbird.wear.ui.mailbox.MailboxPickerScreen
 import net.thunderbird.wear.ui.mailbox.MailboxPickerViewModel
-import net.thunderbird.wear.ui.reader.MessageActions
+import net.thunderbird.wear.ui.reader.MessageContract
 import net.thunderbird.wear.ui.reader.MessageDetailScreen
 import net.thunderbird.wear.ui.reader.MessageViewModel
-import net.thunderbird.wear.ui.reply.ReplyActions
+import net.thunderbird.wear.ui.reply.ReplyContract
 import net.thunderbird.wear.ui.reply.ReplyInput
 import net.thunderbird.wear.ui.reply.ReplyScreen
 import net.thunderbird.wear.ui.reply.ReplyViewModel
@@ -74,39 +74,30 @@ fun ThunderWrenNavigation(
 private fun NavGraphBuilder.inboxDestination(navController: NavHostController) {
     composable(ThunderWrenRoutes.INBOX) {
         val viewModel: InboxViewModel = koinViewModel()
-        val state by viewModel.uiState.collectAsStateWithLifecycle()
+        val (state, dispatch) = viewModel.observe { effect ->
+            when (effect) {
+                InboxContract.Effect.OpenMailboxes -> navController.navigate(ThunderWrenRoutes.MAILBOXES)
 
-        InboxScreen(
-            state = state,
-            actions = object : InboxActions {
-                override fun onMailboxClick() = navController.navigate(ThunderWrenRoutes.MAILBOXES)
-                override fun onMessageClick(messageId: String) {
-                    val mailboxId = (state as? InboxUiState.Content)?.mailbox?.id ?: WearCompanion.UNIFIED_MAILBOX_ID
-                    navController.navigate(ThunderWrenRoutes.messageDetail(mailboxId, messageId))
+                is InboxContract.Effect.OpenMessage -> {
+                    navController.navigate(ThunderWrenRoutes.messageDetail(effect.mailboxId, effect.messageId))
                 }
-                override fun onArchive(messageId: String) = viewModel.archive(messageId)
-                override fun onDelete(messageId: String) = viewModel.delete(messageId)
-                override fun onMarkAllRead(mailboxId: String) = viewModel.markAllRead(mailboxId)
-                override fun onRefresh() = viewModel.refresh()
-                override fun onStartDemo() = viewModel.startDemo()
-                override fun onExitDemo() = viewModel.exitDemo()
-            },
-        )
+            }
+        }
+
+        InboxScreen(state = state.value, onEvent = dispatch)
     }
 }
 
 private fun NavGraphBuilder.mailboxesDestination(navController: NavHostController) {
     composable(ThunderWrenRoutes.MAILBOXES) {
         val viewModel: MailboxPickerViewModel = koinViewModel()
-        val state by viewModel.uiState.collectAsStateWithLifecycle()
+        val (state, dispatch) = viewModel.observe { effect ->
+            when (effect) {
+                MailboxPickerContract.Effect.Close -> navController.popBackStack()
+            }
+        }
 
-        MailboxPickerScreen(
-            state = state,
-            onMailboxClick = { mailboxId ->
-                viewModel.select(mailboxId)
-                navController.popBackStack()
-            },
-        )
+        MailboxPickerScreen(state = state.value, onEvent = dispatch)
     }
 }
 
@@ -114,24 +105,17 @@ private fun NavGraphBuilder.messageDetailDestination(navController: NavHostContr
     composable(route = ThunderWrenRoutes.MESSAGE_DETAIL, arguments = messageArguments) { backStackEntry ->
         val (mailboxId, messageId) = backStackEntry.messageArguments()
         val viewModel: MessageViewModel = koinViewModel { parametersOf(messageId, mailboxId) }
-        val state by viewModel.uiState.collectAsStateWithLifecycle()
+        val (state, dispatch) = viewModel.observe { effect ->
+            when (effect) {
+                is MessageContract.Effect.OpenReply -> {
+                    navController.navigate(ThunderWrenRoutes.reply(effect.mailboxId, effect.messageId))
+                }
 
-        LaunchedEffect(state.isClosed) {
-            if (state.isClosed) navController.popBackStack()
+                MessageContract.Effect.Close -> navController.popBackStack()
+            }
         }
 
-        MessageDetailScreen(
-            state = state,
-            actions = object : MessageActions {
-                override fun onReply() = navController.navigate(ThunderWrenRoutes.reply(mailboxId, messageId))
-                override fun onOpenOnPhone() = viewModel.openOnPhone()
-                override fun onToggleRead() = viewModel.toggleRead()
-                override fun onToggleStar() = viewModel.toggleStar()
-                override fun onArchive() = viewModel.archive()
-                override fun onDelete() = viewModel.delete()
-                override fun onDismissOpenOnPhoneConfirmation() = viewModel.dismissOpenOnPhoneConfirmation()
-            },
-        )
+        MessageDetailScreen(state = state.value, onEvent = dispatch)
     }
 }
 
@@ -139,30 +123,25 @@ private fun NavGraphBuilder.replyDestination(navController: NavHostController) {
     composable(route = ThunderWrenRoutes.REPLY, arguments = messageArguments) { backStackEntry ->
         val (mailboxId, messageId) = backStackEntry.messageArguments()
         val viewModel: ReplyViewModel = koinViewModel { parametersOf(messageId, mailboxId) }
-        val state by viewModel.uiState.collectAsStateWithLifecycle()
         val inputLabel = stringResource(R.string.action_reply)
         val inputLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            ReplyInput.getText(it.data)?.let(viewModel::setDraft)
+            viewModel.event(ReplyContract.Event.ReplyInputReceived(ReplyInput.getText(it.data)))
         }
-
-        ReplyScreen(
-            state = state,
-            actions = object : ReplyActions {
-                override fun onSpeakOrType() {
+        val (state, dispatch) = viewModel.observe { effect ->
+            when (effect) {
+                ReplyContract.Effect.OpenReplyInput -> {
                     try {
                         inputLauncher.launch(ReplyInput.createIntent(inputLabel))
                     } catch (_: ActivityNotFoundException) {
-                        viewModel.showInputUnavailable()
+                        viewModel.event(ReplyContract.Event.ReplyInputUnavailable)
                     }
                 }
-                override fun onQuickReply(text: String) = viewModel.setDraft(text)
-                override fun onSend() = viewModel.send()
-                override fun onChange() = viewModel.clearDraft()
-                override fun onSent() {
-                    navController.popBackStack()
-                }
-            },
-        )
+
+                ReplyContract.Effect.Close -> navController.popBackStack()
+            }
+        }
+
+        ReplyScreen(state = state.value, onEvent = dispatch)
     }
 }
 

@@ -18,6 +18,8 @@ import net.thunderbird.core.android.account.LegacyAccountManager
 import net.thunderbird.core.android.preferences.TestStoragePersister
 import net.thunderbird.core.common.appConfig.PlatformConfigProvider
 import net.thunderbird.core.common.inject.factoryListOf
+import net.thunderbird.core.featureflag.FeatureFlagProvider
+import net.thunderbird.core.featureflag.FeatureFlagResult
 import net.thunderbird.core.logging.LogLevel
 import net.thunderbird.core.logging.LogLevelManager
 import net.thunderbird.core.logging.LogLevelProvider
@@ -105,6 +107,7 @@ val testModule = module {
     factoryListOf<CssStyleProvider>()
     single<NotificationResourceProvider> { mock() }
     single<LocalMessageUidPrefixProvider> { FakeLocalMessageUidPrefixProvider() }
+    single<FeatureFlagProvider> { FeatureFlagProvider { FeatureFlagResult.Disabled } }
 }
 
 class FakePlatformConfigProvider : PlatformConfigProvider {

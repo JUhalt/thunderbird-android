@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -21,13 +22,15 @@ import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.wear.R
 import net.thunderbird.wear.ui.common.accountIcon
 import net.thunderbird.wear.ui.common.displayName
+import net.thunderbird.wear.ui.mailbox.MailboxPickerContract.Event
+import net.thunderbird.wear.ui.mailbox.MailboxPickerContract.State
 import net.thunderbird.wear.ui.preview.PreviewData
 import net.thunderbird.wear.ui.theme.ThunderWrenTheme
 
 @Composable
 fun MailboxPickerScreen(
-    state: MailboxPickerUiState,
-    onMailboxClick: (String) -> Unit,
+    state: State,
+    onEvent: (Event) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Start with the first item (the header) at the top instead of centered, so it isn't hidden under the clock.
@@ -55,7 +58,7 @@ fun MailboxPickerScreen(
                 MailboxButton(
                     mailbox = mailbox,
                     isSelected = mailbox.id == state.selectedMailboxId,
-                    onClick = { onMailboxClick(mailbox.id) },
+                    onClick = { onEvent(Event.MailboxClicked(mailbox.id)) },
                 )
             }
 
@@ -71,7 +74,7 @@ fun MailboxPickerScreen(
                 MailboxButton(
                     mailbox = mailbox,
                     isSelected = mailbox.id == state.selectedMailboxId,
-                    onClick = { onMailboxClick(mailbox.id) },
+                    onClick = { onEvent(Event.MailboxClicked(mailbox.id)) },
                 )
             }
         }
@@ -95,7 +98,7 @@ private fun MailboxButton(
             Text(
                 text = listOfNotNull(
                     mailbox.email.takeIf { it.isNotEmpty() && it != mailbox.name },
-                    stringResource(R.string.inbox_unread_count, mailbox.unreadCount),
+                    pluralStringResource(R.plurals.unread_count, mailbox.unreadCount, mailbox.unreadCount),
                 ).joinToString(" · "),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -110,11 +113,11 @@ private fun MailboxButton(
 private fun MailboxPickerScreenPreview() {
     ThunderWrenTheme {
         MailboxPickerScreen(
-            state = MailboxPickerUiState(
+            state = State(
                 mailboxes = PreviewData.mailboxes,
                 selectedMailboxId = PreviewData.mailboxes.first().id,
             ),
-            onMailboxClick = {},
+            onEvent = {},
         )
     }
 }

@@ -1,5 +1,6 @@
 package net.thunderbird.wear.ui.inbox
 
+import app.cash.turbine.test
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.containsExactlyInAnyOrder
@@ -13,7 +14,6 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -29,6 +29,9 @@ import net.thunderbird.wear.testing.UNIFIED
 import net.thunderbird.wear.testing.UNREAD
 import net.thunderbird.wear.testing.mailbox
 import net.thunderbird.wear.testing.message
+import net.thunderbird.wear.ui.inbox.InboxContract.Effect
+import net.thunderbird.wear.ui.inbox.InboxContract.Event
+import net.thunderbird.wear.ui.inbox.InboxContract.State
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class InboxViewModelTest {
@@ -45,7 +48,7 @@ class InboxViewModelTest {
 
     @Test
     fun `asks the phone for fresh data when opened`() = runTest {
-        createViewModel()
+        createTestSubject()
         advanceUntilIdle()
 
         assertThat(phone.refreshCount).isEqualTo(1)
@@ -53,17 +56,17 @@ class InboxViewModelTest {
 
     @Test
     fun `shows not connected until the phone has published`() = runTest {
-        val viewModel = createViewModel()
+        val testSubject = createTestSubject()
 
-        assertThat(stateOf(viewModel)).isInstanceOf(InboxUiState.NotConnected::class)
+        assertThat(stateOf(testSubject)).isInstanceOf(State.NotConnected::class)
     }
 
     @Test
     fun `shows the unified inbox by default`() = runTest {
         publishTwoAccounts()
-        val viewModel = createViewModel()
+        val testSubject = createTestSubject()
 
-        val state = stateOf(viewModel) as InboxUiState.Content
+        val state = stateOf(testSubject) as State.Content
 
         assertThat(state.mailbox.id).isEqualTo(UNIFIED)
         assertThat(state.messages.map { it.id }).containsExactly("w1", "h1")
@@ -73,12 +76,12 @@ class InboxViewModelTest {
     @Test
     fun `shows the selected account's inbox`() = runTest {
         publishTwoAccounts()
-        val viewModel = createViewModel()
-        stateOf(viewModel)
+        val testSubject = createTestSubject()
+        stateOf(testSubject)
 
         selectedMailbox.select("work")
 
-        val state = stateOf(viewModel) as InboxUiState.Content
+        val state = stateOf(testSubject) as State.Content
         assertThat(state.mailbox.id).isEqualTo("work")
         assertThat(state.messages.map { it.id }).containsExactly("w1")
     }
@@ -87,30 +90,30 @@ class InboxViewModelTest {
     fun `falls back to the unified inbox when the selected account was removed`() = runTest {
         selectedMailbox.select("removed-account")
         publishTwoAccounts()
-        val viewModel = createViewModel()
+        val testSubject = createTestSubject()
 
-        val state = stateOf(viewModel) as InboxUiState.Content
+        val state = stateOf(testSubject) as State.Content
 
         assertThat(state.mailbox.id).isEqualTo(UNIFIED)
     }
 
     @Test
     fun `starting and exiting the demo toggles demo mode`() = runTest {
-        val viewModel = createViewModel()
+        val testSubject = createTestSubject()
 
-        viewModel.startDemo()
+        testSubject.event(Event.StartDemoClicked)
         assertThat(demoMode.isEnabled.value).isTrue()
 
-        viewModel.exitDemo()
+        testSubject.event(Event.ExitDemoClicked)
         assertThat(demoMode.isEnabled.value).isFalse()
     }
 
     @Test
     fun `mailbox can't be switched with a single mailbox`() = runTest {
         phone.publish(mailboxes = listOf(mailbox(UNIFIED)), inboxes = mapOf(UNIFIED to emptyList()))
-        val viewModel = createViewModel()
+        val testSubject = createTestSubject()
 
-        val state = stateOf(viewModel) as InboxUiState.Content
+        val state = stateOf(testSubject) as State.Content
 
         assertThat(state.canSwitchMailbox).isFalse()
     }
@@ -118,13 +121,13 @@ class InboxViewModelTest {
     @Test
     fun `messages of several accounts show which account they belong to`() = runTest {
         publishTwoAccounts()
-        val viewModel = createViewModel()
+        val testSubject = createTestSubject()
 
-        val unified = stateOf(viewModel) as InboxUiState.Content
+        val unified = stateOf(testSubject) as State.Content
         assertThat(unified.accounts.keys).containsExactlyInAnyOrder("work", "home")
 
         selectedMailbox.select("work")
-        val account = stateOf(viewModel) as InboxUiState.Content
+        val account = stateOf(testSubject) as State.Content
         assertThat(account.accounts).isEmpty()
     }
 
@@ -132,9 +135,9 @@ class InboxViewModelTest {
     fun `shows the unread view`() = runTest {
         selectedMailbox.select(UNREAD)
         publishTwoAccounts()
-        val viewModel = createViewModel()
+        val testSubject = createTestSubject()
 
-        val state = stateOf(viewModel) as InboxUiState.Content
+        val state = stateOf(testSubject) as State.Content
 
         assertThat(state.mailbox.id).isEqualTo(UNREAD)
         assertThat(state.messages.map { it.id }).containsExactly("h1")
@@ -143,12 +146,12 @@ class InboxViewModelTest {
     @Test
     fun `archived message disappears right away`() = runTest {
         publishTwoAccounts()
-        val viewModel = createViewModel()
-        stateOf(viewModel)
+        val testSubject = createTestSubject()
+        stateOf(testSubject)
 
-        viewModel.archive("w1")
+        testSubject.event(Event.ArchiveClicked("w1"))
 
-        val state = stateOf(viewModel) as InboxUiState.Content
+        val state = stateOf(testSubject) as State.Content
         assertThat(phone.performedActions).containsExactly("w1" to WearMessageAction.ARCHIVE)
         assertThat(state.messages.map { it.id }).containsExactly("h1")
         assertThat(state.errorMessage).isNull()
@@ -158,12 +161,12 @@ class InboxViewModelTest {
     fun `message comes back with an error if it couldn't be archived`() = runTest {
         phone.actionResult = PhoneResult.Failed(WearErrorReason.ACTION_NOT_AVAILABLE)
         publishTwoAccounts()
-        val viewModel = createViewModel()
-        stateOf(viewModel)
+        val testSubject = createTestSubject()
+        stateOf(testSubject)
 
-        viewModel.archive("w1")
+        testSubject.event(Event.ArchiveClicked("w1"))
 
-        val state = stateOf(viewModel) as InboxUiState.Content
+        val state = stateOf(testSubject) as State.Content
         assertThat(state.messages.map { it.id }).containsExactly("w1", "h1")
         assertThat(state.errorMessage).isEqualTo(R.string.error_archive_unavailable)
     }
@@ -171,12 +174,12 @@ class InboxViewModelTest {
     @Test
     fun `deleted message disappears right away`() = runTest {
         publishTwoAccounts()
-        val viewModel = createViewModel()
-        stateOf(viewModel)
+        val testSubject = createTestSubject()
+        stateOf(testSubject)
 
-        viewModel.delete("h1")
+        testSubject.event(Event.DeleteClicked("h1"))
 
-        val state = stateOf(viewModel) as InboxUiState.Content
+        val state = stateOf(testSubject) as State.Content
         assertThat(phone.performedActions).containsExactly("h1" to WearMessageAction.DELETE)
         assertThat(state.messages.map { it.id }).containsExactly("w1")
     }
@@ -184,12 +187,12 @@ class InboxViewModelTest {
     @Test
     fun `mark all read is sent for the mailbox`() = runTest {
         publishTwoAccounts()
-        val viewModel = createViewModel()
-        stateOf(viewModel)
+        val testSubject = createTestSubject()
+        stateOf(testSubject)
 
-        viewModel.markAllRead(UNIFIED)
+        testSubject.event(Event.MarkAllReadConfirmed(UNIFIED))
 
-        val state = stateOf(viewModel) as InboxUiState.Content
+        val state = stateOf(testSubject) as State.Content
         assertThat(phone.markedAllRead).containsExactly(UNIFIED)
         assertThat(state.isMarkingAllRead).isFalse()
         assertThat(state.errorMessage).isNull()
@@ -199,13 +202,38 @@ class InboxViewModelTest {
     fun `mark all read on an older phone asks to update Thunderbird`() = runTest {
         phone.markAllReadResult = PhoneResult.Failed(WearErrorReason.UNSUPPORTED_REQUEST)
         publishTwoAccounts()
-        val viewModel = createViewModel()
-        stateOf(viewModel)
+        val testSubject = createTestSubject()
+        stateOf(testSubject)
 
-        viewModel.markAllRead(UNIFIED)
+        testSubject.event(Event.MarkAllReadConfirmed(UNIFIED))
 
-        val state = stateOf(viewModel) as InboxUiState.Content
+        val state = stateOf(testSubject) as State.Content
         assertThat(state.errorMessage).isEqualTo(R.string.error_update_phone_app)
+    }
+
+    @Test
+    fun `tapping the mailbox opens the mailbox picker`() = runTest {
+        val testSubject = createTestSubject()
+
+        testSubject.effect.test {
+            testSubject.event(Event.MailboxClicked)
+
+            assertThat(awaitItem()).isEqualTo(Effect.OpenMailboxes)
+        }
+    }
+
+    @Test
+    fun `tapping a message opens it from the current mailbox`() = runTest {
+        selectedMailbox.select(UNREAD)
+        publishTwoAccounts()
+        val testSubject = createTestSubject()
+        stateOf(testSubject)
+
+        testSubject.effect.test {
+            testSubject.event(Event.MessageClicked("h1"))
+
+            assertThat(awaitItem()).isEqualTo(Effect.OpenMessage(mailboxId = UNREAD, messageId = "h1"))
+        }
     }
 
     private fun publishTwoAccounts() {
@@ -225,15 +253,14 @@ class InboxViewModelTest {
         )
     }
 
-    private fun createViewModel() = InboxViewModel(
+    private fun createTestSubject() = InboxViewModel(
         phoneConnection = phone,
         selectedMailboxStore = selectedMailbox,
         demoModeStore = demoMode,
     )
 
-    private fun TestScope.stateOf(viewModel: InboxViewModel): InboxUiState {
-        backgroundScope.launch { viewModel.uiState.collect {} }
+    private fun TestScope.stateOf(testSubject: InboxViewModel): State {
         advanceUntilIdle()
-        return viewModel.uiState.value
+        return testSubject.state.value
     }
 }

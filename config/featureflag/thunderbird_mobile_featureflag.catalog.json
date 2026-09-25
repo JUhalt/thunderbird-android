@@ -1,6 +1,6 @@
 {
   "$schema": "thunderbird_mobile_featureflag.schema.json",
-  "version": "2026-07-30.1",
+  "version": "2026-09-25.1",
   "flags": [
     {
       "key": "archive_marks_as_read",
@@ -63,6 +63,16 @@
       "default": true,
       "description": "Enables Thundermail onboarding flow.",
       "time_to_promote": "2026-12-31"
+    },
+    {
+      "key": "wear_companion",
+      "default": false,
+      "description": "Wear OS companion (RFC 0010): publishes the inbox to a paired watch running the Thunderbird watch app and handles its requests, including replies. Takes effect after restarting the app."
+    },
+    {
+      "key": "wear_notification_quick_reply",
+      "default": false,
+      "description": "Lets the Reply action of new-mail notifications on a Wear OS watch send a voice, keyboard, or ready-made reply without opening the phone."
     }
   ],
   "overrides": {
@@ -70,7 +80,9 @@
       "debug": {
         "display_in_app_notifications": true,
         "use_notification_sender_for_system_notifications": true,
-        "message_view_action_export_eml": true
+        "message_view_action_export_eml": true,
+        "wear_companion": true,
+        "wear_notification_quick_reply": true
       },
       "daily": {
         "display_in_app_notifications": true,
@@ -85,7 +97,8 @@
       "debug": {
         "display_in_app_notifications": true,
         "use_notification_sender_for_system_notifications": true,
-        "message_view_action_export_eml": true
+        "message_view_action_export_eml": true,
+        "wear_notification_quick_reply": true
       },
       "release": {}
     }

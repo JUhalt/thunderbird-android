@@ -7,10 +7,7 @@ import kotlinx.collections.immutable.toImmutableMap
 import net.thunderbird.feature.wear.companion.WearCompanion
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMessageSummary
-import net.thunderbird.wear.ui.inbox.InboxActions
-import net.thunderbird.wear.ui.inbox.InboxUiState
-import net.thunderbird.wear.ui.reader.MessageActions
-import net.thunderbird.wear.ui.reply.ReplyActions
+import net.thunderbird.wear.ui.inbox.InboxContract
 
 /** Sample data for Compose previews only. */
 internal object PreviewData {
@@ -73,40 +70,11 @@ internal object PreviewData {
         ),
     )
 
-    val inboxContent = InboxUiState.Content(
+    val inboxContent = InboxContract.State.Content(
         mailbox = mailboxes.first(),
         canSwitchMailbox = true,
         messages = messages,
         isRefreshing = false,
         accounts = listOf(work, home).associateBy { it.id }.toImmutableMap(),
     )
-
-    val noOpInboxActions = object : InboxActions {
-        override fun onMailboxClick() = Unit
-        override fun onMessageClick(messageId: String) = Unit
-        override fun onArchive(messageId: String) = Unit
-        override fun onDelete(messageId: String) = Unit
-        override fun onMarkAllRead(mailboxId: String) = Unit
-        override fun onRefresh() = Unit
-        override fun onStartDemo() = Unit
-        override fun onExitDemo() = Unit
-    }
-
-    val noOpMessageActions = object : MessageActions {
-        override fun onReply() = Unit
-        override fun onOpenOnPhone() = Unit
-        override fun onToggleRead() = Unit
-        override fun onToggleStar() = Unit
-        override fun onArchive() = Unit
-        override fun onDelete() = Unit
-        override fun onDismissOpenOnPhoneConfirmation() = Unit
-    }
-
-    val noOpReplyActions = object : ReplyActions {
-        override fun onSpeakOrType() = Unit
-        override fun onQuickReply(text: String) = Unit
-        override fun onSend() = Unit
-        override fun onChange() = Unit
-        override fun onSent() = Unit
-    }
 }

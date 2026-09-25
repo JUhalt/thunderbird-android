@@ -15,7 +15,7 @@ import net.thunderbird.feature.wear.companion.WearMessageSummary
 
 class WearMessageSummaryMapperTest {
 
-    private val mapper = WearMessageSummaryMapper(
+    private val testSubject = WearMessageSummaryMapper(
         accountUuid = "account-1",
         accountColor = 0x112233,
         senderName = { address -> "Name of ${address?.address}" },
@@ -24,7 +24,7 @@ class WearMessageSummaryMapperTest {
 
     @Test
     fun `maps message details`() {
-        val result = mapper.map(
+        val result = testSubject.map(
             FakeMessageDetailsAccessor(
                 folderId = 7,
                 messageServerId = "uid-1",
@@ -57,14 +57,14 @@ class WearMessageSummaryMapperTest {
 
     @Test
     fun `message ID can be parsed back into the message reference`() {
-        val result = mapper.map(FakeMessageDetailsAccessor(folderId = 3, messageServerId = "abc"))
+        val result = testSubject.map(FakeMessageDetailsAccessor(folderId = 3, messageServerId = "abc"))
 
         assertThat(MessageReference.parse(result?.id)).isEqualTo(MessageReference("account-1", 3, "abc"))
     }
 
     @Test
     fun `encrypted message is flagged and has no preview`() {
-        val result = mapper.map(FakeMessageDetailsAccessor(preview = PreviewResult.encrypted()))
+        val result = testSubject.map(FakeMessageDetailsAccessor(preview = PreviewResult.encrypted()))
 
         assertThat(result).isNotNull().prop(WearMessageSummary::isEncrypted).isTrue()
         assertThat(result).isNotNull().prop(WearMessageSummary::preview).isEqualTo("")
@@ -74,7 +74,9 @@ class WearMessageSummaryMapperTest {
     fun `long preview is truncated and missing subject is empty`() {
         val longPreview = "x".repeat(WearCompanion.MAX_PREVIEW_LENGTH + 50)
 
-        val result = mapper.map(FakeMessageDetailsAccessor(preview = PreviewResult.text(longPreview), subject = null))
+        val result = testSubject.map(
+            FakeMessageDetailsAccessor(preview = PreviewResult.text(longPreview), subject = null),
+        )
 
         assertThat(
             result,
@@ -85,7 +87,7 @@ class WearMessageSummaryMapperTest {
 
     @Test
     fun `messages past the limit are skipped`() {
-        val results = List(3) { mapper.map(FakeMessageDetailsAccessor(messageServerId = "uid-$it")) }
+        val results = List(3) { testSubject.map(FakeMessageDetailsAccessor(messageServerId = "uid-$it")) }
 
         assertThat(results[0]).isNotNull()
         assertThat(results[1]).isNotNull()

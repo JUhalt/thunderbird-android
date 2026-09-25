@@ -16,11 +16,13 @@ internal class WearRequestHandler(
     private val messageActions: WearMessageActions,
     private val mailboxActions: WearMailboxActions,
     private val replySender: WearReplySender,
+    private val feature: WearCompanionFeature,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
 
     suspend fun handle(requestData: ByteArray): ByteArray {
-        val response = when (val request = WearProtocolCodec.decodeRequest(requestData)) {
+        val request = WearProtocolCodec.decodeRequest(requestData).takeIf { feature.isEnabled() }
+        val response = when (request) {
             null -> WearResponse.Error(WearErrorReason.UNSUPPORTED_REQUEST)
             WearRequest.Refresh -> refresh()
             is WearRequest.PerformAction -> performAction(request)

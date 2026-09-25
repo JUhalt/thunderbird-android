@@ -21,6 +21,8 @@ import kotlinx.coroutines.test.runTest
 import net.thunderbird.core.android.account.LegacyAccountDto
 import net.thunderbird.core.android.testing.MockHelper.mockBuilder
 import net.thunderbird.core.android.testing.RobolectricTest
+import net.thunderbird.core.featureflag.FeatureFlagResult
+import net.thunderbird.core.featureflag.keys.GeneratedFeatureFlagKey
 import net.thunderbird.core.preference.notification.NotificationPreference
 import net.thunderbird.core.preference.notification.NotificationPreferenceManager
 import net.thunderbird.components.ui.testing.coroutines.MainDispatcherHelper
@@ -44,6 +46,7 @@ class SingleMessageNotificationCreatorTest : RobolectricTest() {
 
     private val replyPendingIntent = mock<PendingIntent>()
     private val quickReplyPendingIntent = mock<PendingIntent>()
+    private var quickReplyFlag: FeatureFlagResult = FeatureFlagResult.Enabled
 
     private lateinit var testSubject: SingleMessageNotificationCreator
 
@@ -56,6 +59,12 @@ class SingleMessageNotificationCreatorTest : RobolectricTest() {
             resourceProvider = resourceProvider,
             lockScreenNotificationCreator = mock(),
             notificationPreferenceManager = notificationPreferenceManager,
+            featureFlagProvider = { key ->
+                when (key) {
+                    GeneratedFeatureFlagKey.WEAR_NOTIFICATION_QUICK_REPLY -> quickReplyFlag
+                    else -> FeatureFlagResult.Disabled
+                }
+            },
             application = ApplicationProvider.getApplicationContext<Application>(),
         )
     }
@@ -111,6 +120,20 @@ class SingleMessageNotificationCreatorTest : RobolectricTest() {
                 wearActions = listOf(WearNotificationAction.Reply),
                 isEncrypted = true,
             ),
+        ).join()
+
+        val replyAction = wearActions().single()
+        assertThat(replyAction.actionIntent).isSameInstanceAs(replyPendingIntent)
+        assertThat(replyAction.remoteInputs.orEmpty().toList()).isEmpty()
+    }
+
+    @Test
+    fun `wear reply action opens the compose screen while quick reply is turned off`() = runTest {
+        quickReplyFlag = FeatureFlagResult.Disabled
+
+        testSubject.createSingleNotification(
+            baseNotificationData = createBaseNotificationData(),
+            singleNotificationData = createSingleNotificationData(wearActions = listOf(WearNotificationAction.Reply)),
         ).join()
 
         val replyAction = wearActions().single()

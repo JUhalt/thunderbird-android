@@ -35,7 +35,7 @@ class WearMailboxActionsTest {
             ),
         )
 
-        val response = createActions(repository).markAllRead(WORK_UUID)
+        val response = createTestSubject(repository).markAllRead(WORK_UUID)
 
         assertThat(response).isEqualTo(WearResponse.Ok)
         verify(messagingController).setFlag(work, listOf(10L, 11L), Flag.SEEN, true)
@@ -53,7 +53,7 @@ class WearMailboxActionsTest {
             ),
         )
 
-        val response = createActions(repository).markAllRead(WearCompanion.STARRED_MAILBOX_ID)
+        val response = createTestSubject(repository).markAllRead(WearCompanion.STARRED_MAILBOX_ID)
 
         assertThat(response).isEqualTo(WearResponse.Ok)
         verify(messagingController).setFlag(work, listOf(10L), Flag.SEEN, true)
@@ -62,7 +62,7 @@ class WearMailboxActionsTest {
 
     @Test
     fun `nothing is changed when there are no unread messages`() {
-        val response = createActions(FakeMessageListRepository()).markAllRead(WearCompanion.UNIFIED_MAILBOX_ID)
+        val response = createTestSubject(FakeMessageListRepository()).markAllRead(WearCompanion.UNIFIED_MAILBOX_ID)
 
         assertThat(response).isEqualTo(WearResponse.Ok)
         verify(messagingController, never()).setFlag(any(), any<List<Long>>(), any(), any())
@@ -70,12 +70,14 @@ class WearMailboxActionsTest {
 
     @Test
     fun `removed account is reported`() {
-        val response = createActions(FakeMessageListRepository()).markAllRead("00000000-0000-4000-8000-000000000000")
+        val response = createTestSubject(
+            FakeMessageListRepository(),
+        ).markAllRead("00000000-0000-4000-8000-000000000000")
 
         assertThat(response).isEqualTo(WearResponse.Error(WearErrorReason.MAILBOX_NOT_FOUND))
     }
 
-    private fun createActions(repository: FakeMessageListRepository) = MessagingControllerWearMailboxActions(
+    private fun createTestSubject(repository: FakeMessageListRepository) = MessagingControllerWearMailboxActions(
         messagingController = messagingController,
         accountManager = accountManager,
         messageListRepository = repository,

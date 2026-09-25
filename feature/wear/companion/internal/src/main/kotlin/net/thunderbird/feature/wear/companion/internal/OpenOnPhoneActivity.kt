@@ -11,15 +11,18 @@ import org.koin.android.ext.android.inject
 /**
  * Opens a message in the phone app when the watch asks for it with a URI from [WearCompanion.openOnPhoneUri].
  *
- * The activity is exported, so it only opens messages of accounts that exist on this phone.
+ * The activity is exported, so it only opens messages of accounts that exist on this phone, and only while the
+ * companion is turned on.
  */
 internal class OpenOnPhoneActivity : Activity() {
     private val accountManager: LegacyAccountDtoManager by inject()
+    private val feature: WearCompanionFeature by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val reference = intent.data?.toString()
+            ?.takeIf { feature.isEnabled() }
             ?.let(WearCompanion::parseOpenOnPhoneUri)
             ?.let(MessageReference::parse)
             ?.takeIf { accountManager.getAccount(it.accountUuid) != null }

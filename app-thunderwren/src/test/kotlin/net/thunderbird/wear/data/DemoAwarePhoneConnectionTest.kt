@@ -26,13 +26,13 @@ class DemoAwarePhoneConnectionTest {
     private val phone = FakePhoneConnection()
     private val demo = FakePhoneConnection(isDemo = true)
     private val demoMode = FakeDemoModeStore()
-    private val connection = DemoAwarePhoneConnection(phone = phone, demo = demo, demoModeStore = demoMode)
+    private val testSubject = DemoAwarePhoneConnection(phone = phone, demo = demo, demoModeStore = demoMode)
 
     @Test
     fun `nothing is shown without a phone or demo mode`() = runTest {
         demo.publish(mailboxes = listOf(mailbox(UNIFIED)), inboxes = emptyMap())
 
-        assertThat(connection.mailboxes.first()).isNull()
+        assertThat(testSubject.mailboxes.first()).isNull()
     }
 
     @Test
@@ -40,7 +40,7 @@ class DemoAwarePhoneConnectionTest {
         demo.publish(mailboxes = listOf(mailbox(UNIFIED), mailbox("demo-work")), inboxes = emptyMap())
         demoMode.setEnabled(true)
 
-        assertThat(connection.mailboxes.first()?.mailboxes?.map { it.id }).isEqualTo(listOf(UNIFIED, "demo-work"))
+        assertThat(testSubject.mailboxes.first()?.mailboxes?.map { it.id }).isEqualTo(listOf(UNIFIED, "demo-work"))
     }
 
     @Test
@@ -49,7 +49,7 @@ class DemoAwarePhoneConnectionTest {
         demoMode.setEnabled(true)
         val seen = mutableListOf<List<String>?>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-            connection.mailboxes.collect { list -> seen += list?.mailboxes?.map { it.id } }
+            testSubject.mailboxes.collect { list -> seen += list?.mailboxes?.map { it.id } }
         }
 
         phone.publish(mailboxes = listOf(mailbox(UNIFIED), mailbox("real-account")), inboxes = emptyMap())
@@ -64,13 +64,13 @@ class DemoAwarePhoneConnectionTest {
         demo.publish(mailboxes = listOf(mailbox(UNIFIED)), inboxes = mapOf(UNIFIED to listOf(message("d1"))))
         demoMode.setEnabled(true)
 
-        connection.performAction("d1", WearMessageAction.STAR)
+        testSubject.performAction("d1", WearMessageAction.STAR)
 
         assertThat(demo.performedActions).containsExactly("d1" to WearMessageAction.STAR)
         assertThat(phone.performedActions).isEmpty()
 
         demoMode.setEnabled(false)
-        connection.performAction("p1", WearMessageAction.STAR)
+        testSubject.performAction("p1", WearMessageAction.STAR)
 
         assertThat(phone.performedActions).containsExactly("p1" to WearMessageAction.STAR)
     }
@@ -80,7 +80,7 @@ class DemoAwarePhoneConnectionTest {
         phone.refreshResult = PhoneResult.NoPhone
         demoMode.setEnabled(true)
 
-        val result = connection.refresh()
+        val result = testSubject.refresh()
 
         assertThat(phone.refreshCount).isEqualTo(1)
         assertThat(result).isEqualTo(PhoneResult.Success)
@@ -88,12 +88,12 @@ class DemoAwarePhoneConnectionTest {
 
     @Test
     fun `isDemo follows the source`() = runTest {
-        assertThat(connection.isDemo.first()).isFalse()
+        assertThat(testSubject.isDemo.first()).isFalse()
 
         demo.publish(mailboxes = listOf(mailbox(UNIFIED)), inboxes = emptyMap())
         demoMode.setEnabled(true)
 
-        assertThat(connection.isDemo.first()).isTrue()
+        assertThat(testSubject.isDemo.first()).isTrue()
     }
 
     @Test
@@ -101,15 +101,15 @@ class DemoAwarePhoneConnectionTest {
         demo.publish(mailboxes = listOf(mailbox(UNIFIED)), inboxes = emptyMap())
         demoMode.setEnabled(true)
 
-        connection.reply("demo-1", "Thanks!")
-        connection.markAllRead(UNIFIED)
+        testSubject.reply("demo-1", "Thanks!")
+        testSubject.markAllRead(UNIFIED)
 
         assertThat(demo.replies).containsExactly("demo-1" to "Thanks!")
         assertThat(demo.markedAllRead).containsExactly(UNIFIED)
 
         phone.publish(mailboxes = listOf(mailbox(UNIFIED)), inboxes = emptyMap())
-        connection.reply("real-1", "OK")
-        connection.markAllRead("work")
+        testSubject.reply("real-1", "OK")
+        testSubject.markAllRead("work")
 
         assertThat(phone.replies).containsExactly("real-1" to "OK")
         assertThat(phone.markedAllRead).containsExactly("work")

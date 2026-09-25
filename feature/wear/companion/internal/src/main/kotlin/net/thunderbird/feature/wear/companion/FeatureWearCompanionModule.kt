@@ -1,12 +1,15 @@
 package net.thunderbird.feature.wear.companion
 
 import kotlinx.coroutines.flow.map
+import net.thunderbird.core.featureflag.FeatureFlagProvider
+import net.thunderbird.core.featureflag.keys.GeneratedFeatureFlagKey
 import net.thunderbird.core.preference.GeneralSettingsManager
 import net.thunderbird.feature.wear.companion.internal.InboxPublicationSource
 import net.thunderbird.feature.wear.companion.internal.MessagingControllerWearMailboxActions
 import net.thunderbird.feature.wear.companion.internal.MessagingControllerWearMessageActions
 import net.thunderbird.feature.wear.companion.internal.PlayServicesWearDataLayer
 import net.thunderbird.feature.wear.companion.internal.QuickReplyWearReplySender
+import net.thunderbird.feature.wear.companion.internal.WearCompanionFeature
 import net.thunderbird.feature.wear.companion.internal.WearCompanionStarter
 import net.thunderbird.feature.wear.companion.internal.WearDataLayer
 import net.thunderbird.feature.wear.companion.internal.WearInboxPublisher
@@ -22,6 +25,10 @@ import org.koin.dsl.module
 
 /** Wear OS companion: publishes the inbox to a paired watch and handles its requests. See RFC 0010. */
 val featureWearCompanionModule = module {
+    single<WearCompanionFeature> {
+        val featureFlagProvider = get<FeatureFlagProvider>()
+        WearCompanionFeature { featureFlagProvider.provide(GeneratedFeatureFlagKey.WEAR_COMPANION).isEnabled() }
+    }
     factory<WearPublicationSource> {
         val generalSettingsManager = get<GeneralSettingsManager>()
         InboxPublicationSource(
@@ -67,6 +74,7 @@ val featureWearCompanionModule = module {
             messageActions = get(),
             mailboxActions = get(),
             replySender = get(),
+            feature = get(),
         )
     }
     single(createdAtStart = true) { WearCompanionStarter().apply { scheduleStart() } }

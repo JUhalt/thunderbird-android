@@ -11,7 +11,9 @@ ThunderWren brings your Thunderbird inbox to smartwatches running Wear OS 3+. Th
 It lives in a fork of the Thunderbird for Android repository. The design is proposed upstream in [RFC 0010](docs/engineering/rfcs/0010-wear-os-companion.md).
 
 > [!IMPORTANT]
-> **Project status: working prototype, not yet tested on real hardware.** The phone and watch sides are implemented and covered by unit and UI tests, but haven't been run on a paired phone and watch yet. The watch needs the Thunderbird phone app **built from this fork**; the Thunderbird app from the Play Store doesn't include the companion.
+> **Project status: beta (0.1.0-beta4).** The phone and watch sides are implemented, covered by unit and UI tests, and working on paired phone and watch emulators in Android Studio. It hasn't been tried on a physical watch yet. The watch needs the Thunderbird phone app **built from this fork**; the Thunderbird app from the Play Store doesn't include the companion.
+>
+> **Built with AI.** Most of this code was written with an AI coding assistant (Claude Code), directed and tested by the fork's maintainer. It follows the repository's [`AGENTS.md`](AGENTS.md) rules for AI-assisted contributions.
 >
 > **Just curious?** You don't need a phone. Install only the watch app and tap **Try the demo**.
 
@@ -103,6 +105,10 @@ The phone app and the watch app must have the **same application ID and signing 
 1. Select the **`app-thunderbird`** run configuration with the **`fullDebug`** build variant (*Build → Select Build Variant*), and run it on the **phone**. Set up a mail account in it.
 2. Select the **`app-thunderwren`** run configuration and run it on the **watch**.
 
+Daily and Beta builds pair the same way: install `fullDaily` or `fullBeta` on the phone and the matching `daily` or `beta` build of `app-thunderwren` on the watch. Those need Thunderbird's signing keys, so locally only debug builds pair.
+
+The companion and the notification quick reply are behind the feature flags `wear_companion` and `wear_notification_quick_reply`. They are on in debug builds and off elsewhere for now. In debug builds, toggle them in Thunderbird's secret debug settings.
+
 Or from the command line, with both emulators running:
 
 ```bash
@@ -125,7 +131,7 @@ Or from the command line, with both emulators running:
 
 ### Troubleshooting
 
-* **The watch says "Connect your phone"**: make sure the phone app is the **`fullDebug`** build from this repository (not `fossDebug` or the Play Store app), that it has at least one account, and that the emulators are paired. Opening Thunderbird on the phone once starts the companion.
+* **The watch says "Connect your phone"**: make sure the phone app is the **`fullDebug`** build from this repository (not `fossDebug` or the Play Store app), that the `wear_companion` feature flag is on, that it has at least one account, and that the emulators are paired. Opening Thunderbird on the phone once starts the companion.
 * **CI doesn't run on your fork**: GitHub turns Actions off for forks. Enable it in the repository's **Actions** tab. The `Build - ThunderWren Wear OS application` job builds the watch app.
 * **Gradle sync fails with a version catalog error**: pull the latest `main`. An earlier commit corrupted `gradle/libs.versions.toml`, which is fixed now.
 * **The Gradle daemon runs out of memory**: the project reserves a 10 GB heap (`org.gradle.jvmargs` in `gradle.properties`). On machines with 16 GB of RAM or less, close other apps or lower `-Xmx`.
@@ -143,7 +149,9 @@ Or from the command line, with both emulators running:
 - [x] Reply from the watch (voice, keyboard, or ready-made replies, sent by the phone), also from notifications.
 - [x] Respect Thunderbird's notification privacy settings on the Tile and complication.
 - [x] Swipe to archive or delete, Unread and Starred views, mark all as read, account monograms, and a richer Tile.
-- [ ] Verify on a real phone and watch, then fix what that turns up.
+- [x] Feature flags for the phone-side parts, Daily and Beta watch builds, and screens following Thunderbird's MVI pattern.
+- [x] Tested on paired phone and watch emulators in Android Studio.
+- [ ] Verify on a physical phone and watch, then fix what that turns up.
 - [ ] Present on [thunderbird/thunderbird-android#6969](https://github.com/thunderbird/thunderbird-android/issues/6969), the open Wear OS request.
 
 For architectural guidelines, see [`docs/architecture/`](docs/architecture/README.md) and [`AGENTS.md`](AGENTS.md). The original upstream README is preserved in [`README.upstream.md`](README.upstream.md).
