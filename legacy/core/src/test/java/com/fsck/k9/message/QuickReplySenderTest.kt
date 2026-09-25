@@ -65,11 +65,12 @@ class QuickReplySenderTest : RobolectricTest() {
     }
     private lateinit var original: Message
 
-    private val sender = QuickReplySender(
+    private val testSubject = QuickReplySender(
         accountManager = accountManager,
         messagingController = messagingController,
         textQuoteCreator = TextQuoteCreator(quoteDateFormatter, TestCoreResourceProvider()),
         generalSettingsManager = settingsManager,
+        logger = TestLogger(),
         createMessageBuilder = {
             SimpleMessageBuilder(
                 messageIdGenerator,
@@ -91,7 +92,7 @@ class QuickReplySenderTest : RobolectricTest() {
 
     @Test
     fun `reply is sent to the sender from the identity the message was sent to`() {
-        val result = sender.sendReply(MESSAGE_REFERENCE, "On my way")
+        val result = testSubject.sendReply(MESSAGE_REFERENCE, "On my way")
 
         assertThat(result).isEqualTo(QuickReplyResult.SENT)
         val reply = sentMessage()
@@ -104,7 +105,7 @@ class QuickReplySenderTest : RobolectricTest() {
 
     @Test
     fun `reply continues the thread`() {
-        sender.sendReply(MESSAGE_REFERENCE, "On my way")
+        testSubject.sendReply(MESSAGE_REFERENCE, "On my way")
 
         val reply = sentMessage()
         assertThat(reply.getHeader("In-Reply-To").toList()).containsExactly("<original@example.org>")
@@ -114,7 +115,7 @@ class QuickReplySenderTest : RobolectricTest() {
 
     @Test
     fun `reply contains the text, the signature, and the quoted message`() {
-        sender.sendReply(MESSAGE_REFERENCE, "On my way\nSee you")
+        testSubject.sendReply(MESSAGE_REFERENCE, "On my way\nSee you")
 
         val body = MessageExtractor.getTextFromPart(sentMessage())
         assertThat(body.orEmpty()).contains("On my way\r\nSee you")
@@ -124,7 +125,7 @@ class QuickReplySenderTest : RobolectricTest() {
 
     @Test
     fun `original message is marked as answered`() {
-        sender.sendReply(MESSAGE_REFERENCE, "On my way")
+        testSubject.sendReply(MESSAGE_REFERENCE, "On my way")
 
         verify(messagingController).setFlag(account, FOLDER_ID, UID, Flag.ANSWERED, true)
     }
@@ -133,7 +134,7 @@ class QuickReplySenderTest : RobolectricTest() {
     fun `encrypted message is refused`() {
         original = parseMessage(ENCRYPTED_MESSAGE)
 
-        val result = sender.sendReply(MESSAGE_REFERENCE, "On my way")
+        val result = testSubject.sendReply(MESSAGE_REFERENCE, "On my way")
 
         assertThat(result).isEqualTo(QuickReplyResult.NOT_AVAILABLE)
         verify(messagingController, never()).sendMessage(any(), any(), anyOrNull(), anyOrNull())
@@ -143,22 +144,23 @@ class QuickReplySenderTest : RobolectricTest() {
     fun `message of a removed account isn't found`() {
         val removedAccountMessage = MessageReference("00000000-0000-4000-8000-000000000000", FOLDER_ID, UID)
 
-        val result = sender.sendReply(removedAccountMessage, "On my way")
+        val result = testSubject.sendReply(removedAccountMessage, "On my way")
 
         assertThat(result).isEqualTo(QuickReplyResult.MESSAGE_NOT_FOUND)
     }
 
     @Test
     fun `deleted message isn't found`() {
-        val sender = QuickReplySender(
+        val testSubject = QuickReplySender(
             accountManager = accountManager,
             messagingController = messagingController,
             textQuoteCreator = TextQuoteCreator(quoteDateFormatter, TestCoreResourceProvider()),
             generalSettingsManager = settingsManager,
+            logger = TestLogger(),
             loadMessage = { _, _ -> throw IllegalArgumentException("Message not found") },
         )
 
-        val result = sender.sendReply(MESSAGE_REFERENCE, "On my way")
+        val result = testSubject.sendReply(MESSAGE_REFERENCE, "On my way")
 
         assertThat(result).isEqualTo(QuickReplyResult.MESSAGE_NOT_FOUND)
     }

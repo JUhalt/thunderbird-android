@@ -25,9 +25,9 @@ class WearSnapshotPublisherTest {
 
     @Test
     fun `start publishes once when a watch is paired`() = runTest {
-        val publisher = createPublisher(unreadCount = 4)
+        val testSubject = createTestSubject(unreadCount = 4)
 
-        publisher.start()
+        testSubject.start()
         advanceTimeBy(3.seconds)
 
         assertThat(dataLayer.published).hasSize(1)
@@ -46,9 +46,9 @@ class WearSnapshotPublisherTest {
     @Test
     fun `nothing is published without a paired watch`() = runTest {
         dataLayer.isPaired = false
-        val publisher = createPublisher()
+        val testSubject = createTestSubject()
 
-        publisher.start()
+        testSubject.start()
         repository.notifyChanged()
         advanceTimeBy(5.seconds)
 
@@ -57,8 +57,8 @@ class WearSnapshotPublisherTest {
 
     @Test
     fun `bursts of message list changes are coalesced`() = runTest {
-        val publisher = createPublisher()
-        publisher.start()
+        val testSubject = createTestSubject()
+        testSubject.start()
         advanceTimeBy(3.seconds)
         dataLayer.published.clear()
 
@@ -70,10 +70,10 @@ class WearSnapshotPublisherTest {
 
     @Test
     fun `starting twice registers only one listener`() = runTest {
-        val publisher = createPublisher()
+        val testSubject = createTestSubject()
 
-        publisher.start()
-        publisher.start()
+        testSubject.start()
+        testSubject.start()
 
         assertThat(repository.listeners).hasSize(1)
     }
@@ -81,9 +81,9 @@ class WearSnapshotPublisherTest {
     @Test
     fun `publishNow publishes even without a paired watch`() = runTest {
         dataLayer.isPaired = false
-        val publisher = createPublisher()
+        val testSubject = createTestSubject()
 
-        val result = publisher.publishNow()
+        val result = testSubject.publishNow()
 
         assertThat(result).isEqualTo(true)
         assertThat(dataLayer.published).hasSize(1)
@@ -91,9 +91,9 @@ class WearSnapshotPublisherTest {
 
     @Test
     fun `publishNow reports failures instead of throwing`() = runTest {
-        val publisher = createPublisher(source = { error("database unavailable") })
+        val testSubject = createTestSubject(source = { error("database unavailable") })
 
-        val result = publisher.publishNow()
+        val result = testSubject.publishNow()
 
         assertThat(result).isFalse()
         assertThat(dataLayer.published).isEmpty()
@@ -102,8 +102,8 @@ class WearSnapshotPublisherTest {
     @Test
     fun `changed setting republishes, but the current value doesn't`() = runTest {
         val setting = MutableStateFlow("MESSAGE_COUNT")
-        val publisher = createPublisher(settingChanges = setting)
-        publisher.start()
+        val testSubject = createTestSubject(settingChanges = setting)
+        testSubject.start()
         advanceTimeBy(3.seconds)
         dataLayer.published.clear()
 
@@ -121,7 +121,7 @@ class WearSnapshotPublisherTest {
         testScheduler.runCurrent()
     }
 
-    private fun TestScope.createPublisher(
+    private fun TestScope.createTestSubject(
         unreadCount: Int = 0,
         source: WearPublicationSource = WearPublicationSource { publication(unreadCount) },
         settingChanges: Flow<Any> = emptyFlow(),

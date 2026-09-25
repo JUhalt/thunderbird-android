@@ -20,8 +20,8 @@ import net.thunderbird.core.android.account.LegacyAccountDto
 import net.thunderbird.core.android.account.LegacyAccountDtoManager
 import net.thunderbird.core.common.exception.MessagingException
 import net.thunderbird.core.common.mail.Flag
+import net.thunderbird.core.logging.Logger
 import net.thunderbird.core.preference.GeneralSettingsManager
-import net.thunderbird.legacy.logging.Log
 
 /**
  * Sends a short plain-text reply without opening the compose screen, for example from a watch.
@@ -37,6 +37,7 @@ class QuickReplySender(
     private val messagingController: MessagingController,
     private val textQuoteCreator: TextQuoteCreator,
     private val generalSettingsManager: GeneralSettingsManager,
+    private val logger: Logger,
     private val replyToParser: ReplyToParser = ReplyToParser(),
     private val createMessageBuilder: () -> MessageBuilder = SimpleMessageBuilder::newInstance,
     private val loadMessage: (LegacyAccountDto, MessageReference) -> Message = { account, reference ->
@@ -60,10 +61,10 @@ class QuickReplySender(
         return try {
             loadMessage(account, messageReference)
         } catch (e: IllegalArgumentException) {
-            Log.w(e, "Message to reply to is gone")
+            logger.warn(TAG, e) { "Message to reply to is gone" }
             null
         } catch (e: MessagingException) {
-            Log.w(e, "Couldn't load the message to reply to")
+            logger.warn(TAG, e) { "Couldn't load the message to reply to" }
             null
         }
     }
@@ -80,7 +81,7 @@ class QuickReplySender(
         val reply = try {
             buildReply(account, original, recipients, text)
         } catch (e: MessagingException) {
-            Log.e(e, "Couldn't build the reply")
+            logger.error(TAG, e) { "Couldn't build the reply" }
             null
         }
 
@@ -151,6 +152,8 @@ class QuickReplySender(
     }
 
     internal companion object {
+        private const val TAG = "QuickReplySender"
+
         /** A localized "Re:" prefix that is replaced, as on the compose screen: German "AW:". */
         private val LOCALIZED_REPLY_PREFIX = Regex("^AW[:\\s]\\s*", RegexOption.IGNORE_CASE)
 

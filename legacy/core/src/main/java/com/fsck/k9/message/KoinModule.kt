@@ -9,6 +9,7 @@ val messageModule = module {
             messagingController = get(),
             textQuoteCreator = get(),
             generalSettingsManager = get(),
+            logger = get(),
         )
     }
 }

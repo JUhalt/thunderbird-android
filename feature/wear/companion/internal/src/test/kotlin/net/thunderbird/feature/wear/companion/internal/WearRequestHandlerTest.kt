@@ -139,7 +139,7 @@ class WearRequestHandlerTest {
     }
 
     private suspend fun kotlinx.coroutines.test.TestScope.handle(requestData: ByteArray): WearResponse? {
-        val handler = WearRequestHandler(
+        val testSubject = WearRequestHandler(
             publisher = publisher,
             messageActions = actions,
             mailboxActions = mailboxActions,
@@ -147,6 +147,6 @@ class WearRequestHandlerTest {
             feature = { isCompanionEnabled },
             ioDispatcher = StandardTestDispatcher(testScheduler),
         )
-        return WearProtocolCodec.decodeResponse(handler.handle(requestData))
+        return WearProtocolCodec.decodeResponse(testSubject.handle(requestData))
     }
 }
