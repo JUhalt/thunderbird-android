@@ -1,9 +1,7 @@
 package net.thunderbird.wear.ui.inbox
 
 import androidx.annotation.StringRes
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
@@ -11,15 +9,14 @@ import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.thunderbird.core.ui.contract.mvi.BaseViewModel
+import net.thunderbird.feature.wear.companion.WearCompanion
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageAction
@@ -30,33 +27,18 @@ import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.PhoneResult
 import net.thunderbird.wear.data.SelectedMailboxStore
 import net.thunderbird.wear.ui.common.errorMessage
-
-sealed interface InboxUiState {
-    data object Loading : InboxUiState
-
-    /** Nothing has been received from the phone yet. */
-    data class NotConnected(val isRefreshing: Boolean) : InboxUiState
-
-    data class Content(
-        val mailbox: WearMailbox,
-        val canSwitchMailbox: Boolean,
-        val messages: ImmutableList<WearMessageSummary>,
-        val isRefreshing: Boolean,
-        /** The built-in demo mailbox is shown because no phone has published yet. */
-        val isDemo: Boolean = false,
-        /** The accounts by ID, to show which one each message belongs to. Empty when that's clear already. */
-        val accounts: ImmutableMap<String, WearMailbox> = persistentMapOf(),
-        val isMarkingAllRead: Boolean = false,
-        @field:StringRes val errorMessage: Int? = null,
-    ) : InboxUiState
-}
+import net.thunderbird.wear.ui.inbox.InboxContract.Effect
+import net.thunderbird.wear.ui.inbox.InboxContract.Event
+import net.thunderbird.wear.ui.inbox.InboxContract.State
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class InboxViewModel(
     private val phoneConnection: PhoneConnection,
     selectedMailboxStore: SelectedMailboxStore,
     private val demoModeStore: DemoModeStore,
-) : ViewModel() {
+) : BaseViewModel<State, Event, Effect>(initialState = State.Loading),
+    InboxContract.ViewModel {
+
     private val isRefreshing = MutableStateFlow(false)
     private val actionState = MutableStateFlow(ActionState())
 
@@ -78,30 +60,67 @@ class InboxViewModel(
             }
         }
 
-    val uiState: StateFlow<InboxUiState> =
-        combine(content, isRefreshing, phoneConnection.isDemo, actionState) { content, refreshing, isDemo, actions ->
-            if (content == null) {
-                InboxUiState.NotConnected(isRefreshing = refreshing)
-            } else {
-                InboxUiState.Content(
-                    mailbox = content.mailbox,
-                    canSwitchMailbox = content.canSwitchMailbox,
-                    messages = content.messages.filterNot { it.id in actions.hiddenMessageIds }.toImmutableList(),
-                    isRefreshing = refreshing,
-                    isDemo = isDemo,
-                    accounts = content.accounts,
-                    isMarkingAllRead = actions.isMarkingAllRead,
-                    errorMessage = actions.errorMessage,
-                )
-            }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), InboxUiState.Loading)
-
     init {
+        viewModelScope.launch {
+            combine(content, isRefreshing, phoneConnection.isDemo, actionState, ::toState).collect { newState ->
+                updateState { newState }
+            }
+        }
+
         // The phone only republishes when its message list changes, so ask for fresh data when the app opens.
         refresh()
     }
 
-    fun refresh() {
+    override fun event(event: Event) {
+        when (event) {
+            Event.MailboxClicked -> emitEffect(Effect.OpenMailboxes)
+
+            is Event.MessageClicked -> openMessage(event.messageId)
+
+            is Event.ArchiveClicked -> {
+                removeMessage(
+                    messageId = event.messageId,
+                    action = WearMessageAction.ARCHIVE,
+                    notAvailableMessage = R.string.error_archive_unavailable,
+                )
+            }
+
+            is Event.DeleteClicked -> removeMessage(event.messageId, WearMessageAction.DELETE)
+
+            is Event.MarkAllReadConfirmed -> markAllRead(event.mailboxId)
+
+            Event.RefreshClicked -> refresh()
+
+            // Shows the demo mailbox until a phone with Thunderbird publishes real data.
+            Event.StartDemoClicked -> demoModeStore.setEnabled(true)
+
+            Event.ExitDemoClicked -> demoModeStore.setEnabled(false)
+        }
+    }
+
+    private fun toState(
+        content: InboxContent?,
+        isRefreshing: Boolean,
+        isDemo: Boolean,
+        actions: ActionState,
+    ): State {
+        return if (content == null) {
+            State.NotConnected(isRefreshing = isRefreshing)
+        } else {
+            State.Content(
+                mailbox = content.mailbox,
+                canSwitchMailbox = content.canSwitchMailbox,
+                messages = content.messages.filterNot { it.id in actions.hiddenMessageIds }.toImmutableList(),
+                isRefreshing = isRefreshing,
+                isDemo = isDemo,
+                accounts = content.accounts,
+                isMarkingAllRead = actions.isMarkingAllRead,
+                errorMessage = actions.errorMessage,
+            )
+        }
+    }
+
+    private fun refresh() {
         if (isRefreshing.value) return
 
         viewModelScope.launch {
@@ -114,15 +133,12 @@ class InboxViewModel(
         }
     }
 
-    fun archive(messageId: String) {
-        removeMessage(messageId, WearMessageAction.ARCHIVE, notAvailableMessage = R.string.error_archive_unavailable)
+    private fun openMessage(messageId: String) {
+        val mailboxId = (state.value as? State.Content)?.mailbox?.id ?: WearCompanion.UNIFIED_MAILBOX_ID
+        emitEffect(Effect.OpenMessage(mailboxId = mailboxId, messageId = messageId))
     }
 
-    fun delete(messageId: String) {
-        removeMessage(messageId, WearMessageAction.DELETE)
-    }
-
-    fun markAllRead(mailboxId: String) {
+    private fun markAllRead(mailboxId: String) {
         if (actionState.value.isMarkingAllRead) return
 
         viewModelScope.launch {
@@ -134,15 +150,6 @@ class InboxViewModel(
                 actionState.update { it.copy(isMarkingAllRead = false) }
             }
         }
-    }
-
-    /** Shows the demo mailbox until a phone with Thunderbird publishes real data. */
-    fun startDemo() {
-        demoModeStore.setEnabled(true)
-    }
-
-    fun exitDemo() {
-        demoModeStore.setEnabled(false)
     }
 
     /**
@@ -181,10 +188,6 @@ class InboxViewModel(
         val isMarkingAllRead: Boolean = false,
         @field:StringRes val errorMessage: Int? = null,
     )
-
-    private companion object {
-        const val STOP_TIMEOUT_MILLIS = 5_000L
-    }
 }
 
 /** The selected mailbox, or the unified inbox if the selected account was removed on the phone. */

@@ -1,5 +1,6 @@
 package net.thunderbird.wear.ui.reader
 
+import app.cash.turbine.test
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEmpty
@@ -25,6 +26,8 @@ import net.thunderbird.wear.testing.UNIFIED
 import net.thunderbird.wear.testing.UNREAD
 import net.thunderbird.wear.testing.mailbox
 import net.thunderbird.wear.testing.message
+import net.thunderbird.wear.ui.reader.MessageContract.Effect
+import net.thunderbird.wear.ui.reader.MessageContract.Event
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MessageViewModelTest {
@@ -41,7 +44,7 @@ class MessageViewModelTest {
     fun `opening an unread message marks it as read once`() = runTest {
         publish(message("m1", isRead = false))
 
-        createViewModel("m1")
+        createTestSubject("m1")
         advanceUntilIdle()
         publish(message("m1", isRead = false))
         advanceUntilIdle()
@@ -53,7 +56,7 @@ class MessageViewModelTest {
     fun `opening a read message doesn't send anything`() = runTest {
         publish(message("m1", isRead = true))
 
-        createViewModel("m1")
+        createTestSubject("m1")
         advanceUntilIdle()
 
         assertThat(phone.performedActions).isEmpty()
@@ -63,20 +66,20 @@ class MessageViewModelTest {
     fun `message that isn't in the inbox anymore is reported as missing`() = runTest {
         publish(message("other"))
 
-        val viewModel = createViewModel("m1")
+        val testSubject = createTestSubject("m1")
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.isLoading).isFalse()
-        assertThat(viewModel.uiState.value.message).isNull()
+        assertThat(testSubject.state.value.isLoading).isFalse()
+        assertThat(testSubject.state.value.message).isNull()
     }
 
     @Test
     fun `toggling star sends star or unstar depending on the current state`() = runTest {
         publish(message("m1", isRead = true, isStarred = true))
-        val viewModel = createViewModel("m1")
+        val testSubject = createTestSubject("m1")
         advanceUntilIdle()
 
-        viewModel.toggleStar()
+        testSubject.event(Event.ToggleStarClicked)
         advanceUntilIdle()
 
         assertThat(phone.performedActions).containsExactly("m1" to WearMessageAction.UNSTAR)
@@ -85,54 +88,58 @@ class MessageViewModelTest {
     @Test
     fun `archiving closes the message screen`() = runTest {
         publish(message("m1", isRead = true))
-        val viewModel = createViewModel("m1")
+        val testSubject = createTestSubject("m1")
         advanceUntilIdle()
 
-        viewModel.archive()
-        advanceUntilIdle()
+        testSubject.effect.test {
+            testSubject.event(Event.ArchiveClicked)
+            advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.isClosed).isTrue()
+            assertThat(awaitItem()).isEqualTo(Effect.Close)
+        }
     }
 
     @Test
     fun `archiving without an archive folder shows an error and keeps the screen open`() = runTest {
         publish(message("m1", isRead = true))
         phone.actionResult = PhoneResult.Failed(WearErrorReason.ACTION_NOT_AVAILABLE)
-        val viewModel = createViewModel("m1")
+        val testSubject = createTestSubject("m1")
         advanceUntilIdle()
 
-        viewModel.archive()
-        advanceUntilIdle()
+        testSubject.effect.test {
+            testSubject.event(Event.ArchiveClicked)
+            advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.isClosed).isFalse()
-        assertThat(viewModel.uiState.value.errorMessage).isEqualTo(R.string.error_archive_unavailable)
+            expectNoEvents()
+        }
+        assertThat(testSubject.state.value.errorMessage).isEqualTo(R.string.error_archive_unavailable)
     }
 
     @Test
     fun `opening on the phone shows the confirmation`() = runTest {
         publish(message("m1", isRead = true))
-        val viewModel = createViewModel("m1")
+        val testSubject = createTestSubject("m1")
         advanceUntilIdle()
 
-        viewModel.openOnPhone()
+        testSubject.event(Event.OpenOnPhoneClicked)
         advanceUntilIdle()
 
         assertThat(phone.openedOnPhone).containsExactly("m1")
-        assertThat(viewModel.uiState.value.showOpenOnPhoneConfirmation).isTrue()
+        assertThat(testSubject.state.value.showOpenOnPhoneConfirmation).isTrue()
     }
 
     @Test
     fun `opening on the phone without a phone shows an error`() = runTest {
         publish(message("m1", isRead = true))
         phone.openOnPhoneResult = PhoneResult.NoPhone
-        val viewModel = createViewModel("m1")
+        val testSubject = createTestSubject("m1")
         advanceUntilIdle()
 
-        viewModel.openOnPhone()
+        testSubject.event(Event.OpenOnPhoneClicked)
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.showOpenOnPhoneConfirmation).isFalse()
-        assertThat(viewModel.uiState.value.errorMessage).isEqualTo(R.string.error_no_phone)
+        assertThat(testSubject.state.value.showOpenOnPhoneConfirmation).isFalse()
+        assertThat(testSubject.state.value.errorMessage).isEqualTo(R.string.error_no_phone)
     }
 
     @Test
@@ -141,7 +148,7 @@ class MessageViewModelTest {
             mailboxes = listOf(mailbox(UNIFIED), mailbox(UNREAD)),
             inboxes = mapOf(UNIFIED to listOf(message("m1")), UNREAD to listOf(message("m1"))),
         )
-        val viewModel = createViewModel("m1", mailboxId = UNREAD)
+        val testSubject = createTestSubject("m1", mailboxId = UNREAD)
         advanceUntilIdle()
 
         // The phone applies MARK_READ: the message leaves the unread view but is still in the unified inbox.
@@ -151,7 +158,7 @@ class MessageViewModelTest {
         )
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.message?.isRead).isEqualTo(true)
+        assertThat(testSubject.state.value.message?.isRead).isEqualTo(true)
     }
 
     @Test
@@ -160,7 +167,7 @@ class MessageViewModelTest {
             mailboxes = listOf(mailbox(UNIFIED), mailbox(STARRED)),
             inboxes = mapOf(UNIFIED to emptyList(), STARRED to listOf(message("m1", isRead = true, isStarred = true))),
         )
-        val viewModel = createViewModel("m1", mailboxId = STARRED)
+        val testSubject = createTestSubject("m1", mailboxId = STARRED)
         advanceUntilIdle()
 
         phone.publish(
@@ -169,7 +176,7 @@ class MessageViewModelTest {
         )
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.message?.id).isEqualTo("m1")
+        assertThat(testSubject.state.value.message?.id).isEqualTo("m1")
     }
 
     @Test
@@ -178,29 +185,42 @@ class MessageViewModelTest {
             mailboxes = listOf(mailbox(UNIFIED), mailbox("work", name = "Work"), mailbox("home", name = "Home")),
             inboxes = mapOf(UNIFIED to listOf(message("m1", isRead = true, accountId = "home"))),
         )
-        val viewModel = createViewModel("m1")
+        val testSubject = createTestSubject("m1")
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.account?.name).isEqualTo("Home")
+        assertThat(testSubject.state.value.account?.name).isEqualTo("Home")
     }
 
     @Test
     fun `encrypted messages can't be replied to on the watch`() = runTest {
         publish(message("m1", isRead = true, isEncrypted = true), message("m2", isRead = true))
 
-        val encrypted = createViewModel("m1")
-        val plain = createViewModel("m2")
+        val encrypted = createTestSubject("m1")
+        val plain = createTestSubject("m2")
         advanceUntilIdle()
 
-        assertThat(encrypted.uiState.value.canReply).isFalse()
-        assertThat(plain.uiState.value.canReply).isTrue()
+        assertThat(encrypted.state.value.canReply).isFalse()
+        assertThat(plain.state.value.canReply).isTrue()
+    }
+
+    @Test
+    fun `reply opens the reply screen for the same mailbox`() = runTest {
+        publish(message("m1", isRead = true))
+        val testSubject = createTestSubject("m1", mailboxId = UNIFIED)
+        advanceUntilIdle()
+
+        testSubject.effect.test {
+            testSubject.event(Event.ReplyClicked)
+
+            assertThat(awaitItem()).isEqualTo(Effect.OpenReply(mailboxId = UNIFIED, messageId = "m1"))
+        }
     }
 
     private fun publish(vararg messages: WearMessageSummary) {
         phone.publish(mailboxes = listOf(mailbox(UNIFIED)), inboxes = mapOf(UNIFIED to messages.toList()))
     }
 
-    private fun createViewModel(messageId: String, mailboxId: String = UNIFIED) = MessageViewModel(
+    private fun createTestSubject(messageId: String, mailboxId: String = UNIFIED) = MessageViewModel(
         messageId = messageId,
         mailboxId = mailboxId,
         phoneConnection = phone,

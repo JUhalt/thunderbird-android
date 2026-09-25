@@ -1,5 +1,6 @@
 package net.thunderbird.wear.ui.reply
 
+import app.cash.turbine.test
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.hasLength
@@ -23,6 +24,8 @@ import net.thunderbird.wear.testing.FakePhoneConnection
 import net.thunderbird.wear.testing.UNIFIED
 import net.thunderbird.wear.testing.mailbox
 import net.thunderbird.wear.testing.message
+import net.thunderbird.wear.ui.reply.ReplyContract.Effect
+import net.thunderbird.wear.ui.reply.ReplyContract.Event
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReplyViewModelTest {
@@ -43,77 +46,114 @@ class ReplyViewModelTest {
 
     @Test
     fun `shows the message being replied to`() = runTest {
-        val viewModel = createViewModel()
+        val testSubject = createTestSubject()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.message?.senderName).isEqualTo("Ada")
-        assertThat(viewModel.uiState.value.draft).isNull()
+        assertThat(testSubject.state.value.message?.senderName).isEqualTo("Ada")
+        assertThat(testSubject.state.value.draft).isNull()
     }
 
     @Test
     fun `chosen reply is reviewed before it's sent`() = runTest {
-        val viewModel = createViewModel()
+        val testSubject = createTestSubject()
         advanceUntilIdle()
 
-        viewModel.setDraft("  Sounds good.  ")
+        testSubject.event(Event.QuickReplyClicked("  Sounds good.  "))
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.draft).isEqualTo("Sounds good.")
+        assertThat(testSubject.state.value.draft).isEqualTo("Sounds good.")
         assertThat(phone.replies).isEmpty()
 
-        viewModel.send()
+        testSubject.event(Event.SendClicked)
         advanceUntilIdle()
 
         assertThat(phone.replies).containsExactly("m1" to "Sounds good.")
-        assertThat(viewModel.uiState.value.isSent).isTrue()
+        assertThat(testSubject.state.value.isSent).isTrue()
     }
 
     @Test
-    fun `cancelled voice input is ignored`() = runTest {
-        val viewModel = createViewModel()
+    fun `blank replies are ignored`() = runTest {
+        val testSubject = createTestSubject()
         advanceUntilIdle()
 
-        viewModel.setDraft("   ")
+        testSubject.event(Event.QuickReplyClicked("   "))
 
-        assertThat(viewModel.uiState.value.draft).isNull()
+        assertThat(testSubject.state.value.draft).isNull()
     }
 
     @Test
     fun `overly long replies are shortened to what the phone accepts`() = runTest {
-        val viewModel = createViewModel()
+        val testSubject = createTestSubject()
         advanceUntilIdle()
 
-        viewModel.setDraft("x".repeat(WearCompanion.MAX_REPLY_LENGTH + 10))
+        testSubject.event(Event.QuickReplyClicked("x".repeat(WearCompanion.MAX_REPLY_LENGTH + 10)))
 
-        assertThat(viewModel.uiState.value.draft.orEmpty()).hasLength(WearCompanion.MAX_REPLY_LENGTH)
+        assertThat(testSubject.state.value.draft.orEmpty()).hasLength(WearCompanion.MAX_REPLY_LENGTH)
     }
 
     @Test
     fun `changing the reply goes back to choosing one`() = runTest {
-        val viewModel = createViewModel()
+        val testSubject = createTestSubject()
         advanceUntilIdle()
-        viewModel.setDraft("OK")
+        testSubject.event(Event.QuickReplyClicked("OK"))
 
-        viewModel.clearDraft()
+        testSubject.event(Event.ChangeClicked)
 
-        assertThat(viewModel.uiState.value.draft).isNull()
+        assertThat(testSubject.state.value.draft).isNull()
     }
 
     @Test
     fun `reply the phone can't send is explained and can be retried`() = runTest {
         phone.replyResult = PhoneResult.Failed(WearErrorReason.ACTION_NOT_AVAILABLE)
-        val viewModel = createViewModel()
+        val testSubject = createTestSubject()
         advanceUntilIdle()
-        viewModel.setDraft("OK")
+        testSubject.event(Event.QuickReplyClicked("OK"))
 
-        viewModel.send()
+        testSubject.event(Event.SendClicked)
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.isSent).isFalse()
-        assertThat(viewModel.uiState.value.isSending).isFalse()
-        assertThat(viewModel.uiState.value.errorMessage).isEqualTo(R.string.error_reply_unavailable)
-        assertThat(viewModel.uiState.value.draft).isEqualTo("OK")
+        assertThat(testSubject.state.value.isSent).isFalse()
+        assertThat(testSubject.state.value.isSending).isFalse()
+        assertThat(testSubject.state.value.errorMessage).isEqualTo(R.string.error_reply_unavailable)
+        assertThat(testSubject.state.value.draft).isEqualTo("OK")
     }
 
-    private fun createViewModel() = ReplyViewModel(messageId = "m1", mailboxId = UNIFIED, phoneConnection = phone)
+    @Test
+    fun `cancelled voice input is ignored`() = runTest {
+        val testSubject = createTestSubject()
+        advanceUntilIdle()
+
+        testSubject.event(Event.ReplyInputReceived(text = null))
+
+        assertThat(testSubject.state.value.draft).isNull()
+    }
+
+    @Test
+    fun `speak or type opens the system input and its text is reviewed`() = runTest {
+        val testSubject = createTestSubject()
+        advanceUntilIdle()
+
+        testSubject.effect.test {
+            testSubject.event(Event.SpeakOrTypeClicked)
+
+            assertThat(awaitItem()).isEqualTo(Effect.OpenReplyInput)
+        }
+        testSubject.event(Event.ReplyInputReceived(text = "See you there"))
+
+        assertThat(testSubject.state.value.draft).isEqualTo("See you there")
+    }
+
+    @Test
+    fun `screen closes after the sent confirmation`() = runTest {
+        val testSubject = createTestSubject()
+        advanceUntilIdle()
+
+        testSubject.effect.test {
+            testSubject.event(Event.SentConfirmationDismissed)
+
+            assertThat(awaitItem()).isEqualTo(Effect.Close)
+        }
+    }
+
+    private fun createTestSubject() = ReplyViewModel(messageId = "m1", mailboxId = UNIFIED, phoneConnection = phone)
 }

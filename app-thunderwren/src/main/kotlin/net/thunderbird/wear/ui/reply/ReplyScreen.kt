@@ -28,6 +28,8 @@ import androidx.wear.compose.material3.curvedText
 import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
 import net.thunderbird.wear.ui.preview.PreviewData
+import net.thunderbird.wear.ui.reply.ReplyContract.Event
+import net.thunderbird.wear.ui.reply.ReplyContract.State
 import net.thunderbird.wear.ui.theme.ThunderWrenTheme
 
 /** Ready-made replies, offered like Wear OS offers them for messaging apps. */
@@ -45,8 +47,8 @@ private val QUICK_REPLIES = listOf(
  */
 @Composable
 fun ReplyScreen(
-    state: ReplyUiState,
-    actions: ReplyActions,
+    state: State,
+    onEvent: (Event) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Start with the first item (the header) at the top instead of centered, so it isn't hidden under the clock.
@@ -70,9 +72,9 @@ fun ReplyScreen(
                     Text(text = stringResource(R.string.message_not_found), textAlign = TextAlign.Center)
                 }
 
-                draft == null -> chooseReplyItems(message, state, actions)
+                draft == null -> chooseReplyItems(message, state, onEvent)
 
-                else -> reviewItems(draft, state, actions)
+                else -> reviewItems(draft, state, onEvent)
             }
         }
     }
@@ -81,15 +83,15 @@ fun ReplyScreen(
     val sentTextStyle = ConfirmationDialogDefaults.curvedTextStyle
     SuccessConfirmationDialog(
         visible = state.isSent,
-        onDismissRequest = actions::onSent,
+        onDismissRequest = { onEvent(Event.SentConfirmationDismissed) },
         curvedText = { curvedText(text = sentText, style = sentTextStyle) },
     )
 }
 
 private fun ScalingLazyListScope.chooseReplyItems(
     message: WearMessageSummary,
-    state: ReplyUiState,
-    actions: ReplyActions,
+    state: State,
+    onEvent: (Event) -> Unit,
 ) {
     item {
         ListHeader {
@@ -106,7 +108,7 @@ private fun ScalingLazyListScope.chooseReplyItems(
 
     item {
         Button(
-            onClick = actions::onSpeakOrType,
+            onClick = { onEvent(Event.SpeakOrTypeClicked) },
             modifier = Modifier.fillMaxWidth(),
             icon = { Icon(painterResource(R.drawable.ic_mic), contentDescription = null) },
             label = { Text(text = stringResource(R.string.reply_speak_or_type)) },
@@ -116,7 +118,7 @@ private fun ScalingLazyListScope.chooseReplyItems(
     items(QUICK_REPLIES) { quickReply ->
         val text = stringResource(quickReply)
         FilledTonalButton(
-            onClick = { actions.onQuickReply(text) },
+            onClick = { onEvent(Event.QuickReplyClicked(text)) },
             modifier = Modifier.fillMaxWidth(),
             label = { Text(text = text) },
         )
@@ -135,8 +137,8 @@ private fun ScalingLazyListScope.chooseReplyItems(
 
 private fun ScalingLazyListScope.reviewItems(
     draft: String,
-    state: ReplyUiState,
-    actions: ReplyActions,
+    state: State,
+    onEvent: (Event) -> Unit,
 ) {
     item {
         ListHeader {
@@ -157,7 +159,7 @@ private fun ScalingLazyListScope.reviewItems(
 
     item {
         Button(
-            onClick = actions::onSend,
+            onClick = { onEvent(Event.SendClicked) },
             enabled = !state.isSending && !state.isSent,
             modifier = Modifier.fillMaxWidth(),
             icon = { Icon(painterResource(R.drawable.ic_send), contentDescription = null) },
@@ -169,7 +171,7 @@ private fun ScalingLazyListScope.reviewItems(
 
     item {
         FilledTonalButton(
-            onClick = actions::onChange,
+            onClick = { onEvent(Event.ChangeClicked) },
             enabled = !state.isSending && !state.isSent,
             modifier = Modifier.fillMaxWidth(),
             label = { Text(text = stringResource(R.string.reply_change)) },
@@ -177,7 +179,7 @@ private fun ScalingLazyListScope.reviewItems(
     }
 }
 
-private fun ScalingLazyListScope.errorItem(state: ReplyUiState) {
+private fun ScalingLazyListScope.errorItem(state: State) {
     state.errorMessage?.let { errorMessage ->
         item {
             Text(
@@ -195,8 +197,8 @@ private fun ScalingLazyListScope.errorItem(state: ReplyUiState) {
 private fun ReplyScreenPreview() {
     ThunderWrenTheme {
         ReplyScreen(
-            state = ReplyUiState(isLoading = false, message = PreviewData.messages.first()),
-            actions = PreviewData.noOpReplyActions,
+            state = State(isLoading = false, message = PreviewData.messages.first()),
+            onEvent = {},
         )
     }
 }
@@ -206,12 +208,12 @@ private fun ReplyScreenPreview() {
 private fun ReplyScreenReviewPreview() {
     ThunderWrenTheme {
         ReplyScreen(
-            state = ReplyUiState(
+            state = State(
                 isLoading = false,
                 message = PreviewData.messages.first(),
                 draft = "Sounds good, see you at 10:30.",
             ),
-            actions = PreviewData.noOpReplyActions,
+            onEvent = {},
         )
     }
 }

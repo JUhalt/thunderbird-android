@@ -71,7 +71,7 @@ class UnreadComplicationService : ComplicationDataSourceService() {
         val description = if (unreadCount == null) {
             getString(R.string.app_name)
         } else {
-            getString(R.string.inbox_unread_count, unreadCount)
+            resources.getQuantityString(R.plurals.unread_count, unreadCount, unreadCount)
         }
 
         return ShortTextComplicationData.Builder(

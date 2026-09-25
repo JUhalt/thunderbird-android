@@ -100,6 +100,7 @@ dependencies {
     implementation(projects.feature.wear.companion.api)
     implementation(projects.core.logging.api)
     implementation(projects.core.logging.implConsole)
+    implementation(projects.core.ui.contract)
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.wear.compose.material3)
@@ -121,6 +122,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)

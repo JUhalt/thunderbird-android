@@ -40,12 +40,14 @@ import net.thunderbird.wear.R
 import net.thunderbird.wear.ui.common.AccountMonogram
 import net.thunderbird.wear.ui.common.formatMessageDate
 import net.thunderbird.wear.ui.preview.PreviewData
+import net.thunderbird.wear.ui.reader.MessageContract.Event
+import net.thunderbird.wear.ui.reader.MessageContract.State
 import net.thunderbird.wear.ui.theme.ThunderWrenTheme
 
 @Composable
 fun MessageDetailScreen(
-    state: MessageUiState,
-    actions: MessageActions,
+    state: State,
+    onEvent: (Event) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Start with the first item (the header) at the top instead of centered, so it isn't hidden under the clock.
@@ -68,7 +70,7 @@ fun MessageDetailScreen(
                     Text(text = stringResource(R.string.message_not_found), textAlign = TextAlign.Center)
                 }
 
-                else -> messageItems(message, state, actions)
+                else -> messageItems(message, state, onEvent)
             }
         }
     }
@@ -77,15 +79,15 @@ fun MessageDetailScreen(
     val openOnPhoneTextStyle = OpenOnPhoneDialogDefaults.curvedTextStyle
     OpenOnPhoneDialog(
         visible = state.showOpenOnPhoneConfirmation,
-        onDismissRequest = actions::onDismissOpenOnPhoneConfirmation,
+        onDismissRequest = { onEvent(Event.OpenOnPhoneConfirmationDismissed) },
         curvedText = { curvedText(text = openOnPhoneText, style = openOnPhoneTextStyle) },
     )
 }
 
 private fun ScalingLazyListScope.messageItems(
     message: WearMessageSummary,
-    state: MessageUiState,
-    actions: MessageActions,
+    state: State,
+    onEvent: (Event) -> Unit,
 ) {
     item {
         ListHeader {
@@ -114,32 +116,44 @@ private fun ScalingLazyListScope.messageItems(
         }
     }
 
-    replyItems(state, actions)
+    replyItems(state, onEvent)
 
     item {
         ActionButton(
             label = if (message.isRead) R.string.action_mark_unread else R.string.action_mark_read,
             enabled = !state.isBusy,
-            onClick = actions::onToggleRead,
+            onClick = { onEvent(Event.ToggleReadClicked) },
         )
     }
     item {
         ActionButton(
             label = if (message.isStarred) R.string.action_unstar else R.string.action_star,
             enabled = !state.isBusy,
-            onClick = actions::onToggleStar,
+            onClick = { onEvent(Event.ToggleStarClicked) },
         )
     }
-    item { ActionButton(label = R.string.action_archive, enabled = !state.isBusy, onClick = actions::onArchive) }
-    item { ActionButton(label = R.string.action_delete, enabled = !state.isBusy, onClick = actions::onDelete) }
+    item {
+        ActionButton(
+            label = R.string.action_archive,
+            enabled = !state.isBusy,
+            onClick = { onEvent(Event.ArchiveClicked) },
+        )
+    }
+    item {
+        ActionButton(
+            label = R.string.action_delete,
+            enabled = !state.isBusy,
+            onClick = { onEvent(Event.DeleteClicked) },
+        )
+    }
 }
 
 /** Reply, if possible, and open on phone. Without a reply button, opening on the phone is the main action. */
-private fun ScalingLazyListScope.replyItems(state: MessageUiState, actions: MessageActions) {
+private fun ScalingLazyListScope.replyItems(state: State, onEvent: (Event) -> Unit) {
     if (state.canReply) {
         item {
             Button(
-                onClick = actions::onReply,
+                onClick = { onEvent(Event.ReplyClicked) },
                 enabled = !state.isBusy,
                 modifier = Modifier.fillMaxWidth(),
                 icon = { Icon(painterResource(R.drawable.ic_reply), contentDescription = null) },
@@ -149,7 +163,7 @@ private fun ScalingLazyListScope.replyItems(state: MessageUiState, actions: Mess
     }
     item {
         Button(
-            onClick = actions::onOpenOnPhone,
+            onClick = { onEvent(Event.OpenOnPhoneClicked) },
             enabled = !state.isBusy,
             modifier = Modifier.fillMaxWidth(),
             colors = if (state.canReply) ButtonDefaults.filledTonalButtonColors() else ButtonDefaults.buttonColors(),
@@ -217,8 +231,8 @@ private fun ActionButton(label: Int, enabled: Boolean, onClick: () -> Unit) {
 private fun MessageDetailScreenPreview() {
     ThunderWrenTheme {
         MessageDetailScreen(
-            state = MessageUiState(isLoading = false, message = PreviewData.messages.first()),
-            actions = PreviewData.noOpMessageActions,
+            state = State(isLoading = false, message = PreviewData.messages.first()),
+            onEvent = {},
         )
     }
 }

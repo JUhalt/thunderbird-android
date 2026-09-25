@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
@@ -52,13 +53,15 @@ import net.thunderbird.wear.ui.common.ColorDot
 import net.thunderbird.wear.ui.common.accountIcon
 import net.thunderbird.wear.ui.common.displayName
 import net.thunderbird.wear.ui.common.formatMessageDate
+import net.thunderbird.wear.ui.inbox.InboxContract.Event
+import net.thunderbird.wear.ui.inbox.InboxContract.State
 import net.thunderbird.wear.ui.preview.PreviewData
 import net.thunderbird.wear.ui.theme.ThunderWrenTheme
 
 @Composable
 fun InboxScreen(
-    state: InboxUiState,
-    actions: InboxActions,
+    state: State,
+    onEvent: (Event) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Start with the first item (the header) at the top instead of centered, so it isn't hidden under the clock.
@@ -75,32 +78,32 @@ fun InboxScreen(
             contentPadding = contentPadding,
         ) {
             when (state) {
-                InboxUiState.Loading -> item { Text(text = stringResource(R.string.inbox_loading)) }
+                State.Loading -> item { Text(text = stringResource(R.string.inbox_loading)) }
 
-                is InboxUiState.NotConnected -> notConnectedItems(state, actions)
+                is State.NotConnected -> notConnectedItems(state, onEvent)
 
-                is InboxUiState.Content -> {
-                    contentItems(state, actions, listState, onMarkAllReadClick = { confirmMarkAllRead = true })
-                    if (state.isDemo) demoItems(actions)
+                is State.Content -> {
+                    contentItems(state, onEvent, listState, onMarkAllReadClick = { confirmMarkAllRead = true })
+                    if (state.isDemo) demoItems(onEvent)
                 }
             }
         }
     }
 
-    if (state is InboxUiState.Content) {
+    if (state is State.Content) {
         MarkAllReadDialog(
             visible = confirmMarkAllRead,
             mailbox = state.mailbox,
             onConfirm = {
                 confirmMarkAllRead = false
-                actions.onMarkAllRead(state.mailbox.id)
+                onEvent(Event.MarkAllReadConfirmed(state.mailbox.id))
             },
             onDismiss = { confirmMarkAllRead = false },
         )
     }
 }
 
-private fun ScalingLazyListScope.notConnectedItems(state: InboxUiState.NotConnected, actions: InboxActions) {
+private fun ScalingLazyListScope.notConnectedItems(state: State.NotConnected, onEvent: (Event) -> Unit) {
     item {
         ListHeader {
             Text(text = stringResource(R.string.not_connected_title))
@@ -114,18 +117,22 @@ private fun ScalingLazyListScope.notConnectedItems(state: InboxUiState.NotConnec
         )
     }
     item {
-        RefreshButton(isRefreshing = state.isRefreshing, label = R.string.retry, onClick = actions::onRefresh)
+        RefreshButton(
+            isRefreshing = state.isRefreshing,
+            label = R.string.retry,
+            onClick = { onEvent(Event.RefreshClicked) },
+        )
     }
     item {
         FilledTonalButton(
-            onClick = actions::onStartDemo,
+            onClick = { onEvent(Event.StartDemoClicked) },
             modifier = Modifier.fillMaxWidth(),
             label = { Text(text = stringResource(R.string.demo_start)) },
         )
     }
 }
 
-private fun ScalingLazyListScope.demoItems(actions: InboxActions) {
+private fun ScalingLazyListScope.demoItems(onEvent: (Event) -> Unit) {
     item {
         Text(
             text = stringResource(R.string.demo_explanation),
@@ -137,7 +144,7 @@ private fun ScalingLazyListScope.demoItems(actions: InboxActions) {
     }
     item {
         FilledTonalButton(
-            onClick = actions::onExitDemo,
+            onClick = { onEvent(Event.ExitDemoClicked) },
             modifier = Modifier.fillMaxWidth(),
             label = { Text(text = stringResource(R.string.demo_exit)) },
         )
@@ -145,13 +152,13 @@ private fun ScalingLazyListScope.demoItems(actions: InboxActions) {
 }
 
 private fun ScalingLazyListScope.contentItems(
-    state: InboxUiState.Content,
-    actions: InboxActions,
+    state: State.Content,
+    onEvent: (Event) -> Unit,
     listState: ScalingLazyListState,
     onMarkAllReadClick: () -> Unit,
 ) {
     item {
-        MailboxHeader(state = state, onClick = actions::onMailboxClick)
+        MailboxHeader(state = state, onClick = { onEvent(Event.MailboxClicked) })
     }
 
     state.errorMessage?.let { errorMessage ->
@@ -174,9 +181,9 @@ private fun ScalingLazyListScope.contentItems(
             message = message,
             account = state.accounts[message.accountId],
             listState = listState,
-            onClick = { actions.onMessageClick(message.id) },
-            onArchive = { actions.onArchive(message.id) },
-            onDelete = { actions.onDelete(message.id) },
+            onClick = { onEvent(Event.MessageClicked(message.id)) },
+            onArchive = { onEvent(Event.ArchiveClicked(message.id)) },
+            onDelete = { onEvent(Event.DeleteClicked(message.id)) },
         )
     }
 
@@ -202,17 +209,22 @@ private fun ScalingLazyListScope.contentItems(
     }
 
     item {
-        RefreshButton(isRefreshing = state.isRefreshing, label = R.string.inbox_refresh, onClick = actions::onRefresh)
+        RefreshButton(
+            isRefreshing = state.isRefreshing,
+            label = R.string.inbox_refresh,
+            onClick = { onEvent(Event.RefreshClicked) },
+        )
     }
 }
 
 @Composable
 private fun MailboxHeader(
-    state: InboxUiState.Content,
+    state: State.Content,
     onClick: () -> Unit,
 ) {
     val mailboxName = state.mailbox.displayName()
-    val unreadCountText = stringResource(R.string.inbox_unread_count, state.mailbox.unreadCount)
+    val unreadCount = state.mailbox.unreadCount
+    val unreadCountText = pluralStringResource(R.plurals.unread_count, unreadCount, unreadCount)
     val unreadText = if (state.isDemo) stringResource(R.string.demo_label, unreadCountText) else unreadCountText
     val switchDescription = stringResource(R.string.mailbox_switch_description, mailboxName)
 
@@ -403,7 +415,7 @@ private fun InboxScreenPreview() {
     ThunderWrenTheme {
         InboxScreen(
             state = PreviewData.inboxContent,
-            actions = PreviewData.noOpInboxActions,
+            onEvent = {},
         )
     }
 }
@@ -413,8 +425,8 @@ private fun InboxScreenPreview() {
 private fun InboxScreenNotConnectedPreview() {
     ThunderWrenTheme {
         InboxScreen(
-            state = InboxUiState.NotConnected(isRefreshing = false),
-            actions = PreviewData.noOpInboxActions,
+            state = State.NotConnected(isRefreshing = false),
+            onEvent = {},
         )
     }
 }

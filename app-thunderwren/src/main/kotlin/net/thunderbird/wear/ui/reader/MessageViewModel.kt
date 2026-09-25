@@ -1,14 +1,10 @@
 package net.thunderbird.wear.ui.reader
 
 import androidx.annotation.StringRes
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.thunderbird.core.ui.contract.mvi.BaseViewModel
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageAction
@@ -18,32 +14,17 @@ import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.PhoneResult
 import net.thunderbird.wear.data.message
 import net.thunderbird.wear.ui.common.errorMessage
-
-data class MessageUiState(
-    val isLoading: Boolean = true,
-    /** The message, or `null` if it's no longer in the inbox (for example archived on the phone). */
-    val message: WearMessageSummary? = null,
-    /** The account the message belongs to, if there are several accounts. */
-    val account: WearMailbox? = null,
-    val isBusy: Boolean = false,
-    @field:StringRes val errorMessage: Int? = null,
-    val showOpenOnPhoneConfirmation: Boolean = false,
-    /** Set after the message was archived or deleted; the screen should close. */
-    val isClosed: Boolean = false,
-) {
-    /** Encrypted messages can only be answered on the phone, which can encrypt the reply. */
-    val canReply: Boolean
-        get() = message != null && !message.isEncrypted
-}
+import net.thunderbird.wear.ui.reader.MessageContract.Effect
+import net.thunderbird.wear.ui.reader.MessageContract.Event
+import net.thunderbird.wear.ui.reader.MessageContract.State
 
 /** The message with [messageId], opened from the mailbox with [mailboxId]. */
 class MessageViewModel(
     private val messageId: String,
-    mailboxId: String,
+    private val mailboxId: String,
     private val phoneConnection: PhoneConnection,
-) : ViewModel() {
-    private val state = MutableStateFlow(MessageUiState())
-    val uiState: StateFlow<MessageUiState> = state.asStateFlow()
+) : BaseViewModel<State, Event, Effect>(initialState = State()),
+    MessageContract.ViewModel {
 
     private var markedAsRead = false
 
@@ -52,46 +33,56 @@ class MessageViewModel(
             combine(phoneConnection.message(messageId, mailboxId), phoneConnection.mailboxes) { message, mailboxes ->
                 message to message?.let { mailboxes?.accountToLabel(it) }
             }.collect { (message, account) ->
-                state.update { it.copy(isLoading = false, message = message, account = account) }
+                updateState { it.copy(isLoading = false, message = message, account = account) }
                 if (message != null) markAsReadOnce(message)
             }
         }
     }
 
-    fun toggleRead() {
+    override fun event(event: Event) {
+        when (event) {
+            Event.ReplyClicked -> emitEffect(Effect.OpenReply(mailboxId = mailboxId, messageId = messageId))
+
+            Event.OpenOnPhoneClicked -> openOnPhone()
+
+            Event.OpenOnPhoneConfirmationDismissed -> updateState { it.copy(showOpenOnPhoneConfirmation = false) }
+
+            Event.ToggleReadClicked -> toggleRead()
+
+            Event.ToggleStarClicked -> toggleStar()
+
+            Event.ArchiveClicked -> {
+                perform(
+                    action = WearMessageAction.ARCHIVE,
+                    closeOnSuccess = true,
+                    notAvailableMessage = R.string.error_archive_unavailable,
+                )
+            }
+
+            Event.DeleteClicked -> perform(WearMessageAction.DELETE, closeOnSuccess = true)
+        }
+    }
+
+    private fun toggleRead() {
         val message = state.value.message ?: return
         perform(if (message.isRead) WearMessageAction.MARK_UNREAD else WearMessageAction.MARK_READ)
     }
 
-    fun toggleStar() {
+    private fun toggleStar() {
         val message = state.value.message ?: return
         perform(if (message.isStarred) WearMessageAction.UNSTAR else WearMessageAction.STAR)
     }
 
-    fun archive() {
-        perform(
-            WearMessageAction.ARCHIVE,
-            closeOnSuccess = true,
-            notAvailableMessage = R.string.error_archive_unavailable,
-        )
-    }
-
-    fun delete() = perform(WearMessageAction.DELETE, closeOnSuccess = true)
-
-    fun openOnPhone() {
+    private fun openOnPhone() {
         runBusy {
             val result = phoneConnection.openOnPhone(messageId)
-            state.update {
+            updateState {
                 it.copy(
                     showOpenOnPhoneConfirmation = result == PhoneResult.Success,
                     errorMessage = result.errorMessage(),
                 )
             }
         }
-    }
-
-    fun dismissOpenOnPhoneConfirmation() {
-        state.update { it.copy(showOpenOnPhoneConfirmation = false) }
     }
 
     /** Opening a message reads it, as on the phone. */
@@ -111,12 +102,8 @@ class MessageViewModel(
     ) {
         runBusy {
             val result = phoneConnection.performAction(messageId, action)
-            state.update {
-                it.copy(
-                    errorMessage = result.errorMessage(notAvailableMessage),
-                    isClosed = closeOnSuccess && result == PhoneResult.Success,
-                )
-            }
+            updateState { it.copy(errorMessage = result.errorMessage(notAvailableMessage)) }
+            if (closeOnSuccess && result == PhoneResult.Success) emitEffect(Effect.Close)
         }
     }
 
@@ -124,11 +111,11 @@ class MessageViewModel(
         if (state.value.isBusy) return
 
         viewModelScope.launch {
-            state.update { it.copy(isBusy = true, errorMessage = null) }
+            updateState { it.copy(isBusy = true, errorMessage = null) }
             try {
                 block()
             } finally {
-                state.update { it.copy(isBusy = false) }
+                updateState { it.copy(isBusy = false) }
             }
         }
     }

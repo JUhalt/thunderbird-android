@@ -21,25 +21,25 @@ import org.robolectric.annotation.Config
 // A plain Application, so the app's Koin isn't started for a layout test.
 @Config(application = Application::class, sdk = [33])
 class UnreadTileLayoutTest {
-    private val layout = UnreadTileLayout(ApplicationProvider.getApplicationContext<Context>())
+    private val testSubject = UnreadTileLayout(ApplicationProvider.getApplicationContext<Context>())
 
     @Test
     fun `shows how to connect before the phone has published`() {
-        val texts = layout.create(glance = null, screenWidthDp = SCREEN_WIDTH).texts()
+        val texts = testSubject.create(glance = null, screenWidthDp = SCREEN_WIDTH).texts()
 
         assertThat(texts).containsExactly("ThunderWren", "Open Thunderbird on your phone")
     }
 
     @Test
     fun `shows only the app name when the count is hidden`() {
-        val texts = layout.create(Glance(unreadCount = null, latestUnread = emptyList()), SCREEN_WIDTH).texts()
+        val texts = testSubject.create(Glance(unreadCount = null, latestUnread = emptyList()), SCREEN_WIDTH).texts()
 
         assertThat(texts).containsExactly("ThunderWren", "Tap to see your mail")
     }
 
     @Test
     fun `shows the count without senders`() {
-        val texts = layout.create(Glance(unreadCount = 4, latestUnread = emptyList()), SCREEN_WIDTH).texts()
+        val texts = testSubject.create(Glance(unreadCount = 4, latestUnread = emptyList()), SCREEN_WIDTH).texts()
 
         assertThat(texts).containsExactly("ThunderWren", "4 unread")
     }
@@ -55,7 +55,7 @@ class UnreadTileLayoutTest {
             ),
         )
 
-        val root = layout.create(glance, SCREEN_WIDTH)
+        val root = testSubject.create(glance, SCREEN_WIDTH)
 
         assertThat(root.texts()).containsExactly("3 unread", "Ada", "Lunch?", "Charles", "Engine")
         assertThat(root.openedMessageIds()).containsExactly("m1", "m2")
@@ -70,7 +70,7 @@ class UnreadTileLayoutTest {
             },
         )
 
-        val texts = layout.create(glance, SCREEN_WIDTH).texts()
+        val texts = testSubject.create(glance, SCREEN_WIDTH).texts()
 
         assertThat(texts).containsExactly("5 unread", "Ada", "Charles", "Grace")
         assertThat(texts).doesNotContain("Lunch?")

@@ -13,7 +13,10 @@
     <string name="mailbox_picker_accounts">Accounts</string>
     <string name="mailbox_switch_description">Switch mailbox. Showing %1$s.</string>
 
-    <string name="inbox_unread_count">%1$d unread</string>
+    <plurals name="unread_count">
+        <item quantity="one">%1$d unread</item>
+        <item quantity="other">%1$d unread</item>
+    </plurals>
     <string name="inbox_empty">No messages</string>
     <string name="inbox_refresh">Refresh</string>
     <string name="inbox_refreshing">Refreshing…</string>
@@ -89,7 +92,6 @@
     <string name="error_update_phone_app">Update Thunderbird on your phone to do this from your watch.</string>
     <string name="error_mailbox_not_found">This mailbox no longer exists.</string>
 
-    <string name="tile_unread_count">%1$d unread</string>
     <string name="tile_not_connected">Open Thunderbird on your phone</string>
     <!-- Shown on the Tile when Thunderbird\'s lock screen setting hides even the number of messages -->
     <string name="tile_open_app">Tap to see your mail</string>
