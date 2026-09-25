@@ -84,6 +84,24 @@ can ignore data it doesn't understand.
 - When no phone with Thunderbird is reachable, the watch explains that instead of showing placeholder data. It also
   offers a clearly labeled demo mailbox that lives only on the watch, so people can try the app without a phone. Real
   data from a phone always replaces the demo.
+- Screens follow the MVI pattern of the [UI architecture](../../architecture/ui-architecture.md): each has a contract
+  with its state, events, and effects, and a view model built on `BaseViewModel`. The watch uses Wear Compose
+  Material 3 instead of the phone's design system, whose components are made for phone screens.
+- The watch app has the same build types as `app-thunderbird` (debug, daily, beta, and release), with the same
+  application ID suffixes and signing configurations, so each watch build pairs with the matching phone build.
+
+### Rollout
+
+Both phone-side parts are behind feature flags in `thunderbird_mobile_featureflag.catalog.json`, off by default and on
+in Thunderbird debug builds. In debug builds, they can be toggled in the secret debug settings.
+
+- `wear_companion`: publishing to the watch and answering its requests. While it is off, the phone publishes nothing
+  and answers every request with `UNSUPPORTED_REQUEST`.
+- `wear_notification_quick_reply`: sending the Reply action of Wear notifications with `QuickReplySender`. While it is
+  off, that action opens the compose screen on the phone, as before.
+
+This allows turning the companion on in Daily first, then Beta, then Release, and turning it off again without an
+update if something goes wrong.
 
 ## Alternatives Considered
 
@@ -124,6 +142,8 @@ can ignore data it doesn't understand.
 2. Naming: "ThunderWren" is a working title. Would the Thunderbird brand be allowed on the watch app?
 3. Should quick replies (from the watch and from Wear notifications) quote the original message? They currently
    follow the account's "quote original message when replying" setting, like the compose screen.
+4. Version codes: Play needs the phone and watch APKs of one release to have different version codes. Should the watch
+   app derive its code from the phone's (for example with a fixed offset), or be released on its own schedule?
 
 Answered in this proposal: the Tile and complication follow the lock screen notification setting (see Privacy), and
 replies from the watch are sent by the phone, as plain text, never for encrypted messages.

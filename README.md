@@ -103,6 +103,10 @@ The phone app and the watch app must have the **same application ID and signing 
 1. Select the **`app-thunderbird`** run configuration with the **`fullDebug`** build variant (*Build → Select Build Variant*), and run it on the **phone**. Set up a mail account in it.
 2. Select the **`app-thunderwren`** run configuration and run it on the **watch**.
 
+Daily and Beta builds pair the same way: install `fullDaily` or `fullBeta` on the phone and the matching `daily` or `beta` build of `app-thunderwren` on the watch. Those need Thunderbird's signing keys, so locally only debug builds pair.
+
+The companion and the notification quick reply are behind the feature flags `wear_companion` and `wear_notification_quick_reply`. They are on in debug builds and off elsewhere for now. In debug builds, toggle them in Thunderbird's secret debug settings.
+
 Or from the command line, with both emulators running:
 
 ```bash
@@ -125,7 +129,7 @@ Or from the command line, with both emulators running:
 
 ### Troubleshooting
 
-* **The watch says "Connect your phone"**: make sure the phone app is the **`fullDebug`** build from this repository (not `fossDebug` or the Play Store app), that it has at least one account, and that the emulators are paired. Opening Thunderbird on the phone once starts the companion.
+* **The watch says "Connect your phone"**: make sure the phone app is the **`fullDebug`** build from this repository (not `fossDebug` or the Play Store app), that the `wear_companion` feature flag is on, that it has at least one account, and that the emulators are paired. Opening Thunderbird on the phone once starts the companion.
 * **CI doesn't run on your fork**: GitHub turns Actions off for forks. Enable it in the repository's **Actions** tab. The `Build - ThunderWren Wear OS application` job builds the watch app.
 * **Gradle sync fails with a version catalog error**: pull the latest `main`. An earlier commit corrupted `gradle/libs.versions.toml`, which is fixed now.
 * **The Gradle daemon runs out of memory**: the project reserves a 10 GB heap (`org.gradle.jvmargs` in `gradle.properties`). On machines with 16 GB of RAM or less, close other apps or lower `-Xmx`.
@@ -143,6 +147,7 @@ Or from the command line, with both emulators running:
 - [x] Reply from the watch (voice, keyboard, or ready-made replies, sent by the phone), also from notifications.
 - [x] Respect Thunderbird's notification privacy settings on the Tile and complication.
 - [x] Swipe to archive or delete, Unread and Starred views, mark all as read, account monograms, and a richer Tile.
+- [x] Feature flags for the phone-side parts, Daily and Beta watch builds, and screens following Thunderbird's MVI pattern.
 - [ ] Verify on a real phone and watch, then fix what that turns up.
 - [ ] Present on [thunderbird/thunderbird-android#6969](https://github.com/thunderbird/thunderbird-android/issues/6969), the open Wear OS request.
 
