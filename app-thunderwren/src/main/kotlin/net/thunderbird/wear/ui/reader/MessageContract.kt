@@ -19,6 +19,13 @@ interface MessageContract {
         @field:StringRes val errorMessage: Int? = null,
         val showOpenOnPhoneConfirmation: Boolean = false,
         val showDeleteConfirmation: Boolean = false,
+        /** The message's whole text from the phone, or `null` until it has arrived. The preview is shown until then. */
+        val body: String? = null,
+        val isLoadingBody: Boolean = false,
+        /** The phone could only send part of the text, so the rest can only be read on the phone. */
+        val isBodyIncomplete: Boolean = false,
+        /** The whole text couldn't be loaded, so only the preview is shown. */
+        val isBodyUnavailable: Boolean = false,
     ) {
         /** Encrypted messages can only be answered on the phone, which can encrypt the reply. */
         val canReply: Boolean

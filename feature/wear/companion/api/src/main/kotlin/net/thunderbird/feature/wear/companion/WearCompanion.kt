@@ -42,6 +42,12 @@ object WearCompanion {
     /** Maximum length of [WearMessageSummary.preview]. */
     const val MAX_PREVIEW_LENGTH = 300
 
+    /**
+     * Maximum length of [WearResponse.Body.text]. It keeps a response well below the Data Layer's 100 KB message limit,
+     * and is far more than anyone reads on a watch.
+     */
+    const val MAX_BODY_LENGTH = 20_000
+
     /** Maximum length of [WearRequest.Reply.text]. Longer replies belong on the phone. */
     const val MAX_REPLY_LENGTH = 2_000
 

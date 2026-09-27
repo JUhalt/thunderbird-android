@@ -38,6 +38,16 @@ sealed interface WearRequest {
     data class MarkAllRead(
         val mailboxId: String,
     ) : WearRequest
+
+    /**
+     * Asks the phone for the text of the message with [messageId], to read it in full on the watch. The phone answers
+     * with [WearResponse.Body]. The text is only sent when asked for and isn't stored on the watch.
+     */
+    @Serializable
+    @SerialName("load_body")
+    data class LoadBody(
+        val messageId: String,
+    ) : WearRequest
 }
 
 @Serializable
@@ -60,6 +70,18 @@ sealed interface WearResponse {
     @Serializable
     @SerialName("error")
     data class Error(val reason: WearErrorReason) : WearResponse
+
+    /**
+     * The plain text of a message, answering [WearRequest.LoadBody]. It is at most [WearCompanion.MAX_BODY_LENGTH]
+     * characters. [isComplete] is `false` if the text was shortened, or the phone has only downloaded part of the
+     * message, so the rest can only be read on the phone.
+     */
+    @Serializable
+    @SerialName("body")
+    data class Body(
+        val text: String,
+        val isComplete: Boolean,
+    ) : WearResponse
 }
 
 @Serializable

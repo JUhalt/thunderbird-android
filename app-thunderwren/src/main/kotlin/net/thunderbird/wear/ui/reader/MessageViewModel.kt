@@ -10,6 +10,7 @@ import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
+import net.thunderbird.wear.data.BodyResult
 import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.PhoneResult
 import net.thunderbird.wear.data.WatchSettingsStore
@@ -29,6 +30,7 @@ class MessageViewModel(
     MessageContract.ViewModel {
 
     private var markedAsRead = false
+    private var bodyRequested = false
 
     init {
         viewModelScope.launch {
@@ -36,7 +38,10 @@ class MessageViewModel(
                 message to message?.let { mailboxes?.accountToLabel(it) }
             }.collect { (message, account) ->
                 updateState { it.copy(isLoading = false, message = message, account = account) }
-                if (message != null) markAsReadOnce(message)
+                if (message != null) {
+                    markAsReadOnce(message)
+                    loadBodyOnce(message)
+                }
             }
         }
     }
@@ -108,6 +113,28 @@ class MessageViewModel(
 
         if (!message.isRead) {
             viewModelScope.launch { phoneConnection.performAction(messageId, WearMessageAction.MARK_READ) }
+        }
+    }
+
+    /** The inbox only has a preview, so ask the phone for the whole text. Encrypted messages are read on the phone. */
+    private fun loadBodyOnce(message: WearMessageSummary) {
+        if (bodyRequested || message.isEncrypted) return
+        bodyRequested = true
+
+        viewModelScope.launch {
+            updateState { it.copy(isLoadingBody = true) }
+            when (val result = phoneConnection.loadBody(messageId)) {
+                is BodyResult.Loaded -> updateState {
+                    it.copy(
+                        isLoadingBody = false,
+                        // An empty text, for example of a message without a text part, adds nothing to the preview.
+                        body = result.text.takeIf(String::isNotBlank),
+                        isBodyIncomplete = !result.isComplete,
+                    )
+                }
+
+                is BodyResult.Failed -> updateState { it.copy(isLoadingBody = false, isBodyUnavailable = true) }
+            }
         }
     }
 

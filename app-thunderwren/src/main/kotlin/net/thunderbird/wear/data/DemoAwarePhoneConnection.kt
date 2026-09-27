@@ -61,5 +61,7 @@ class DemoAwarePhoneConnection(
 
     override suspend fun openOnPhone(messageId: String): PhoneResult = current().openOnPhone(messageId)
 
+    override suspend fun loadBody(messageId: String): BodyResult = current().loadBody(messageId)
+
     private suspend fun current(): PhoneConnection = source.first() ?: phone
 }

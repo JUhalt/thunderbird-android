@@ -127,6 +127,17 @@ internal class FakeWearReplySender(var response: WearResponse = WearResponse.Ok)
     }
 }
 
+internal class FakeWearMessageBodyLoader(
+    var response: WearResponse = WearResponse.Body(text = "Full text", isComplete = true),
+) : WearMessageBodyLoader {
+    val loaded = mutableListOf<MessageReference>()
+
+    override fun load(reference: MessageReference): WearResponse {
+        loaded += reference
+        return response
+    }
+}
+
 internal fun publication(unreadCount: Int = 0, accountUuids: List<String> = listOf("account-1")): WearPublication {
     val mailboxIds = listOf(WearCompanion.UNIFIED_MAILBOX_ID) + accountUuids
     return WearPublication(

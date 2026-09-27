@@ -21,6 +21,7 @@ class WearRequestHandlerTest {
     private val actions = FakeWearMessageActions()
     private val mailboxActions = FakeWearMailboxActions()
     private val replySender = FakeWearReplySender()
+    private val bodyLoader = FakeWearMessageBodyLoader()
     private var isCompanionEnabled = true
 
     @Test
@@ -101,6 +102,25 @@ class WearRequestHandlerTest {
     }
 
     @Test
+    fun `message text is loaded without republishing`() = runTest {
+        val reference = MessageReference("account", 3, "uid")
+
+        val response = handle(WearRequest.LoadBody(reference.toIdentityString()))
+
+        assertThat(response).isEqualTo(WearResponse.Body(text = "Full text", isComplete = true))
+        assertThat(bodyLoader.loaded).containsExactly(reference)
+        assertThat(publisher.requestPublishCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `message text of an unknown message is reported as not found`() = runTest {
+        val response = handle(WearRequest.LoadBody("not a message reference"))
+
+        assertThat(response).isEqualTo(WearResponse.Error(WearErrorReason.MESSAGE_NOT_FOUND))
+        assertThat(bodyLoader.loaded).isEmpty()
+    }
+
+    @Test
     fun `reply that couldn't be sent is reported`() = runTest {
         replySender.response = WearResponse.Error(WearErrorReason.ACTION_NOT_AVAILABLE)
         val reference = MessageReference("account", 3, "uid")
@@ -145,6 +165,7 @@ class WearRequestHandlerTest {
             messageActions = actions,
             mailboxActions = mailboxActions,
             replySender = replySender,
+            bodyLoader = bodyLoader,
             feature = { isCompanionEnabled },
             ioDispatcher = StandardTestDispatcher(testScheduler),
         )

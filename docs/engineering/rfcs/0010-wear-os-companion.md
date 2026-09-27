@@ -58,10 +58,15 @@ can ignore data it doesn't understand.
 - **Publishing**: The phone republishes (debounced) when the message list changes and a watch is paired. It deletes the
   items of accounts that no longer exist. The Data Layer keeps the last published items on the watch.
 - **Requests**: The watch sends `MessageClient.sendRequest` to `/thunderwren/v1/request` with a `WearRequest`:
-  `Refresh`, `PerformAction(messageId, action)`, `MarkAllRead(mailboxId)`, or `Reply(messageId, text)`. The phone
-  answers with a `WearResponse`. Actions update the local store through `MessagingController`, and the resulting
+  `Refresh`, `PerformAction(messageId, action)`, `MarkAllRead(mailboxId)`, `Reply(messageId, text)`, or
+  `LoadBody(messageId)`. The phone answers with a `WearResponse`. Actions update the local store through `MessagingController`, and the resulting
   message-list change republishes the snapshots. A phone that doesn't know a request answers `UNSUPPORTED_REQUEST`,
   which the watch explains as "update Thunderbird on your phone".
+- **Reading**: Snapshots only carry a short preview. When a message is opened on the watch, it asks for the whole text
+  with `LoadBody`. The phone converts the message to plain text as for quoting in replies, and answers with at most
+  20,000 characters. The answer says when the text is incomplete, because it was shortened or the phone has only
+  downloaded part of the message; the watch then points to the phone for the rest. Encrypted messages are refused.
+  The text goes over `MessageClient` only, so it isn't stored in the Data Layer.
 - **Replies**: `QuickReplySender` in `legacy:core` builds the reply the way the compose screen would: to the sender or
   Reply-To address, from the identity the message was sent to, with the account's quoting, signature, Bcc, and read
   receipt settings, threaded with `In-Reply-To` and `References`. It puts the reply in the Outbox and marks the
@@ -128,7 +133,8 @@ proposal turns it on there so testers can try it.
   flavor. F-Droid (`foss`) builds get the no-op module. In practice, Wear OS itself also requires Play Services on
   the phone.
 - **Privacy**: Snapshots contain sender names, subjects, and previews. The Data Layer encrypts traffic between paired
-  devices, and data stays within the user's Google account. The snapshot is capped in size and has no message bodies.
+  devices, and data stays within the user's Google account. The snapshot is capped in size and has no message bodies; the whole text of one
+  message is only sent when it is opened on the watch, and isn't kept there.
   The mailbox list includes account email addresses. The Tile and complication can be seen by people nearby, like a
   phone's lock screen, so they follow Thunderbird's "lock screen notifications" setting, which the phone publishes as
   the glance visibility: senders and subjects, senders only, the unread count only (the default), or nothing. Inside

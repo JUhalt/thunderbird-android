@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import net.thunderbird.feature.wear.companion.WearCompanion
+import net.thunderbird.feature.wear.companion.WearErrorReason
 import net.thunderbird.feature.wear.companion.WearGlanceVisibility
 import net.thunderbird.feature.wear.companion.WearInboxSnapshot
 import net.thunderbird.feature.wear.companion.WearMailbox
@@ -89,6 +90,13 @@ class DemoPhoneConnection(
     }
 
     override suspend fun refresh(): PhoneResult = PhoneResult.Success
+
+    // The demo messages are short, so their preview is the whole text.
+    override suspend fun loadBody(messageId: String): BodyResult {
+        val message = messages.value.firstOrNull { it.summary.id == messageId }
+            ?: return BodyResult.Failed(PhoneResult.Failed(WearErrorReason.MESSAGE_NOT_FOUND))
+        return BodyResult.Loaded(text = message.summary.preview, isComplete = true)
+    }
 
     override suspend fun performAction(messageId: String, action: WearMessageAction): PhoneResult {
         messages.update { messages ->

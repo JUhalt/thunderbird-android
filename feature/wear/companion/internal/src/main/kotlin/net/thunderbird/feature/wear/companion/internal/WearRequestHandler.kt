@@ -16,6 +16,7 @@ internal class WearRequestHandler(
     private val messageActions: WearMessageActions,
     private val mailboxActions: WearMailboxActions,
     private val replySender: WearReplySender,
+    private val bodyLoader: WearMessageBodyLoader,
     private val feature: WearCompanionFeature,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
@@ -34,6 +35,7 @@ internal class WearRequestHandler(
             is WearRequest.PerformAction -> performAction(request)
             is WearRequest.Reply -> reply(request)
             is WearRequest.MarkAllRead -> markAllRead(request)
+            is WearRequest.LoadBody -> loadBody(request)
         }
 
         return WearProtocolCodec.encodeResponse(response)
@@ -67,6 +69,14 @@ internal class WearRequestHandler(
 
     private suspend fun markAllRead(request: WearRequest.MarkAllRead): WearResponse {
         return republishIfOk { mailboxActions.markAllRead(request.mailboxId) }
+    }
+
+    private suspend fun loadBody(request: WearRequest.LoadBody): WearResponse {
+        val reference = MessageReference.parse(request.messageId)
+            ?: return WearResponse.Error(WearErrorReason.MESSAGE_NOT_FOUND)
+
+        // Reading changes nothing, so there's nothing to republish.
+        return withContext(ioDispatcher) { bodyLoader.load(reference) }
     }
 
     /** Runs [block] off the main thread and, if it succeeded, republishes so the watch sees the result. */

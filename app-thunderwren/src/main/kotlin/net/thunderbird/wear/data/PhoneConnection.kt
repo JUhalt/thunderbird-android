@@ -30,6 +30,16 @@ interface PhoneConnection {
 
     /** Opens the message on the phone so it can be read in full or replied to. */
     suspend fun openOnPhone(messageId: String): PhoneResult
+
+    /** Asks the phone for the whole text of the message with [messageId]. */
+    suspend fun loadBody(messageId: String): BodyResult
+}
+
+sealed interface BodyResult {
+    /** [isComplete] is `false` if the phone could only send part of the text. */
+    data class Loaded(val text: String, val isComplete: Boolean) : BodyResult
+
+    data class Failed(val result: PhoneResult) : BodyResult
 }
 
 sealed interface PhoneResult {

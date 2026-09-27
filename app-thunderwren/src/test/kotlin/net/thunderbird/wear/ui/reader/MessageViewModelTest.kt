@@ -19,6 +19,7 @@ import net.thunderbird.feature.wear.companion.WearErrorReason
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
+import net.thunderbird.wear.data.BodyResult
 import net.thunderbird.wear.data.PhoneResult
 import net.thunderbird.wear.testing.FakePhoneConnection
 import net.thunderbird.wear.testing.FakeWatchSettingsStore
@@ -110,6 +111,54 @@ class MessageViewModelTest {
 
         assertThat(testSubject.state.value.showDeleteConfirmation).isFalse()
         assertThat(phone.performedActions).isEmpty()
+    }
+
+    @Test
+    fun `opening a message loads its whole text from the phone`() = runTest {
+        phone.bodyResult = BodyResult.Loaded(text = "Hello,\n\nthe whole text.", isComplete = true)
+        publish(message("m1", isRead = true))
+
+        val testSubject = createTestSubject("m1")
+        advanceUntilIdle()
+
+        assertThat(phone.loadedBodies).containsExactly("m1")
+        assertThat(testSubject.state.value.body).isEqualTo("Hello,\n\nthe whole text.")
+        assertThat(testSubject.state.value.isLoadingBody).isFalse()
+        assertThat(testSubject.state.value.isBodyIncomplete).isFalse()
+    }
+
+    @Test
+    fun `partial text from the phone is marked as incomplete`() = runTest {
+        phone.bodyResult = BodyResult.Loaded(text = "The beginning", isComplete = false)
+        publish(message("m1", isRead = true))
+
+        val testSubject = createTestSubject("m1")
+        advanceUntilIdle()
+
+        assertThat(testSubject.state.value.body).isEqualTo("The beginning")
+        assertThat(testSubject.state.value.isBodyIncomplete).isTrue()
+    }
+
+    @Test
+    fun `preview stays when the whole text can't be loaded`() = runTest {
+        phone.bodyResult = BodyResult.Failed(PhoneResult.NoPhone)
+        publish(message("m1", isRead = true))
+
+        val testSubject = createTestSubject("m1")
+        advanceUntilIdle()
+
+        assertThat(testSubject.state.value.body).isNull()
+        assertThat(testSubject.state.value.isBodyUnavailable).isTrue()
+    }
+
+    @Test
+    fun `encrypted messages aren't loaded`() = runTest {
+        publish(message("m1", isRead = true, isEncrypted = true))
+
+        createTestSubject("m1")
+        advanceUntilIdle()
+
+        assertThat(phone.loadedBodies).isEmpty()
     }
 
     @Test

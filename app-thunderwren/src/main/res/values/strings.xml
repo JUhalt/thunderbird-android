@@ -48,6 +48,9 @@
     <!-- %s is the version, for example "0.1.0-beta5" -->
     <string name="settings_version">ThunderWren %s</string>
     <string name="delete_confirmation">Delete this message?</string>
+    <string name="message_loading_full">Loading the whole message…</string>
+    <string name="message_rest_on_phone">The rest of this message is on your phone.</string>
+    <string name="message_full_unavailable">Couldn\'t load the whole message, so only its beginning is shown.</string>
     <!-- Secondary label of the mailbox button in demo mode. %1$s is the unread count text, e.g. "3 unread". -->
     <string name="demo_label">Demo · %1$s</string>
     <string name="demo_account_work">Work</string>

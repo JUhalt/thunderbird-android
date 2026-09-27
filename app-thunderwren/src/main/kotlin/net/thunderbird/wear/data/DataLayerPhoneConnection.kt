@@ -82,7 +82,17 @@ class DataLayerPhoneConnection(
         }
     }
 
-    private suspend fun sendRequest(request: WearRequest): PhoneResult = withContext(ioDispatcher) {
+    override suspend fun loadBody(messageId: String): BodyResult {
+        var body: WearResponse.Body? = null
+        val result = sendRequest(WearRequest.LoadBody(messageId)) { response -> body = response as? WearResponse.Body }
+
+        return body?.let { BodyResult.Loaded(text = it.text, isComplete = it.isComplete) } ?: BodyResult.Failed(result)
+    }
+
+    private suspend fun sendRequest(
+        request: WearRequest,
+        onResponse: (WearResponse) -> Unit = {},
+    ): PhoneResult = withContext(ioDispatcher) {
         val phone = findPhone() ?: return@withContext PhoneResult.NoPhone
 
         runCatchingDataLayer {
@@ -91,8 +101,13 @@ class DataLayerPhoneConnection(
                 .await()
 
             when (val response = WearProtocolCodec.decodeResponse(responseData)) {
-                WearResponse.Ok -> PhoneResult.Success
+                WearResponse.Ok, is WearResponse.Body -> {
+                    onResponse(response)
+                    PhoneResult.Success
+                }
+
                 is WearResponse.Error -> PhoneResult.Failed(response.reason)
+
                 null -> PhoneResult.Failed(WearErrorReason.UNSUPPORTED_REQUEST)
             }
         }

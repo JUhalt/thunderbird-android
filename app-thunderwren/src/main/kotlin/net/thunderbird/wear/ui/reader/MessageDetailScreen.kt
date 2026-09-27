@@ -22,6 +22,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
+import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material3.AlertDialog
 import androidx.wear.compose.material3.AlertDialogDefaults
@@ -94,6 +95,55 @@ fun MessageDetailScreen(
     )
 }
 
+/**
+ * The message's text, one paragraph per item so long messages scroll smoothly. The preview is shown until the whole
+ * text has arrived from the phone.
+ */
+private fun ScalingLazyListScope.bodyItems(message: WearMessageSummary, state: State) {
+    val text = when {
+        message.isEncrypted -> null
+        else -> state.body ?: message.preview
+    }
+
+    if (text == null) {
+        item { BodyText(text = stringResource(R.string.message_encrypted)) }
+    } else {
+        items(text.toParagraphs()) { paragraph -> BodyText(text = paragraph) }
+    }
+
+    val note = when {
+        state.isLoadingBody -> R.string.message_loading_full
+        state.isBodyIncomplete -> R.string.message_rest_on_phone
+        state.isBodyUnavailable -> R.string.message_full_unavailable
+        else -> null
+    }
+    note?.let {
+        item {
+            Text(
+                text = stringResource(it),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun BodyText(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        // Round screens cut off the corners, so keep body text away from the edges.
+        modifier = Modifier.padding(vertical = 4.dp, horizontal = 16.dp),
+    )
+}
+
+/** Splits the text at blank lines, dropping empty paragraphs. */
+internal fun String.toParagraphs(): List<String> {
+    return split(Regex("\\n\\s*\\n")).map { it.trim() }.filter { it.isNotEmpty() }
+}
+
 private fun ScalingLazyListScope.messageItems(
     message: WearMessageSummary,
     state: State,
@@ -107,14 +157,7 @@ private fun ScalingLazyListScope.messageItems(
 
     item { MessageHeader(message, state.account) }
 
-    item {
-        Text(
-            text = if (message.isEncrypted) stringResource(R.string.message_encrypted) else message.preview,
-            style = MaterialTheme.typography.bodyMedium,
-            // Round screens cut off the corners, so keep body text away from the edges.
-            modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp),
-        )
-    }
+    bodyItems(message, state)
 
     state.errorMessage?.let { errorMessage ->
         item {
