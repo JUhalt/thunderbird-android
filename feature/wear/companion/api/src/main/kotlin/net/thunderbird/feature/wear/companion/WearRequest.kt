@@ -79,6 +79,9 @@ enum class WearErrorReason {
     /** The mailbox no longer exists, for example because its account was removed. */
     MAILBOX_NOT_FOUND,
 
+    /** The watch companion is turned off in Thunderbird on the phone. */
+    COMPANION_DISABLED,
+
     /** Something went wrong on the phone. */
     FAILED,
 }

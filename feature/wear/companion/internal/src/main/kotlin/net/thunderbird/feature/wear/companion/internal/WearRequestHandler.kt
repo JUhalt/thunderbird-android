@@ -21,8 +21,14 @@ internal class WearRequestHandler(
 ) {
 
     suspend fun handle(requestData: ByteArray): ByteArray {
-        val request = WearProtocolCodec.decodeRequest(requestData).takeIf { feature.isEnabled() }
-        val response = when (request) {
+        if (!feature.isEnabled()) {
+            // The watch still shows what was published before the companion was turned off. Remove it, so turning
+            // the companion off also takes the mail off the watch.
+            publisher.unpublish()
+            return WearProtocolCodec.encodeResponse(WearResponse.Error(WearErrorReason.COMPANION_DISABLED))
+        }
+
+        val response = when (val request = WearProtocolCodec.decodeRequest(requestData)) {
             null -> WearResponse.Error(WearErrorReason.UNSUPPORTED_REQUEST)
             WearRequest.Refresh -> refresh()
             is WearRequest.PerformAction -> performAction(request)

@@ -22,6 +22,9 @@ internal interface WearDataLayer {
      * [items] anymore, for example those of a removed account.
      */
     suspend fun publish(items: Map<String, ByteArray>)
+
+    /** Removes everything published for the watch, so it no longer shows any mail. */
+    suspend fun clear()
 }
 
 /**
@@ -53,6 +56,15 @@ internal class PlayServicesWearDataLayer(
             }
 
             deleteStaleInboxes(currentPaths = items.keys)
+        }
+    }
+
+    override suspend fun clear() {
+        withContext(ioDispatcher) {
+            Tasks.await(dataClient.deleteDataItems(wearUri(WearCompanion.MAILBOXES_PATH)))
+            Tasks.await(
+                dataClient.deleteDataItems(wearUri(WearCompanion.INBOX_PATH_PREFIX), DataClient.FILTER_PREFIX),
+            )
         }
     }
 

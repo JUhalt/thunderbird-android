@@ -121,16 +121,17 @@ class WearRequestHandlerTest {
     }
 
     @Test
-    fun `requests are unsupported while the companion is turned off`() = runTest {
+    fun `requests remove the published mail while the companion is turned off`() = runTest {
         isCompanionEnabled = false
         val reference = MessageReference("account", 3, "uid")
 
         val refresh = handle(WearRequest.Refresh)
         val action = handle(WearRequest.PerformAction(reference.toIdentityString(), WearMessageAction.ARCHIVE))
 
-        assertThat(refresh).isEqualTo(WearResponse.Error(WearErrorReason.UNSUPPORTED_REQUEST))
-        assertThat(action).isEqualTo(WearResponse.Error(WearErrorReason.UNSUPPORTED_REQUEST))
+        assertThat(refresh).isEqualTo(WearResponse.Error(WearErrorReason.COMPANION_DISABLED))
+        assertThat(action).isEqualTo(WearResponse.Error(WearErrorReason.COMPANION_DISABLED))
         assertThat(publisher.publishNowCount).isEqualTo(0)
+        assertThat(publisher.unpublishCount).isEqualTo(2)
         assertThat(actions.performed).isEmpty()
     }
 

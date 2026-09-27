@@ -19,8 +19,14 @@ internal class FakeWearDataLayer(var isPaired: Boolean = true) : WearDataLayer {
 
     override suspend fun isWatchPaired(): Boolean = isPaired
 
+    var clearCount = 0
+
     override suspend fun publish(items: Map<String, ByteArray>) {
         published += items
+    }
+
+    override suspend fun clear() {
+        clearCount++
     }
 }
 
@@ -82,8 +88,15 @@ internal class FakeWearInboxPublisher(var publishResult: Boolean = true) : WearI
         return publishResult
     }
 
+    var unpublishCount = 0
+
     override fun requestPublish() {
         requestPublishCount++
+    }
+
+    override suspend fun unpublish(): Boolean {
+        unpublishCount++
+        return true
     }
 }
 
