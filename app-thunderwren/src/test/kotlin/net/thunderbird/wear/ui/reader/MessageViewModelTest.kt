@@ -21,6 +21,7 @@ import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
 import net.thunderbird.wear.data.PhoneResult
 import net.thunderbird.wear.testing.FakePhoneConnection
+import net.thunderbird.wear.testing.FakeWatchSettingsStore
 import net.thunderbird.wear.testing.STARRED
 import net.thunderbird.wear.testing.UNIFIED
 import net.thunderbird.wear.testing.UNREAD
@@ -33,6 +34,7 @@ import net.thunderbird.wear.ui.reader.MessageContract.Event
 class MessageViewModelTest {
     private val mainDispatcher = MainDispatcherHelper()
     private val phone = FakePhoneConnection()
+    private val settings = FakeWatchSettingsStore()
 
     @BeforeTest
     fun setUp() = mainDispatcher.setUp()
@@ -59,6 +61,54 @@ class MessageViewModelTest {
         createTestSubject("m1")
         advanceUntilIdle()
 
+        assertThat(phone.performedActions).isEmpty()
+    }
+
+    @Test
+    fun `opening a message doesn't mark it as read when that's turned off`() = runTest {
+        settings.update { it.copy(markAsReadWhenOpened = false) }
+        publish(message("m1", isRead = false))
+
+        createTestSubject("m1")
+        advanceUntilIdle()
+
+        assertThat(phone.performedActions).isEmpty()
+    }
+
+    @Test
+    fun `deleting asks first when confirmation is turned on`() = runTest {
+        settings.update { it.copy(confirmDelete = true) }
+        publish(message("m1", isRead = true))
+        val testSubject = createTestSubject("m1")
+        advanceUntilIdle()
+
+        testSubject.event(Event.DeleteClicked)
+        advanceUntilIdle()
+
+        assertThat(testSubject.state.value.showDeleteConfirmation).isTrue()
+        assertThat(phone.performedActions).isEmpty()
+
+        testSubject.effect.test {
+            testSubject.event(Event.DeleteConfirmed)
+
+            assertThat(awaitItem()).isEqualTo(Effect.Close)
+        }
+        assertThat(phone.performedActions).containsExactly("m1" to WearMessageAction.DELETE)
+        assertThat(testSubject.state.value.showDeleteConfirmation).isFalse()
+    }
+
+    @Test
+    fun `dismissing the delete confirmation keeps the message`() = runTest {
+        settings.update { it.copy(confirmDelete = true) }
+        publish(message("m1", isRead = true))
+        val testSubject = createTestSubject("m1")
+        advanceUntilIdle()
+
+        testSubject.event(Event.DeleteClicked)
+        testSubject.event(Event.DeleteDismissed)
+        advanceUntilIdle()
+
+        assertThat(testSubject.state.value.showDeleteConfirmation).isFalse()
         assertThat(phone.performedActions).isEmpty()
     }
 
@@ -224,5 +274,6 @@ class MessageViewModelTest {
         messageId = messageId,
         mailboxId = mailboxId,
         phoneConnection = phone,
+        settingsStore = settings,
     )
 }

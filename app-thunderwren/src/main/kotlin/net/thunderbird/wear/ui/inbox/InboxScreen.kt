@@ -1,5 +1,7 @@
 package net.thunderbird.wear.ui.inbox
 
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,8 +14,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -38,6 +43,8 @@ import androidx.wear.compose.material3.FilledTonalButton
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.RevealDirection
+import androidx.wear.compose.material3.RevealState
 import androidx.wear.compose.material3.RevealValue
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.SwipeToReveal
@@ -45,9 +52,12 @@ import androidx.wear.compose.material3.SwipeToRevealDefaults
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TitleCard
 import androidx.wear.compose.material3.rememberRevealState
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
+import net.thunderbird.wear.data.SwipeActions
 import net.thunderbird.wear.ui.common.AccountMonogram
 import net.thunderbird.wear.ui.common.ColorDot
 import net.thunderbird.wear.ui.common.accountIcon
@@ -100,6 +110,11 @@ fun InboxScreen(
             },
             onDismiss = { confirmMarkAllRead = false },
         )
+        DeleteDialog(
+            visible = state.pendingDeleteMessageId != null,
+            onConfirm = { onEvent(Event.DeleteConfirmed) },
+            onDismiss = { onEvent(Event.DeleteDismissed) },
+        )
     }
 }
 
@@ -116,6 +131,7 @@ private fun ScalingLazyListScope.notConnectedItems(state: State.NotConnected, on
             style = MaterialTheme.typography.bodyMedium,
         )
     }
+    errorItem(state.errorMessage)
     item {
         RefreshButton(
             isRefreshing = state.isRefreshing,
@@ -161,16 +177,7 @@ private fun ScalingLazyListScope.contentItems(
         MailboxHeader(state = state, onClick = { onEvent(Event.MailboxClicked) })
     }
 
-    state.errorMessage?.let { errorMessage ->
-        item {
-            Text(
-                text = stringResource(errorMessage),
-                color = MaterialTheme.colorScheme.error,
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-    }
+    errorItem(state.errorMessage)
 
     if (state.messages.isEmpty()) {
         item { Text(text = stringResource(R.string.inbox_empty)) }
@@ -178,34 +185,24 @@ private fun ScalingLazyListScope.contentItems(
 
     items(state.messages, key = { it.id }) { message ->
         SwipeableMessageCard(
-            message = message,
-            account = state.accounts[message.accountId],
+            swipeActions = state.swipeActions,
+            confirmDelete = state.confirmDelete,
             listState = listState,
-            onClick = { onEvent(Event.MessageClicked(message.id)) },
             onArchive = { onEvent(Event.ArchiveClicked(message.id)) },
             onDelete = { onEvent(Event.DeleteClicked(message.id)) },
-        )
+        ) { accessibilityActions ->
+            MessageCard(
+                message = message,
+                account = state.accounts[message.accountId],
+                showPreview = state.showPreviews,
+                onClick = { onEvent(Event.MessageClicked(message.id)) },
+                modifier = accessibilityActions,
+            )
+        }
     }
 
     if (state.mailbox.unreadCount > 0) {
-        item {
-            FilledTonalButton(
-                onClick = onMarkAllReadClick,
-                enabled = !state.isMarkingAllRead,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                icon = { Icon(painterResource(R.drawable.ic_done_all), contentDescription = null) },
-                label = {
-                    val label = if (state.isMarkingAllRead) {
-                        R.string.inbox_marking_all_read
-                    } else {
-                        R.string.inbox_mark_all_read
-                    }
-                    Text(text = stringResource(label), maxLines = 2)
-                },
-            )
-        }
+        item { MarkAllReadButton(isMarkingAllRead = state.isMarkingAllRead, onClick = onMarkAllReadClick) }
     }
 
     item {
@@ -215,6 +212,43 @@ private fun ScalingLazyListScope.contentItems(
             onClick = { onEvent(Event.RefreshClicked) },
         )
     }
+    item {
+        FilledTonalButton(
+            onClick = { onEvent(Event.SettingsClicked) },
+            modifier = Modifier.fillMaxWidth(),
+            icon = { Icon(painterResource(R.drawable.ic_settings), contentDescription = null) },
+            label = { Text(text = stringResource(R.string.settings_title)) },
+        )
+    }
+}
+
+private fun ScalingLazyListScope.errorItem(@StringRes errorMessage: Int?) {
+    if (errorMessage == null) return
+
+    item {
+        Text(
+            text = stringResource(errorMessage),
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
+}
+
+@Composable
+private fun MarkAllReadButton(isMarkingAllRead: Boolean, onClick: () -> Unit) {
+    FilledTonalButton(
+        onClick = onClick,
+        enabled = !isMarkingAllRead,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        icon = { Icon(painterResource(R.drawable.ic_done_all), contentDescription = null) },
+        label = {
+            val label = if (isMarkingAllRead) R.string.inbox_marking_all_read else R.string.inbox_mark_all_read
+            Text(text = stringResource(label), maxLines = 2)
+        },
+    )
 }
 
 @Composable
@@ -240,84 +274,15 @@ private fun MailboxHeader(
     )
 }
 
-/** A message that can be swiped to the left to archive or delete it. */
-@Composable
-private fun SwipeableMessageCard(
-    message: WearMessageSummary,
-    account: WearMailbox?,
-    listState: ScalingLazyListState,
-    onClick: () -> Unit,
-    onArchive: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    val revealState = rememberRevealState()
-    val archiveLabel = stringResource(R.string.action_archive)
-    val deleteLabel = stringResource(R.string.action_delete)
-
-    // The revealed buttons are centered on the visible part of the card, so cover them again when the list scrolls.
-    LaunchedEffect(listState.isScrollInProgress) {
-        if (listState.isScrollInProgress && revealState.currentValue != RevealValue.Covered) {
-            revealState.animateTo(RevealValue.Covered)
-        }
-    }
-
-    // A full swipe archives, which can be undone on the phone. The default colors would mark it as destructive.
-    val archiveContainerColor = MaterialTheme.colorScheme.primaryContainer
-    val archiveContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-    val deleteContainerColor = MaterialTheme.colorScheme.errorContainer
-    val deleteContentColor = MaterialTheme.colorScheme.onErrorContainer
-
-    SwipeToReveal(
-        primaryAction = {
-            PrimaryActionButton(
-                onClick = onArchive,
-                icon = { Icon(painterResource(R.drawable.ic_archive), contentDescription = archiveLabel) },
-                text = { Text(text = archiveLabel) },
-                modifier = Modifier.height(SwipeToRevealDefaults.LargeActionButtonHeight),
-                containerColor = archiveContainerColor,
-                contentColor = archiveContentColor,
-            )
-        },
-        onSwipePrimaryAction = onArchive,
-        secondaryAction = {
-            SecondaryActionButton(
-                onClick = onDelete,
-                icon = { Icon(painterResource(R.drawable.ic_delete), contentDescription = deleteLabel) },
-                modifier = Modifier.height(SwipeToRevealDefaults.LargeActionButtonHeight),
-                containerColor = deleteContainerColor,
-                contentColor = deleteContentColor,
-            )
-        },
-        revealState = revealState,
-    ) {
-        MessageCard(
-            message = message,
-            account = account,
-            onClick = onClick,
-            // Swiping isn't possible with a screen reader, so offer the same actions there.
-            modifier = Modifier.semantics {
-                customActions = listOf(
-                    CustomAccessibilityAction(archiveLabel) {
-                        onArchive()
-                        true
-                    },
-                    CustomAccessibilityAction(deleteLabel) {
-                        onDelete()
-                        true
-                    },
-                )
-            },
-        )
-    }
-}
-
 @Composable
 private fun MessageCard(
     message: WearMessageSummary,
     account: WearMailbox?,
+    showPreview: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val date = remember(message.date) { formatMessageDate(message.date) }
     val unreadDescription = stringResource(R.string.message_unread_indicator)
     val starredDescription = stringResource(R.string.message_starred_indicator)
     val accountDescription = account?.let { stringResource(R.string.message_account, it.name) }
@@ -332,7 +297,7 @@ private fun MessageCard(
                     starredDescription.takeIf { message.isStarred },
                     message.senderName,
                     message.subject,
-                    formatMessageDate(message.date),
+                    date,
                     accountDescription,
                 ).joinToString(". ")
             },
@@ -352,7 +317,7 @@ private fun MessageCard(
                 overflow = TextOverflow.Ellipsis,
             )
         },
-        time = { Text(text = formatMessageDate(message.date)) },
+        time = { Text(text = date) },
     ) {
         Column {
             Text(
@@ -362,13 +327,15 @@ private fun MessageCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = if (message.isEncrypted) stringResource(R.string.message_encrypted) else message.preview,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (showPreview || message.isEncrypted) {
+                Text(
+                    text = if (message.isEncrypted) stringResource(R.string.message_encrypted) else message.preview,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -388,6 +355,21 @@ private fun MarkAllReadDialog(
         confirmButton = { AlertDialogDefaults.ConfirmButton(onClick = onConfirm) },
         icon = { Icon(painterResource(R.drawable.ic_done_all), contentDescription = null) },
         title = { Text(text = title, textAlign = TextAlign.Center) },
+    )
+}
+
+@Composable
+private fun DeleteDialog(
+    visible: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        visible = visible,
+        onDismissRequest = onDismiss,
+        confirmButton = { AlertDialogDefaults.ConfirmButton(onClick = onConfirm) },
+        icon = { Icon(painterResource(R.drawable.ic_delete), contentDescription = null) },
+        title = { Text(text = stringResource(R.string.delete_confirmation), textAlign = TextAlign.Center) },
     )
 }
 

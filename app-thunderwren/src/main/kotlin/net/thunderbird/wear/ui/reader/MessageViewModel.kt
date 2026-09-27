@@ -12,6 +12,7 @@ import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
 import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.PhoneResult
+import net.thunderbird.wear.data.WatchSettingsStore
 import net.thunderbird.wear.data.message
 import net.thunderbird.wear.ui.common.errorMessage
 import net.thunderbird.wear.ui.reader.MessageContract.Effect
@@ -23,6 +24,7 @@ class MessageViewModel(
     private val messageId: String,
     private val mailboxId: String,
     private val phoneConnection: PhoneConnection,
+    private val settingsStore: WatchSettingsStore,
 ) : BaseViewModel<State, Event, Effect>(initialState = State()),
     MessageContract.ViewModel {
 
@@ -59,7 +61,20 @@ class MessageViewModel(
                 )
             }
 
-            Event.DeleteClicked -> perform(WearMessageAction.DELETE, closeOnSuccess = true)
+            Event.DeleteClicked -> {
+                if (settingsStore.settings.value.confirmDelete) {
+                    updateState { it.copy(showDeleteConfirmation = true) }
+                } else {
+                    perform(WearMessageAction.DELETE, closeOnSuccess = true)
+                }
+            }
+
+            Event.DeleteConfirmed -> {
+                updateState { it.copy(showDeleteConfirmation = false) }
+                perform(WearMessageAction.DELETE, closeOnSuccess = true)
+            }
+
+            Event.DeleteDismissed -> updateState { it.copy(showDeleteConfirmation = false) }
         }
     }
 
@@ -85,10 +100,11 @@ class MessageViewModel(
         }
     }
 
-    /** Opening a message reads it, as on the phone. */
+    /** Opening a message reads it, as on the phone, unless that's turned off in the settings. */
     private fun markAsReadOnce(message: WearMessageSummary) {
         if (markedAsRead) return
         markedAsRead = true
+        if (!settingsStore.settings.value.markAsReadWhenOpened) return
 
         if (!message.isRead) {
             viewModelScope.launch { phoneConnection.performAction(messageId, WearMessageAction.MARK_READ) }

@@ -18,6 +18,7 @@ interface MessageContract {
         val isBusy: Boolean = false,
         @field:StringRes val errorMessage: Int? = null,
         val showOpenOnPhoneConfirmation: Boolean = false,
+        val showDeleteConfirmation: Boolean = false,
     ) {
         /** Encrypted messages can only be answered on the phone, which can encrypt the reply. */
         val canReply: Boolean
@@ -32,6 +33,8 @@ interface MessageContract {
         data object ToggleStarClicked : Event
         data object ArchiveClicked : Event
         data object DeleteClicked : Event
+        data object DeleteConfirmed : Event
+        data object DeleteDismissed : Event
     }
 
     sealed interface Effect {

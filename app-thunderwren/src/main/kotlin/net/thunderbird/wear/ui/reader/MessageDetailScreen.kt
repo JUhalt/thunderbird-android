@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.material3.AlertDialog
+import androidx.wear.compose.material3.AlertDialogDefaults
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.FilledTonalButton
@@ -81,6 +83,14 @@ fun MessageDetailScreen(
         visible = state.showOpenOnPhoneConfirmation,
         onDismissRequest = { onEvent(Event.OpenOnPhoneConfirmationDismissed) },
         curvedText = { curvedText(text = openOnPhoneText, style = openOnPhoneTextStyle) },
+    )
+
+    AlertDialog(
+        visible = state.showDeleteConfirmation,
+        onDismissRequest = { onEvent(Event.DeleteDismissed) },
+        confirmButton = { AlertDialogDefaults.ConfirmButton(onClick = { onEvent(Event.DeleteConfirmed) }) },
+        icon = { Icon(painterResource(R.drawable.ic_delete), contentDescription = null) },
+        title = { Text(text = stringResource(R.string.delete_confirmation), textAlign = TextAlign.Center) },
     )
 }
 

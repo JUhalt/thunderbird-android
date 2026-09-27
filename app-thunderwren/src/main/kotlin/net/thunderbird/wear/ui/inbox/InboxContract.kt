@@ -7,6 +7,7 @@ import kotlinx.collections.immutable.persistentMapOf
 import net.thunderbird.core.ui.contract.mvi.UnidirectionalViewModel
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMessageSummary
+import net.thunderbird.wear.data.SwipeActions
 
 interface InboxContract {
 
@@ -16,7 +17,10 @@ interface InboxContract {
         data object Loading : State
 
         /** Nothing has been received from the phone yet. */
-        data class NotConnected(val isRefreshing: Boolean) : State
+        data class NotConnected(
+            val isRefreshing: Boolean,
+            @field:StringRes val errorMessage: Int? = null,
+        ) : State
 
         data class Content(
             val mailbox: WearMailbox,
@@ -29,6 +33,11 @@ interface InboxContract {
             val accounts: ImmutableMap<String, WearMailbox> = persistentMapOf(),
             val isMarkingAllRead: Boolean = false,
             @field:StringRes val errorMessage: Int? = null,
+            val swipeActions: SwipeActions = SwipeActions.LEFT_ARCHIVE,
+            val showPreviews: Boolean = true,
+            val confirmDelete: Boolean = false,
+            /** The message waiting for the user to confirm its deletion. */
+            val pendingDeleteMessageId: String? = null,
         ) : State
     }
 
@@ -37,6 +46,9 @@ interface InboxContract {
         data class MessageClicked(val messageId: String) : Event
         data class ArchiveClicked(val messageId: String) : Event
         data class DeleteClicked(val messageId: String) : Event
+        data object DeleteConfirmed : Event
+        data object DeleteDismissed : Event
+        data object SettingsClicked : Event
 
         /** The user confirmed marking everything in the mailbox with [mailboxId] as read. */
         data class MarkAllReadConfirmed(val mailboxId: String) : Event
@@ -47,6 +59,7 @@ interface InboxContract {
 
     sealed interface Effect {
         data object OpenMailboxes : Effect
+        data object OpenSettings : Effect
 
         /** Opens the message with [messageId] from the mailbox with [mailboxId]. */
         data class OpenMessage(val mailboxId: String, val messageId: String) : Effect

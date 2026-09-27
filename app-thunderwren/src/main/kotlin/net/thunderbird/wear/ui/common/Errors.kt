@@ -29,6 +29,8 @@ fun PhoneResult.errorMessage(@StringRes notAvailableMessage: Int = R.string.erro
         // An older Thunderbird on the phone doesn't know the request.
         WearErrorReason.UNSUPPORTED_REQUEST -> R.string.error_update_phone_app
 
+        WearErrorReason.COMPANION_DISABLED -> R.string.error_companion_disabled
+
         WearErrorReason.FAILED -> R.string.error_failed
     }
 }

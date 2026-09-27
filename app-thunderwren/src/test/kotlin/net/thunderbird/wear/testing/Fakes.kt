@@ -14,6 +14,8 @@ import net.thunderbird.wear.data.DemoModeStore
 import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.PhoneResult
 import net.thunderbird.wear.data.SelectedMailboxStore
+import net.thunderbird.wear.data.WatchSettings
+import net.thunderbird.wear.data.WatchSettingsStore
 
 class FakePhoneConnection(isDemo: Boolean = false) : PhoneConnection {
     val mailboxList = MutableStateFlow<WearMailboxList?>(null)
@@ -143,3 +145,11 @@ fun message(
 const val UNIFIED = WearCompanion.UNIFIED_MAILBOX_ID
 const val UNREAD = WearCompanion.UNREAD_MAILBOX_ID
 const val STARRED = WearCompanion.STARRED_MAILBOX_ID
+
+class FakeWatchSettingsStore(initial: WatchSettings = WatchSettings()) : WatchSettingsStore {
+    override val settings = MutableStateFlow(initial)
+
+    override fun update(transform: (WatchSettings) -> WatchSettings) {
+        settings.value = transform(settings.value)
+    }
+}

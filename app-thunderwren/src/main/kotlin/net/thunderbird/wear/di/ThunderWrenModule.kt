@@ -13,10 +13,13 @@ import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.SelectedMailboxStore
 import net.thunderbird.wear.data.SharedPreferencesDemoModeStore
 import net.thunderbird.wear.data.SharedPreferencesSelectedMailboxStore
+import net.thunderbird.wear.data.SharedPreferencesWatchSettingsStore
+import net.thunderbird.wear.data.WatchSettingsStore
 import net.thunderbird.wear.ui.inbox.InboxViewModel
 import net.thunderbird.wear.ui.mailbox.MailboxPickerViewModel
 import net.thunderbird.wear.ui.reader.MessageViewModel
 import net.thunderbird.wear.ui.reply.ReplyViewModel
+import net.thunderbird.wear.ui.settings.SettingsViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -34,13 +37,27 @@ val thunderWrenModule = module {
         )
     }
     single<SelectedMailboxStore> { SharedPreferencesSelectedMailboxStore(context = androidContext()) }
+    single<WatchSettingsStore> { SharedPreferencesWatchSettingsStore(context = androidContext()) }
 
-    viewModel { InboxViewModel(phoneConnection = get(), selectedMailboxStore = get(), demoModeStore = get()) }
+    viewModel {
+        InboxViewModel(
+            phoneConnection = get(),
+            selectedMailboxStore = get(),
+            demoModeStore = get(),
+            settingsStore = get(),
+        )
+    }
     viewModel { MailboxPickerViewModel(phoneConnection = get(), selectedMailboxStore = get()) }
     viewModel { (messageId: String, mailboxId: String) ->
-        MessageViewModel(messageId = messageId, mailboxId = mailboxId, phoneConnection = get())
+        MessageViewModel(
+            messageId = messageId,
+            mailboxId = mailboxId,
+            phoneConnection = get(),
+            settingsStore = get(),
+        )
     }
     viewModel { (messageId: String, mailboxId: String) ->
         ReplyViewModel(messageId = messageId, mailboxId = mailboxId, phoneConnection = get())
     }
+    viewModel { SettingsViewModel(settingsStore = get(), appVersion = BuildConfig.VERSION_NAME) }
 }
