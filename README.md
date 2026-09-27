@@ -11,7 +11,7 @@ ThunderWren brings your Thunderbird inbox to smartwatches running Wear OS 3+. Th
 It lives in a fork of the Thunderbird for Android repository. The design is proposed upstream in [RFC 0010](docs/engineering/rfcs/0010-wear-os-companion.md).
 
 > [!IMPORTANT]
-> **Project status: beta (0.1.0-beta4).** The phone and watch sides are implemented, covered by unit and UI tests, and working on paired phone and watch emulators in Android Studio. It hasn't been tried on a physical watch yet. The watch needs the Thunderbird phone app **built from this fork**; the Thunderbird app from the Play Store doesn't include the companion.
+> **Project status: beta (0.1.0-beta5).** The phone and watch sides are implemented, covered by unit and UI tests, and tested on a Pixel 10 Pro Fold with a Pixel Watch 5, as well as on emulators. The watch needs the Thunderbird phone app **built from this fork**; the Thunderbird app from the Play Store doesn't include the companion.
 >
 > **Built with AI.** Most of this code was written with an AI coding assistant (Claude Code), directed and tested by the fork's maintainer. It follows the repository's [`AGENTS.md`](AGENTS.md) rules for AI-assisted contributions.
 >
@@ -38,7 +38,8 @@ It lives in a fork of the Thunderbird for Android repository. The design is prop
 | Inbox on the watch                           | ✅                 | The newest 25 messages with sender, subject, preview, date, and unread/starred state.                                                                                                                                                              |
 | All inboxes, Unread, Starred, or one account | ✅                 | Tap the mailbox name at the top of the inbox to switch. "Unread" and "Starred" filter all inboxes. The watch remembers your choice.                                                                                                                |
 | Account monograms                            | ✅                 | In mixed views, each message shows its account's monogram and color, as in Thunderbird.                                                                                                                                                            |
-| Swipe to archive or delete                   | ✅                 | Swipe a message to the left. A full swipe archives it. Screen readers get the same actions.                                                                                                                                                        |
+| Swipe to archive or delete                   | ✅                 | Swipe a message to the left: a full swipe archives it, and Delete is next to Archive. In the watch settings, choose delete as the full swipe, or swipe left for one and right for the other. Screen readers get the same actions.                  |
+| Watch settings                               | ✅                 | Swipe actions, confirm before deleting, mark as read when opened, and message previews. Open them from the end of the inbox.                                                                                                                       |
 | Mark read/unread, star, archive, delete      | ✅                 | Sent to the phone, which applies them like the phone app does. Opening a message marks it as read.                                                                                                                                                 |
 | Mark all as read                             | ✅                 | At the end of any mailbox, after a confirmation.                                                                                                                                                                                                   |
 | Reply from the watch                         | ✅                 | Speak, type, or pick a ready-made reply, review it, and send. Thunderbird on the phone sends it from the right account, with your signature and quoting settings, and marks the message as answered. Encrypted messages are answered on the phone. |
@@ -107,7 +108,7 @@ The phone app and the watch app must have the **same application ID and signing 
 
 Daily and Beta builds pair the same way: install `fullDaily` or `fullBeta` on the phone and the matching `daily` or `beta` build of `app-thunderwren` on the watch. Those need Thunderbird's signing keys, so locally only debug builds pair.
 
-The companion and the notification quick reply are behind the feature flags `wear_companion` and `wear_notification_quick_reply`. They are on in debug builds and off elsewhere for now. In debug builds, toggle them in Thunderbird's secret debug settings.
+The companion and the notification quick reply are behind the feature flags `wear_companion` and `wear_notification_quick_reply`. They are on in Debug and Daily builds and off in Beta and Release for now. In debug builds, toggle them in Thunderbird's secret debug settings. While `wear_companion` is off, the phone removes its data from the watch the next time the watch asks for anything, and the watch says the companion is turned off.
 
 Or from the command line, with both emulators running:
 
@@ -151,7 +152,7 @@ Or from the command line, with both emulators running:
 - [x] Swipe to archive or delete, Unread and Starred views, mark all as read, account monograms, and a richer Tile.
 - [x] Feature flags for the phone-side parts, Daily and Beta watch builds, and screens following Thunderbird's MVI pattern.
 - [x] Tested on paired phone and watch emulators in Android Studio.
-- [ ] Verify on a physical phone and watch, then fix what that turns up.
+- [x] Tested on a Pixel 10 Pro Fold and a Pixel Watch 5, and fixed what that turned up: watch settings, swipe choices, smoother scrolling, and clearing the watch when the companion is turned off.
 - [ ] Present on [thunderbird/thunderbird-android#6969](https://github.com/thunderbird/thunderbird-android/issues/6969), the open Wear OS request.
 
 For architectural guidelines, see [`docs/architecture/`](docs/architecture/README.md) and [`AGENTS.md`](AGENTS.md). The original upstream README is preserved in [`README.upstream.md`](README.upstream.md).

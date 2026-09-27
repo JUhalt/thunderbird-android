@@ -78,6 +78,10 @@ can ignore data it doesn't understand.
   review step), and an "open on phone" action. Messages can be swiped to archive or delete them, and a mailbox can be
   marked as read after a confirmation. Account monograms show which account a message belongs to. The selected
   mailbox is remembered on the watch.
+- The watch has a few settings of its own, stored on the watch: what swiping does (a full swipe to the left archives
+  or deletes, or swiping left and right each do one), confirming deletions, marking messages as read when opened, and
+  showing previews. Swiping in both directions uses Wear Compose's bidirectional `SwipeToReveal`, which leaves the
+  screen's left edge to the system's swipe to go back.
 - The Tile shows the unified inbox's unread count and the newest unread messages, which open when tapped. The
   complication shows the unread count. A `WearableListenerService` on the watch refreshes them when the phone
   publishes, even when the app isn't open.
@@ -93,15 +97,17 @@ can ignore data it doesn't understand.
 ### Rollout
 
 Both phone-side parts are behind feature flags in `thunderbird_mobile_featureflag.catalog.json`, off by default and on
-in Thunderbird debug builds. In debug builds, they can be toggled in the secret debug settings.
+in Thunderbird Debug and Daily builds. In debug builds, they can be toggled in the secret debug settings.
 
-- `wear_companion`: publishing to the watch and answering its requests. While it is off, the phone publishes nothing
-  and answers every request with `UNSUPPORTED_REQUEST`.
+- `wear_companion`: publishing to the watch and answering its requests. While it is off, the phone publishes nothing.
+  When a watch sends a request, the phone deletes what it published earlier and answers `COMPANION_DISABLED`, so
+  turning the companion off also takes the mail off the watch.
 - `wear_notification_quick_reply`: sending the Reply action of Wear notifications with `QuickReplySender`. While it is
   off, that action opens the compose screen on the phone, as before.
 
 This allows turning the companion on in Daily first, then Beta, then Release, and turning it off again without an
-update if something goes wrong.
+update if something goes wrong. Whether Daily should have it on from the start is for the maintainers to decide; this
+proposal turns it on there so testers can try it.
 
 ## Alternatives Considered
 
