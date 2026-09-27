@@ -19,8 +19,14 @@ internal class FakeWearDataLayer(var isPaired: Boolean = true) : WearDataLayer {
 
     override suspend fun isWatchPaired(): Boolean = isPaired
 
+    var clearCount = 0
+
     override suspend fun publish(items: Map<String, ByteArray>) {
         published += items
+    }
+
+    override suspend fun clear() {
+        clearCount++
     }
 }
 
@@ -82,8 +88,15 @@ internal class FakeWearInboxPublisher(var publishResult: Boolean = true) : WearI
         return publishResult
     }
 
+    var unpublishCount = 0
+
     override fun requestPublish() {
         requestPublishCount++
+    }
+
+    override suspend fun unpublish(): Boolean {
+        unpublishCount++
+        return true
     }
 }
 
@@ -110,6 +123,17 @@ internal class FakeWearReplySender(var response: WearResponse = WearResponse.Ok)
 
     override fun reply(reference: MessageReference, text: String): WearResponse {
         replies += reference to text
+        return response
+    }
+}
+
+internal class FakeWearMessageBodyLoader(
+    var response: WearResponse = WearResponse.Body(text = "Full text", isComplete = true),
+) : WearMessageBodyLoader {
+    val loaded = mutableListOf<MessageReference>()
+
+    override fun load(reference: MessageReference): WearResponse {
+        loaded += reference
         return response
     }
 }

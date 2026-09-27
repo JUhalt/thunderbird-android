@@ -58,10 +58,15 @@ can ignore data it doesn't understand.
 - **Publishing**: The phone republishes (debounced) when the message list changes and a watch is paired. It deletes the
   items of accounts that no longer exist. The Data Layer keeps the last published items on the watch.
 - **Requests**: The watch sends `MessageClient.sendRequest` to `/thunderwren/v1/request` with a `WearRequest`:
-  `Refresh`, `PerformAction(messageId, action)`, `MarkAllRead(mailboxId)`, or `Reply(messageId, text)`. The phone
-  answers with a `WearResponse`. Actions update the local store through `MessagingController`, and the resulting
+  `Refresh`, `PerformAction(messageId, action)`, `MarkAllRead(mailboxId)`, `Reply(messageId, text)`, or
+  `LoadBody(messageId)`. The phone answers with a `WearResponse`. Actions update the local store through `MessagingController`, and the resulting
   message-list change republishes the snapshots. A phone that doesn't know a request answers `UNSUPPORTED_REQUEST`,
   which the watch explains as "update Thunderbird on your phone".
+- **Reading**: Snapshots only carry a short preview. When a message is opened on the watch, it asks for the whole text
+  with `LoadBody`. The phone converts the message to plain text as for quoting in replies, and answers with at most
+  20,000 characters. The answer says when the text is incomplete, because it was shortened or the phone has only
+  downloaded part of the message; the watch then points to the phone for the rest. Encrypted messages are refused.
+  The text goes over `MessageClient` only, so it isn't stored in the Data Layer.
 - **Replies**: `QuickReplySender` in `legacy:core` builds the reply the way the compose screen would: to the sender or
   Reply-To address, from the identity the message was sent to, with the account's quoting, signature, Bcc, and read
   receipt settings, threaded with `In-Reply-To` and `References`. It puts the reply in the Outbox and marks the
@@ -78,6 +83,10 @@ can ignore data it doesn't understand.
   review step), and an "open on phone" action. Messages can be swiped to archive or delete them, and a mailbox can be
   marked as read after a confirmation. Account monograms show which account a message belongs to. The selected
   mailbox is remembered on the watch.
+- The watch has a few settings of its own, stored on the watch: what swiping does (a full swipe to the left archives
+  or deletes, or swiping left and right each do one), confirming deletions, marking messages as read when opened, and
+  showing previews. Swiping in both directions uses Wear Compose's bidirectional `SwipeToReveal`, which leaves the
+  screen's left edge to the system's swipe to go back.
 - The Tile shows the unified inbox's unread count and the newest unread messages, which open when tapped. The
   complication shows the unread count. A `WearableListenerService` on the watch refreshes them when the phone
   publishes, even when the app isn't open.
@@ -93,15 +102,17 @@ can ignore data it doesn't understand.
 ### Rollout
 
 Both phone-side parts are behind feature flags in `thunderbird_mobile_featureflag.catalog.json`, off by default and on
-in Thunderbird debug builds. In debug builds, they can be toggled in the secret debug settings.
+in Thunderbird Debug and Daily builds. In debug builds, they can be toggled in the secret debug settings.
 
-- `wear_companion`: publishing to the watch and answering its requests. While it is off, the phone publishes nothing
-  and answers every request with `UNSUPPORTED_REQUEST`.
+- `wear_companion`: publishing to the watch and answering its requests. While it is off, the phone publishes nothing.
+  When a watch sends a request, the phone deletes what it published earlier and answers `COMPANION_DISABLED`, so
+  turning the companion off also takes the mail off the watch.
 - `wear_notification_quick_reply`: sending the Reply action of Wear notifications with `QuickReplySender`. While it is
   off, that action opens the compose screen on the phone, as before.
 
 This allows turning the companion on in Daily first, then Beta, then Release, and turning it off again without an
-update if something goes wrong.
+update if something goes wrong. Whether Daily should have it on from the start is for the maintainers to decide; this
+proposal turns it on there so testers can try it.
 
 ## Alternatives Considered
 
@@ -122,7 +133,8 @@ update if something goes wrong.
   flavor. F-Droid (`foss`) builds get the no-op module. In practice, Wear OS itself also requires Play Services on
   the phone.
 - **Privacy**: Snapshots contain sender names, subjects, and previews. The Data Layer encrypts traffic between paired
-  devices, and data stays within the user's Google account. The snapshot is capped in size and has no message bodies.
+  devices, and data stays within the user's Google account. The snapshot is capped in size and has no message bodies; the whole text of one
+  message is only sent when it is opened on the watch, and isn't kept there.
   The mailbox list includes account email addresses. The Tile and complication can be seen by people nearby, like a
   phone's lock screen, so they follow Thunderbird's "lock screen notifications" setting, which the phone publishes as
   the glance visibility: senders and subjects, senders only, the unread count only (the default), or nothing. Inside

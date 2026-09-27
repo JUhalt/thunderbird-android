@@ -16,18 +16,26 @@ internal class WearRequestHandler(
     private val messageActions: WearMessageActions,
     private val mailboxActions: WearMailboxActions,
     private val replySender: WearReplySender,
+    private val bodyLoader: WearMessageBodyLoader,
     private val feature: WearCompanionFeature,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
 
     suspend fun handle(requestData: ByteArray): ByteArray {
-        val request = WearProtocolCodec.decodeRequest(requestData).takeIf { feature.isEnabled() }
-        val response = when (request) {
+        if (!feature.isEnabled()) {
+            // The watch still shows what was published before the companion was turned off. Remove it, so turning
+            // the companion off also takes the mail off the watch.
+            publisher.unpublish()
+            return WearProtocolCodec.encodeResponse(WearResponse.Error(WearErrorReason.COMPANION_DISABLED))
+        }
+
+        val response = when (val request = WearProtocolCodec.decodeRequest(requestData)) {
             null -> WearResponse.Error(WearErrorReason.UNSUPPORTED_REQUEST)
             WearRequest.Refresh -> refresh()
             is WearRequest.PerformAction -> performAction(request)
             is WearRequest.Reply -> reply(request)
             is WearRequest.MarkAllRead -> markAllRead(request)
+            is WearRequest.LoadBody -> loadBody(request)
         }
 
         return WearProtocolCodec.encodeResponse(response)
@@ -61,6 +69,14 @@ internal class WearRequestHandler(
 
     private suspend fun markAllRead(request: WearRequest.MarkAllRead): WearResponse {
         return republishIfOk { mailboxActions.markAllRead(request.mailboxId) }
+    }
+
+    private suspend fun loadBody(request: WearRequest.LoadBody): WearResponse {
+        val reference = MessageReference.parse(request.messageId)
+            ?: return WearResponse.Error(WearErrorReason.MESSAGE_NOT_FOUND)
+
+        // Reading changes nothing, so there's nothing to republish.
+        return withContext(ioDispatcher) { bodyLoader.load(reference) }
     }
 
     /** Runs [block] off the main thread and, if it succeeded, republishes so the watch sees the result. */

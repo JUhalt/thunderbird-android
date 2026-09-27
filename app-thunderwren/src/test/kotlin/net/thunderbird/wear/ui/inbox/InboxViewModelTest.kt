@@ -2,8 +2,10 @@ package net.thunderbird.wear.ui.inbox
 
 import app.cash.turbine.test
 import assertk.assertThat
+import assertk.assertions.contains
 import assertk.assertions.containsExactly
 import assertk.assertions.containsExactlyInAnyOrder
+import assertk.assertions.doesNotContain
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -22,9 +24,11 @@ import net.thunderbird.feature.wear.companion.WearErrorReason
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.wear.R
 import net.thunderbird.wear.data.PhoneResult
+import net.thunderbird.wear.data.SwipeActions
 import net.thunderbird.wear.testing.FakeDemoModeStore
 import net.thunderbird.wear.testing.FakePhoneConnection
 import net.thunderbird.wear.testing.FakeSelectedMailboxStore
+import net.thunderbird.wear.testing.FakeWatchSettingsStore
 import net.thunderbird.wear.testing.UNIFIED
 import net.thunderbird.wear.testing.UNREAD
 import net.thunderbird.wear.testing.mailbox
@@ -39,6 +43,7 @@ class InboxViewModelTest {
     private val phone = FakePhoneConnection()
     private val selectedMailbox = FakeSelectedMailboxStore()
     private val demoMode = FakeDemoModeStore()
+    private val settings = FakeWatchSettingsStore()
 
     @BeforeTest
     fun setUp() = mainDispatcher.setUp()
@@ -236,6 +241,79 @@ class InboxViewModelTest {
         }
     }
 
+    @Test
+    fun `tells why refreshing failed when the companion is turned off on the phone`() = runTest {
+        phone.refreshResult = PhoneResult.Failed(WearErrorReason.COMPANION_DISABLED)
+        val testSubject = createTestSubject()
+
+        val state = stateOf(testSubject) as State.NotConnected
+
+        assertThat(state.errorMessage).isEqualTo(R.string.error_companion_disabled)
+    }
+
+    @Test
+    fun `shows the swipe and preview settings`() = runTest {
+        settings.update {
+            it.copy(swipeActions = SwipeActions.LEFT_DELETE_RIGHT_ARCHIVE, showPreviews = false)
+        }
+        publishTwoAccounts()
+        val testSubject = createTestSubject()
+
+        val state = stateOf(testSubject) as State.Content
+
+        assertThat(state.swipeActions).isEqualTo(SwipeActions.LEFT_DELETE_RIGHT_ARCHIVE)
+        assertThat(state.showPreviews).isFalse()
+    }
+
+    @Test
+    fun `deleting waits for the confirmation when that's turned on`() = runTest {
+        settings.update { it.copy(confirmDelete = true) }
+        publishTwoAccounts()
+        val testSubject = createTestSubject()
+        stateOf(testSubject)
+
+        testSubject.event(Event.DeleteClicked("w1"))
+        val asking = stateOf(testSubject) as State.Content
+
+        assertThat(asking.pendingDeleteMessageId).isEqualTo("w1")
+        assertThat(phone.performedActions).isEmpty()
+
+        testSubject.event(Event.DeleteConfirmed)
+        val deleted = stateOf(testSubject) as State.Content
+
+        assertThat(deleted.pendingDeleteMessageId).isNull()
+        assertThat(phone.performedActions).containsExactly("w1" to WearMessageAction.DELETE)
+        assertThat(deleted.messages.map { it.id }).doesNotContain("w1")
+    }
+
+    @Test
+    fun `dismissing the delete confirmation keeps the message`() = runTest {
+        settings.update { it.copy(confirmDelete = true) }
+        publishTwoAccounts()
+        val testSubject = createTestSubject()
+        stateOf(testSubject)
+
+        testSubject.event(Event.DeleteClicked("w1"))
+        testSubject.event(Event.DeleteDismissed)
+        val state = stateOf(testSubject) as State.Content
+
+        assertThat(state.pendingDeleteMessageId).isNull()
+        assertThat(phone.performedActions).isEmpty()
+        assertThat(state.messages.map { it.id }).contains("w1")
+    }
+
+    @Test
+    fun `settings button opens the settings`() = runTest {
+        publishTwoAccounts()
+        val testSubject = createTestSubject()
+
+        testSubject.effect.test {
+            testSubject.event(Event.SettingsClicked)
+
+            assertThat(awaitItem()).isEqualTo(Effect.OpenSettings)
+        }
+    }
+
     private fun publishTwoAccounts() {
         phone.publish(
             mailboxes = listOf(
@@ -257,6 +335,7 @@ class InboxViewModelTest {
         phoneConnection = phone,
         selectedMailboxStore = selectedMailbox,
         demoModeStore = demoMode,
+        settingsStore = settings,
     )
 
     private fun TestScope.stateOf(testSubject: InboxViewModel): State {

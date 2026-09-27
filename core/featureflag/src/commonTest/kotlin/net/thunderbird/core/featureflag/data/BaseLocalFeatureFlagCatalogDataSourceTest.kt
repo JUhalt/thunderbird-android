@@ -103,6 +103,8 @@ internal abstract class BaseLocalFeatureFlagCatalogDataSourceTest {
                     key("daily").containsOnly(
                         "display_in_app_notifications" to true,
                         "message_view_action_export_eml" to true,
+                        "wear_companion" to true,
+                        "wear_notification_quick_reply" to true,
                     )
                     key("beta").containsOnly("display_in_app_notifications" to true)
                     key("release").isEmpty()
@@ -168,7 +170,7 @@ internal abstract class BaseLocalFeatureFlagCatalogDataSourceTest {
     )
 
     private companion object {
-        const val CATALOG_VERSION = "2026-09-25.1"
+        const val CATALOG_VERSION = "2026-09-27.1"
         const val CATALOG_FLAG_COUNT = 14
         const val MALFORMED_CATALOG_ERROR_MESSAGE =
             "Unexpected JSON token at offset 42: Expected quotation mark '\"', but had '}' instead"

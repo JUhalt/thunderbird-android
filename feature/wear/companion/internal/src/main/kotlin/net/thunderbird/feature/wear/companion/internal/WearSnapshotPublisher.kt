@@ -30,6 +30,9 @@ internal interface WearInboxPublisher {
 
     /** Publishes a snapshot soon, coalescing with other requests, if a watch is paired. */
     fun requestPublish()
+
+    /** Removes the published mailboxes from the watch. Returns `false` if that failed. */
+    suspend fun unpublish(): Boolean
 }
 
 /**
@@ -85,6 +88,17 @@ internal class WearSnapshotPublisher(
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
             // Play Services can fail in many ways (missing, outdated, no Wear OS app); never crash the phone app.
             logger.warn(TAG, e) { "Couldn't publish the inbox to the watch" }
+            false
+        }
+    }
+
+    override suspend fun unpublish(): Boolean {
+        return try {
+            dataLayer.clear()
+            logger.debug(TAG) { "Removed the published mailboxes from the watch" }
+            true
+        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+            logger.warn(TAG, e) { "Couldn't remove the published mailboxes from the watch" }
             false
         }
     }

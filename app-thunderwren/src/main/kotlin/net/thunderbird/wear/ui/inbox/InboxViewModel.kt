@@ -26,6 +26,8 @@ import net.thunderbird.wear.data.DemoModeStore
 import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.PhoneResult
 import net.thunderbird.wear.data.SelectedMailboxStore
+import net.thunderbird.wear.data.WatchSettings
+import net.thunderbird.wear.data.WatchSettingsStore
 import net.thunderbird.wear.ui.common.errorMessage
 import net.thunderbird.wear.ui.inbox.InboxContract.Effect
 import net.thunderbird.wear.ui.inbox.InboxContract.Event
@@ -36,6 +38,7 @@ class InboxViewModel(
     private val phoneConnection: PhoneConnection,
     selectedMailboxStore: SelectedMailboxStore,
     private val demoModeStore: DemoModeStore,
+    private val settingsStore: WatchSettingsStore,
 ) : BaseViewModel<State, Event, Effect>(initialState = State.Loading),
     InboxContract.ViewModel {
 
@@ -62,7 +65,14 @@ class InboxViewModel(
 
     init {
         viewModelScope.launch {
-            combine(content, isRefreshing, phoneConnection.isDemo, actionState, ::toState).collect { newState ->
+            combine(
+                content,
+                isRefreshing,
+                phoneConnection.isDemo,
+                actionState,
+                settingsStore.settings,
+                ::toState,
+            ).collect { newState ->
                 updateState { newState }
             }
         }
@@ -85,7 +95,17 @@ class InboxViewModel(
                 )
             }
 
-            is Event.DeleteClicked -> removeMessage(event.messageId, WearMessageAction.DELETE)
+            is Event.DeleteClicked -> delete(event.messageId)
+
+            Event.DeleteConfirmed -> {
+                val messageId = actionState.value.pendingDeleteMessageId ?: return
+                actionState.update { it.copy(pendingDeleteMessageId = null) }
+                removeMessage(messageId, WearMessageAction.DELETE)
+            }
+
+            Event.DeleteDismissed -> actionState.update { it.copy(pendingDeleteMessageId = null) }
+
+            Event.SettingsClicked -> emitEffect(Effect.OpenSettings)
 
             is Event.MarkAllReadConfirmed -> markAllRead(event.mailboxId)
 
@@ -103,9 +123,10 @@ class InboxViewModel(
         isRefreshing: Boolean,
         isDemo: Boolean,
         actions: ActionState,
+        settings: WatchSettings,
     ): State {
         return if (content == null) {
-            State.NotConnected(isRefreshing = isRefreshing)
+            State.NotConnected(isRefreshing = isRefreshing, errorMessage = actions.errorMessage)
         } else {
             State.Content(
                 mailbox = content.mailbox,
@@ -116,6 +137,10 @@ class InboxViewModel(
                 accounts = content.accounts,
                 isMarkingAllRead = actions.isMarkingAllRead,
                 errorMessage = actions.errorMessage,
+                swipeActions = settings.swipeActions,
+                showPreviews = settings.showPreviews,
+                confirmDelete = settings.confirmDelete,
+                pendingDeleteMessageId = actions.pendingDeleteMessageId,
             )
         }
     }
@@ -126,7 +151,8 @@ class InboxViewModel(
         viewModelScope.launch {
             isRefreshing.value = true
             try {
-                phoneConnection.refresh()
+                val result = phoneConnection.refresh()
+                actionState.update { it.copy(errorMessage = result.errorMessage()) }
             } finally {
                 isRefreshing.value = false
             }
@@ -136,6 +162,14 @@ class InboxViewModel(
     private fun openMessage(messageId: String) {
         val mailboxId = (state.value as? State.Content)?.mailbox?.id ?: WearCompanion.UNIFIED_MAILBOX_ID
         emitEffect(Effect.OpenMessage(mailboxId = mailboxId, messageId = messageId))
+    }
+
+    private fun delete(messageId: String) {
+        if (settingsStore.settings.value.confirmDelete) {
+            actionState.update { it.copy(pendingDeleteMessageId = messageId) }
+        } else {
+            removeMessage(messageId, WearMessageAction.DELETE)
+        }
     }
 
     private fun markAllRead(mailboxId: String) {
@@ -187,6 +221,7 @@ class InboxViewModel(
         val hiddenMessageIds: Set<String> = emptySet(),
         val isMarkingAllRead: Boolean = false,
         @field:StringRes val errorMessage: Int? = null,
+        val pendingDeleteMessageId: String? = null,
     )
 }
 

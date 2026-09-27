@@ -6,6 +6,7 @@ import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isTrue
 import kotlin.test.Test
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.flow.Flow
@@ -97,6 +98,16 @@ class WearSnapshotPublisherTest {
 
         assertThat(result).isFalse()
         assertThat(dataLayer.published).isEmpty()
+    }
+
+    @Test
+    fun `unpublish removes what was published`() = runTest {
+        val testSubject = createTestSubject()
+
+        val result = testSubject.unpublish()
+
+        assertThat(result).isTrue()
+        assertThat(dataLayer.clearCount).isEqualTo(1)
     }
 
     @Test

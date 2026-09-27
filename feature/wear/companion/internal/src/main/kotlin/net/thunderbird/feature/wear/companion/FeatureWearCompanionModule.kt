@@ -5,6 +5,7 @@ import net.thunderbird.core.featureflag.FeatureFlagProvider
 import net.thunderbird.core.featureflag.keys.GeneratedFeatureFlagKey
 import net.thunderbird.core.preference.GeneralSettingsManager
 import net.thunderbird.feature.wear.companion.internal.InboxPublicationSource
+import net.thunderbird.feature.wear.companion.internal.LocalStoreWearMessageBodyLoader
 import net.thunderbird.feature.wear.companion.internal.MessagingControllerWearMailboxActions
 import net.thunderbird.feature.wear.companion.internal.MessagingControllerWearMessageActions
 import net.thunderbird.feature.wear.companion.internal.PlayServicesWearDataLayer
@@ -15,6 +16,7 @@ import net.thunderbird.feature.wear.companion.internal.WearDataLayer
 import net.thunderbird.feature.wear.companion.internal.WearInboxPublisher
 import net.thunderbird.feature.wear.companion.internal.WearMailboxActions
 import net.thunderbird.feature.wear.companion.internal.WearMessageActions
+import net.thunderbird.feature.wear.companion.internal.WearMessageBodyLoader
 import net.thunderbird.feature.wear.companion.internal.WearPublicationSource
 import net.thunderbird.feature.wear.companion.internal.WearReplySender
 import net.thunderbird.feature.wear.companion.internal.WearRequestHandler
@@ -68,12 +70,16 @@ val featureWearCompanionModule = module {
         )
     }
     factory<WearReplySender> { QuickReplyWearReplySender(quickReplySender = get()) }
+    factory<WearMessageBodyLoader> {
+        LocalStoreWearMessageBodyLoader(accountManager = get(), messagingController = get(), logger = get())
+    }
     factory {
         WearRequestHandler(
             publisher = get(),
             messageActions = get(),
             mailboxActions = get(),
             replySender = get(),
+            bodyLoader = get(),
             feature = get(),
         )
     }

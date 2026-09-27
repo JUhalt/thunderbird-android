@@ -33,6 +33,8 @@ import net.thunderbird.wear.ui.reply.ReplyContract
 import net.thunderbird.wear.ui.reply.ReplyInput
 import net.thunderbird.wear.ui.reply.ReplyScreen
 import net.thunderbird.wear.ui.reply.ReplyViewModel
+import net.thunderbird.wear.ui.settings.SettingsScreen
+import net.thunderbird.wear.ui.settings.SettingsViewModel
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -56,6 +58,7 @@ fun ThunderWrenNavigation(
     ) {
         inboxDestination(navController)
         mailboxesDestination(navController)
+        settingsDestination()
         messageDetailDestination(navController)
         replyDestination(navController)
     }
@@ -78,6 +81,8 @@ private fun NavGraphBuilder.inboxDestination(navController: NavHostController) {
             when (effect) {
                 InboxContract.Effect.OpenMailboxes -> navController.navigate(ThunderWrenRoutes.MAILBOXES)
 
+                InboxContract.Effect.OpenSettings -> navController.navigate(ThunderWrenRoutes.SETTINGS)
+
                 is InboxContract.Effect.OpenMessage -> {
                     navController.navigate(ThunderWrenRoutes.messageDetail(effect.mailboxId, effect.messageId))
                 }
@@ -98,6 +103,15 @@ private fun NavGraphBuilder.mailboxesDestination(navController: NavHostControlle
         }
 
         MailboxPickerScreen(state = state.value, onEvent = dispatch)
+    }
+}
+
+private fun NavGraphBuilder.settingsDestination() {
+    composable(ThunderWrenRoutes.SETTINGS) {
+        val viewModel: SettingsViewModel = koinViewModel()
+        val (state, dispatch) = viewModel.observe { }
+
+        SettingsScreen(state = state.value, onEvent = dispatch)
     }
 }
 

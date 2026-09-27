@@ -5,6 +5,7 @@ import android.net.Uri
 object ThunderWrenRoutes {
     const val INBOX = "inbox"
     const val MAILBOXES = "mailboxes"
+    const val SETTINGS = "settings"
     const val MESSAGE_DETAIL = "message/{mailboxId}/{messageId}"
     const val REPLY = "reply/{mailboxId}/{messageId}"
 

@@ -10,8 +10,10 @@ import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
+import net.thunderbird.wear.data.BodyResult
 import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.PhoneResult
+import net.thunderbird.wear.data.WatchSettingsStore
 import net.thunderbird.wear.data.message
 import net.thunderbird.wear.ui.common.errorMessage
 import net.thunderbird.wear.ui.reader.MessageContract.Effect
@@ -23,10 +25,12 @@ class MessageViewModel(
     private val messageId: String,
     private val mailboxId: String,
     private val phoneConnection: PhoneConnection,
+    private val settingsStore: WatchSettingsStore,
 ) : BaseViewModel<State, Event, Effect>(initialState = State()),
     MessageContract.ViewModel {
 
     private var markedAsRead = false
+    private var bodyRequested = false
 
     init {
         viewModelScope.launch {
@@ -34,7 +38,10 @@ class MessageViewModel(
                 message to message?.let { mailboxes?.accountToLabel(it) }
             }.collect { (message, account) ->
                 updateState { it.copy(isLoading = false, message = message, account = account) }
-                if (message != null) markAsReadOnce(message)
+                if (message != null) {
+                    markAsReadOnce(message)
+                    loadBodyOnce(message)
+                }
             }
         }
     }
@@ -59,7 +66,20 @@ class MessageViewModel(
                 )
             }
 
-            Event.DeleteClicked -> perform(WearMessageAction.DELETE, closeOnSuccess = true)
+            Event.DeleteClicked -> {
+                if (settingsStore.settings.value.confirmDelete) {
+                    updateState { it.copy(showDeleteConfirmation = true) }
+                } else {
+                    perform(WearMessageAction.DELETE, closeOnSuccess = true)
+                }
+            }
+
+            Event.DeleteConfirmed -> {
+                updateState { it.copy(showDeleteConfirmation = false) }
+                perform(WearMessageAction.DELETE, closeOnSuccess = true)
+            }
+
+            Event.DeleteDismissed -> updateState { it.copy(showDeleteConfirmation = false) }
         }
     }
 
@@ -85,13 +105,36 @@ class MessageViewModel(
         }
     }
 
-    /** Opening a message reads it, as on the phone. */
+    /** Opening a message reads it, as on the phone, unless that's turned off in the settings. */
     private fun markAsReadOnce(message: WearMessageSummary) {
         if (markedAsRead) return
         markedAsRead = true
+        if (!settingsStore.settings.value.markAsReadWhenOpened) return
 
         if (!message.isRead) {
             viewModelScope.launch { phoneConnection.performAction(messageId, WearMessageAction.MARK_READ) }
+        }
+    }
+
+    /** The inbox only has a preview, so ask the phone for the whole text. Encrypted messages are read on the phone. */
+    private fun loadBodyOnce(message: WearMessageSummary) {
+        if (bodyRequested || message.isEncrypted) return
+        bodyRequested = true
+
+        viewModelScope.launch {
+            updateState { it.copy(isLoadingBody = true) }
+            when (val result = phoneConnection.loadBody(messageId)) {
+                is BodyResult.Loaded -> updateState {
+                    it.copy(
+                        isLoadingBody = false,
+                        // An empty text, for example of a message without a text part, adds nothing to the preview.
+                        body = result.text.takeIf(String::isNotBlank),
+                        isBodyIncomplete = !result.isComplete,
+                    )
+                }
+
+                is BodyResult.Failed -> updateState { it.copy(isLoadingBody = false, isBodyUnavailable = true) }
+            }
         }
     }
 

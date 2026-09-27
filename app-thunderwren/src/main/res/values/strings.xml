@@ -32,6 +32,25 @@
 
     <string name="demo_start">Try the demo</string>
     <string name="demo_exit">Exit demo</string>
+
+    <!-- Settings on the watch -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_swipe_actions">Swipe actions</string>
+    <string name="settings_swipe_left_archive">Swipe left to archive or delete</string>
+    <string name="settings_swipe_left_delete">Swipe left to delete or archive</string>
+    <string name="settings_swipe_left_archive_right_delete">Swipe left to archive, right to delete</string>
+    <string name="settings_swipe_left_delete_right_archive">Swipe left to delete, right to archive</string>
+    <string name="settings_swipe_back_from_edge">To go back, swipe from the left edge</string>
+    <string name="settings_messages">Messages</string>
+    <string name="settings_confirm_delete">Confirm before deleting</string>
+    <string name="settings_mark_as_read_when_opened">Mark as read when opened</string>
+    <string name="settings_show_previews">Show message previews</string>
+    <!-- %s is the version, for example "0.1.0-beta5" -->
+    <string name="settings_version">ThunderWren %s</string>
+    <string name="delete_confirmation">Delete this message?</string>
+    <string name="message_loading_full">Loading the whole message…</string>
+    <string name="message_rest_on_phone">The rest of this message is on your phone.</string>
+    <string name="message_full_unavailable">Couldn\'t load the whole message, so only its beginning is shown.</string>
     <!-- Secondary label of the mailbox button in demo mode. %1$s is the unread count text, e.g. "3 unread". -->
     <string name="demo_label">Demo · %1$s</string>
     <string name="demo_account_work">Work</string>
@@ -89,6 +108,7 @@
     <string name="error_failed">That didn\'t work. Try again on your phone.</string>
     <string name="error_not_available_in_demo">Not available in the demo.</string>
     <string name="error_reply_unavailable">You can\'t reply to this message from your watch. Open it on your phone.</string>
+    <string name="error_companion_disabled">The watch companion is turned off in Thunderbird on your phone.</string>
     <string name="error_update_phone_app">Update Thunderbird on your phone to do this from your watch.</string>
     <string name="error_mailbox_not_found">This mailbox no longer exists.</string>
 
