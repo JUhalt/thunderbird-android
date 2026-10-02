@@ -7,7 +7,7 @@ import kotlinx.collections.immutable.persistentMapOf
 import net.thunderbird.core.ui.contract.mvi.UnidirectionalViewModel
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMessageSummary
-import net.thunderbird.wear.data.SwipeActions
+import net.thunderbird.wear.data.MessageSwipeAction
 
 interface InboxContract {
 
@@ -33,7 +33,9 @@ interface InboxContract {
             val accounts: ImmutableMap<String, WearMailbox> = persistentMapOf(),
             val isMarkingAllRead: Boolean = false,
             @field:StringRes val errorMessage: Int? = null,
-            val swipeActions: SwipeActions = SwipeActions.LEFT_ARCHIVE,
+            val swipeLeft: MessageSwipeAction = MessageSwipeAction.ARCHIVE,
+            /** What swiping to the right does, or `null` if it goes back. */
+            val swipeRight: MessageSwipeAction? = null,
             val showPreviews: Boolean = true,
             val confirmDelete: Boolean = false,
             /** The message waiting for the user to confirm its deletion. */

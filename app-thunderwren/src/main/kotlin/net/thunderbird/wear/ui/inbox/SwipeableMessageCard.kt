@@ -27,7 +27,7 @@ import androidx.wear.compose.material3.rememberRevealState
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import net.thunderbird.wear.R
-import net.thunderbird.wear.data.SwipeActions
+import net.thunderbird.wear.data.MessageSwipeAction
 
 /** What a swipe does to a message. */
 private class SwipeAction(
@@ -38,14 +38,16 @@ private class SwipeAction(
 )
 
 /**
- * A message that can be swiped to archive or delete it, as chosen in the settings: to the left only, with the second
- * action next to the first, or to the left and to the right, with one action each.
+ * A message that can be swiped to archive or delete it, as chosen in the settings. A full swipe to the left does
+ * [swipeLeft]. If [swipeRight] is `null`, swiping right goes back as usual and the other action is offered next to
+ * [swipeLeft]; otherwise swiping right does [swipeRight].
  *
  * [content] gets a modifier that offers both actions to screen readers, which can't swipe.
  */
 @Composable
 fun SwipeableMessageCard(
-    swipeActions: SwipeActions,
+    swipeLeft: MessageSwipeAction,
+    swipeRight: MessageSwipeAction?,
     confirmDelete: Boolean,
     listState: ScalingLazyListState,
     onArchive: () -> Unit,
@@ -70,11 +72,14 @@ fun SwipeableMessageCard(
         if (confirmDelete) coroutineScope.launch { revealState.animateTo(RevealValue.Covered) }
     }
 
-    // The action of a full swipe to the left, and either the second action next to it or the swipe to the right.
-    val (leftSwipe, otherAction) = when (swipeActions) {
-        SwipeActions.LEFT_ARCHIVE, SwipeActions.LEFT_ARCHIVE_RIGHT_DELETE -> archive to delete
-        SwipeActions.LEFT_DELETE, SwipeActions.LEFT_DELETE_RIGHT_ARCHIVE -> delete to archive
+    fun action(swipeAction: MessageSwipeAction) = when (swipeAction) {
+        MessageSwipeAction.ARCHIVE -> archive
+        MessageSwipeAction.DELETE -> delete
     }
+
+    val leftSwipe = action(swipeLeft)
+    // Either the swipe to the right, or the second button next to the left swipe's.
+    val otherAction = swipeRight?.let(::action) ?: if (leftSwipe === archive) delete else archive
     val accessibilityActions = Modifier.semantics {
         customActions = listOf(archive, delete).map { action ->
             CustomAccessibilityAction(action.label) {
@@ -84,7 +89,7 @@ fun SwipeableMessageCard(
         }
     }
 
-    val isBidirectional = swipeActions.isBidirectional
+    val isBidirectional = swipeRight != null
     fun currentAction() = if (isBidirectional && revealState.isSwipingRight) otherAction else leftSwipe
 
     SwipeToReveal(
@@ -103,9 +108,6 @@ fun SwipeableMessageCard(
         content = { content(accessibilityActions) },
     )
 }
-
-private val SwipeActions.isBidirectional: Boolean
-    get() = this == SwipeActions.LEFT_ARCHIVE_RIGHT_DELETE || this == SwipeActions.LEFT_DELETE_RIGHT_ARCHIVE
 
 /** Swiping to the right reveals the actions on the left side of the card. */
 private val RevealState.isSwipingRight: Boolean

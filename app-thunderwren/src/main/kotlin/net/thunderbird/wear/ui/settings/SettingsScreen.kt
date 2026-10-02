@@ -12,16 +12,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
-import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.material3.FilledTonalButton
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
-import androidx.wear.compose.material3.RadioButton
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.SwitchButton
 import androidx.wear.compose.material3.Text
 import net.thunderbird.wear.R
-import net.thunderbird.wear.data.SwipeActions
+import net.thunderbird.wear.data.MessageSwipeAction
+import net.thunderbird.wear.data.WatchSettings
 import net.thunderbird.wear.ui.settings.SettingsContract.Event
 import net.thunderbird.wear.ui.settings.SettingsContract.State
 import net.thunderbird.wear.ui.theme.ThunderWrenTheme
@@ -51,32 +51,16 @@ fun SettingsScreen(
                 }
             }
 
-            swipeActionItems(selected = settings.swipeActions, onEvent = onEvent)
+            swipeItems(swipeLeft = settings.swipeLeft, swipeRight = settings.swipeRight, onEvent = onEvent)
+
+            messageItems(settings, onEvent)
 
             item {
-                ListHeader {
-                    Text(text = stringResource(R.string.settings_messages))
-                }
-            }
-            item {
                 SettingSwitch(
-                    checked = settings.confirmDelete,
-                    onCheckedChange = { onEvent(Event.ConfirmDeleteChanged(it)) },
-                    label = R.string.settings_confirm_delete,
-                )
-            }
-            item {
-                SettingSwitch(
-                    checked = settings.markAsReadWhenOpened,
-                    onCheckedChange = { onEvent(Event.MarkAsReadWhenOpenedChanged(it)) },
-                    label = R.string.settings_mark_as_read_when_opened,
-                )
-            }
-            item {
-                SettingSwitch(
-                    checked = settings.showPreviews,
-                    onCheckedChange = { onEvent(Event.ShowPreviewsChanged(it)) },
-                    label = R.string.settings_show_previews,
+                    checked = state.isDemoOn,
+                    onCheckedChange = { onEvent(Event.DemoChanged(it)) },
+                    label = R.string.settings_demo,
+                    description = R.string.settings_demo_description,
                 )
             }
 
@@ -93,24 +77,85 @@ fun SettingsScreen(
     }
 }
 
-private fun ScalingLazyListScope.swipeActionItems(selected: SwipeActions, onEvent: (Event) -> Unit) {
+private fun ScalingLazyListScope.messageItems(settings: WatchSettings, onEvent: (Event) -> Unit) {
+    item {
+        ListHeader {
+            Text(text = stringResource(R.string.settings_messages))
+        }
+    }
+    item {
+        SettingSwitch(
+            checked = settings.confirmDelete,
+            onCheckedChange = { onEvent(Event.ConfirmDeleteChanged(it)) },
+            label = R.string.settings_confirm_delete,
+        )
+    }
+    item {
+        SettingSwitch(
+            checked = settings.markAsReadWhenOpened,
+            onCheckedChange = { onEvent(Event.MarkAsReadWhenOpenedChanged(it)) },
+            label = R.string.settings_mark_as_read_when_opened,
+        )
+    }
+    item {
+        SettingSwitch(
+            checked = settings.showPreviews,
+            onCheckedChange = { onEvent(Event.ShowPreviewsChanged(it)) },
+            label = R.string.settings_show_previews,
+        )
+    }
+}
+
+private fun ScalingLazyListScope.swipeItems(
+    swipeLeft: MessageSwipeAction,
+    swipeRight: MessageSwipeAction?,
+    onEvent: (Event) -> Unit,
+) {
     item {
         ListHeader {
             Text(text = stringResource(R.string.settings_swipe_actions))
         }
     }
-
-    items(SwipeActions.entries) { swipeActions ->
-        RadioButton(
-            selected = swipeActions == selected,
-            onSelect = { onEvent(Event.SwipeActionsSelected(swipeActions)) },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(text = stringResource(swipeActions.label)) },
-            secondaryLabel = swipeActions.description?.let { description ->
-                { Text(text = stringResource(description)) }
-            },
+    item {
+        SettingChoice(
+            label = R.string.settings_swipe_left,
+            value = swipeLeft.label,
+            onClick = { onEvent(Event.SwipeLeftClicked) },
         )
     }
+    item {
+        SettingChoice(
+            label = R.string.settings_swipe_right,
+            value = swipeRight?.label ?: R.string.settings_swipe_go_back,
+            onClick = { onEvent(Event.SwipeRightClicked) },
+        )
+    }
+    // Swiping right on a message takes over the usual swipe to go back, so say how going back works then.
+    if (swipeRight != null) {
+        item {
+            Text(
+                text = stringResource(R.string.settings_swipe_back_from_edge),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** A setting with a few values. Tapping it switches to the next one. */
+@Composable
+private fun SettingChoice(
+    @StringRes label: Int,
+    @StringRes value: Int,
+    onClick: () -> Unit,
+) {
+    FilledTonalButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text(text = stringResource(label)) },
+        secondaryLabel = { Text(text = stringResource(value)) },
+    )
 }
 
 @Composable
@@ -118,33 +163,22 @@ private fun SettingSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     @StringRes label: Int,
+    @StringRes description: Int? = null,
 ) {
     SwitchButton(
         checked = checked,
         onCheckedChange = onCheckedChange,
         modifier = Modifier.fillMaxWidth(),
         label = { Text(text = stringResource(label)) },
+        secondaryLabel = description?.let { { Text(text = stringResource(it)) } },
     )
 }
 
 @get:StringRes
-private val SwipeActions.label: Int
+private val MessageSwipeAction.label: Int
     get() = when (this) {
-        SwipeActions.LEFT_ARCHIVE -> R.string.settings_swipe_left_archive
-        SwipeActions.LEFT_DELETE -> R.string.settings_swipe_left_delete
-        SwipeActions.LEFT_ARCHIVE_RIGHT_DELETE -> R.string.settings_swipe_left_archive_right_delete
-        SwipeActions.LEFT_DELETE_RIGHT_ARCHIVE -> R.string.settings_swipe_left_delete_right_archive
-    }
-
-/** Swiping in both directions takes over the usual swipe to go back, so say how going back works then. */
-@get:StringRes
-private val SwipeActions.description: Int?
-    get() = when (this) {
-        SwipeActions.LEFT_ARCHIVE, SwipeActions.LEFT_DELETE -> null
-
-        SwipeActions.LEFT_ARCHIVE_RIGHT_DELETE,
-        SwipeActions.LEFT_DELETE_RIGHT_ARCHIVE,
-        -> R.string.settings_swipe_back_from_edge
+        MessageSwipeAction.ARCHIVE -> R.string.action_archive
+        MessageSwipeAction.DELETE -> R.string.action_delete
     }
 
 @Preview(device = "id:wearos_small_round", showSystemUi = true)
@@ -152,7 +186,7 @@ private val SwipeActions.description: Int?
 private fun SettingsScreenPreview() {
     ThunderWrenTheme {
         SettingsScreen(
-            state = State(appVersion = "0.1.0-beta5"),
+            state = State(appVersion = "0.1.0-beta6"),
             onEvent = {},
         )
     }

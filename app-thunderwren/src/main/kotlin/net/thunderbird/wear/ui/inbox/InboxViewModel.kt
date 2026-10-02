@@ -17,11 +17,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.thunderbird.core.ui.contract.mvi.BaseViewModel
 import net.thunderbird.feature.wear.companion.WearCompanion
+import net.thunderbird.feature.wear.companion.WearErrorReason
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
+import net.thunderbird.wear.data.DemoMode
 import net.thunderbird.wear.data.DemoModeStore
 import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.PhoneResult
@@ -78,7 +80,7 @@ class InboxViewModel(
         }
 
         // The phone only republishes when its message list changes, so ask for fresh data when the app opens.
-        refresh()
+        refresh(isRequestedByUser = false)
     }
 
     override fun event(event: Event) {
@@ -109,12 +111,12 @@ class InboxViewModel(
 
             is Event.MarkAllReadConfirmed -> markAllRead(event.mailboxId)
 
-            Event.RefreshClicked -> refresh()
+            Event.RefreshClicked -> refresh(isRequestedByUser = true)
 
             // Shows the demo mailbox until a phone with Thunderbird publishes real data.
-            Event.StartDemoClicked -> demoModeStore.setEnabled(true)
+            Event.StartDemoClicked -> demoModeStore.setMode(DemoMode.UNTIL_PHONE_CONNECTS)
 
-            Event.ExitDemoClicked -> demoModeStore.setEnabled(false)
+            Event.ExitDemoClicked -> demoModeStore.setMode(DemoMode.OFF)
         }
     }
 
@@ -137,7 +139,8 @@ class InboxViewModel(
                 accounts = content.accounts,
                 isMarkingAllRead = actions.isMarkingAllRead,
                 errorMessage = actions.errorMessage,
-                swipeActions = settings.swipeActions,
+                swipeLeft = settings.swipeLeft,
+                swipeRight = settings.swipeRight,
                 showPreviews = settings.showPreviews,
                 confirmDelete = settings.confirmDelete,
                 pendingDeleteMessageId = actions.pendingDeleteMessageId,
@@ -145,14 +148,21 @@ class InboxViewModel(
         }
     }
 
-    private fun refresh() {
+    /**
+     * Asks the phone for fresh data. Failures of the automatic refresh when the app opens aren't shown, because the
+     * phone often isn't reachable for a moment then and the last data is still there, except when the companion is
+     * turned off on the phone.
+     */
+    private fun refresh(isRequestedByUser: Boolean) {
         if (isRefreshing.value) return
 
         viewModelScope.launch {
             isRefreshing.value = true
             try {
                 val result = phoneConnection.refresh()
-                actionState.update { it.copy(errorMessage = result.errorMessage()) }
+                if (isRequestedByUser || result.isCompanionDisabled) {
+                    actionState.update { it.copy(errorMessage = result.errorMessage()) }
+                }
             } finally {
                 isRefreshing.value = false
             }
@@ -241,3 +251,6 @@ private fun WearMailboxList.accountsToLabel(mailbox: WearMailbox): ImmutableMap<
         accounts.associateBy { it.id }.toImmutableMap()
     }
 }
+
+private val PhoneResult.isCompanionDisabled: Boolean
+    get() = this is PhoneResult.Failed && reason == WearErrorReason.COMPANION_DISABLED

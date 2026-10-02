@@ -57,7 +57,6 @@ import kotlinx.coroutines.launch
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
-import net.thunderbird.wear.data.SwipeActions
 import net.thunderbird.wear.ui.common.AccountMonogram
 import net.thunderbird.wear.ui.common.ColorDot
 import net.thunderbird.wear.ui.common.accountIcon
@@ -185,7 +184,8 @@ private fun ScalingLazyListScope.contentItems(
 
     items(state.messages, key = { it.id }) { message ->
         SwipeableMessageCard(
-            swipeActions = state.swipeActions,
+            swipeLeft = state.swipeLeft,
+            swipeRight = state.swipeRight,
             confirmDelete = state.confirmDelete,
             listState = listState,
             onArchive = { onEvent(Event.ArchiveClicked(message.id)) },

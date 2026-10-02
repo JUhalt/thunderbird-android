@@ -83,10 +83,10 @@ can ignore data it doesn't understand.
   review step), and an "open on phone" action. Messages can be swiped to archive or delete them, and a mailbox can be
   marked as read after a confirmation. Account monograms show which account a message belongs to. The selected
   mailbox is remembered on the watch.
-- The watch has a few settings of its own, stored on the watch: what swiping does (a full swipe to the left archives
-  or deletes, or swiping left and right each do one), confirming deletions, marking messages as read when opened, and
-  showing previews. Swiping in both directions uses Wear Compose's bidirectional `SwipeToReveal`, which leaves the
-  screen's left edge to the system's swipe to go back.
+- The watch has a few settings of its own, stored on the watch: what swiping left does (archive or delete), what
+  swiping right does (go back, archive, or delete), confirming deletions, marking messages as read when opened,
+  showing previews, and showing the demo mailbox. With an action on the right, the list uses Wear Compose's
+  bidirectional `SwipeToReveal`, which leaves the screen's left edge to the system's swipe to go back.
 - The Tile shows the unified inbox's unread count and the newest unread messages, which open when tapped. The
   complication shows the unread count. A `WearableListenerService` on the watch refreshes them when the phone
   publishes, even when the app isn't open.

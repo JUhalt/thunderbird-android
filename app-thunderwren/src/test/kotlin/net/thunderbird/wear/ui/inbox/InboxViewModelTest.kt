@@ -23,8 +23,9 @@ import net.thunderbird.components.ui.testing.coroutines.MainDispatcherHelper
 import net.thunderbird.feature.wear.companion.WearErrorReason
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.wear.R
+import net.thunderbird.wear.data.DemoMode
+import net.thunderbird.wear.data.MessageSwipeAction
 import net.thunderbird.wear.data.PhoneResult
-import net.thunderbird.wear.data.SwipeActions
 import net.thunderbird.wear.testing.FakeDemoModeStore
 import net.thunderbird.wear.testing.FakePhoneConnection
 import net.thunderbird.wear.testing.FakeSelectedMailboxStore
@@ -107,10 +108,10 @@ class InboxViewModelTest {
         val testSubject = createTestSubject()
 
         testSubject.event(Event.StartDemoClicked)
-        assertThat(demoMode.isEnabled.value).isTrue()
+        assertThat(demoMode.mode.value).isEqualTo(DemoMode.UNTIL_PHONE_CONNECTS)
 
         testSubject.event(Event.ExitDemoClicked)
-        assertThat(demoMode.isEnabled.value).isFalse()
+        assertThat(demoMode.mode.value).isEqualTo(DemoMode.OFF)
     }
 
     @Test
@@ -252,16 +253,45 @@ class InboxViewModelTest {
     }
 
     @Test
+    fun `failures of the refresh when the app opens aren't shown`() = runTest {
+        phone.refreshResult = PhoneResult.NoPhone
+        publishTwoAccounts()
+        val testSubject = createTestSubject()
+
+        val state = stateOf(testSubject) as State.Content
+
+        assertThat(state.errorMessage).isNull()
+    }
+
+    @Test
+    fun `failures of a refresh the user asked for are shown`() = runTest {
+        publishTwoAccounts()
+        val testSubject = createTestSubject()
+        stateOf(testSubject)
+        phone.refreshResult = PhoneResult.NoPhone
+
+        testSubject.event(Event.RefreshClicked)
+        val state = stateOf(testSubject) as State.Content
+
+        assertThat(state.errorMessage).isEqualTo(R.string.error_no_phone)
+    }
+
+    @Test
     fun `shows the swipe and preview settings`() = runTest {
         settings.update {
-            it.copy(swipeActions = SwipeActions.LEFT_DELETE_RIGHT_ARCHIVE, showPreviews = false)
+            it.copy(
+                swipeLeft = MessageSwipeAction.DELETE,
+                swipeRight = MessageSwipeAction.ARCHIVE,
+                showPreviews = false,
+            )
         }
         publishTwoAccounts()
         val testSubject = createTestSubject()
 
         val state = stateOf(testSubject) as State.Content
 
-        assertThat(state.swipeActions).isEqualTo(SwipeActions.LEFT_DELETE_RIGHT_ARCHIVE)
+        assertThat(state.swipeLeft).isEqualTo(MessageSwipeAction.DELETE)
+        assertThat(state.swipeRight).isEqualTo(MessageSwipeAction.ARCHIVE)
         assertThat(state.showPreviews).isFalse()
     }
 

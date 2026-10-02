@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import net.thunderbird.feature.wear.companion.WearMessageAction
+import net.thunderbird.wear.data.DemoMode
 import net.thunderbird.wear.testing.FakeDemoModeStore
 import net.thunderbird.wear.testing.FakePhoneConnection
 import net.thunderbird.wear.testing.UNIFIED
@@ -38,7 +39,7 @@ class DemoAwarePhoneConnectionTest {
     @Test
     fun `demo mailbox is shown in demo mode while no phone has published`() = runTest {
         demo.publish(mailboxes = listOf(mailbox(UNIFIED), mailbox("demo-work")), inboxes = emptyMap())
-        demoMode.setEnabled(true)
+        demoMode.setMode(DemoMode.UNTIL_PHONE_CONNECTS)
 
         assertThat(testSubject.mailboxes.first()?.mailboxes?.map { it.id }).isEqualTo(listOf(UNIFIED, "demo-work"))
     }
@@ -46,7 +47,7 @@ class DemoAwarePhoneConnectionTest {
     @Test
     fun `real phone data replaces the demo and turns demo mode off`() = runTest {
         demo.publish(mailboxes = listOf(mailbox(UNIFIED), mailbox("demo-work")), inboxes = emptyMap())
-        demoMode.setEnabled(true)
+        demoMode.setMode(DemoMode.UNTIL_PHONE_CONNECTS)
         val seen = mutableListOf<List<String>?>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             testSubject.mailboxes.collect { list -> seen += list?.mailboxes?.map { it.id } }
@@ -56,20 +57,32 @@ class DemoAwarePhoneConnectionTest {
         advanceUntilIdle()
 
         assertThat(seen.last()).isEqualTo(listOf(UNIFIED, "real-account"))
-        assertThat(demoMode.isEnabled.value).isFalse()
+        assertThat(demoMode.mode.value).isEqualTo(DemoMode.OFF)
+    }
+
+    @Test
+    fun `demo turned on in the settings stays when a phone publishes`() = runTest {
+        demo.publish(mailboxes = listOf(mailbox(UNIFIED), mailbox("demo-work")), inboxes = emptyMap())
+        demoMode.setMode(DemoMode.ON)
+
+        phone.publish(mailboxes = listOf(mailbox(UNIFIED), mailbox("real-account")), inboxes = emptyMap())
+        advanceUntilIdle()
+
+        assertThat(testSubject.mailboxes.first()?.mailboxes?.map { it.id }).isEqualTo(listOf(UNIFIED, "demo-work"))
+        assertThat(demoMode.mode.value).isEqualTo(DemoMode.ON)
     }
 
     @Test
     fun `actions go to the demo while it is shown, and to the phone otherwise`() = runTest {
         demo.publish(mailboxes = listOf(mailbox(UNIFIED)), inboxes = mapOf(UNIFIED to listOf(message("d1"))))
-        demoMode.setEnabled(true)
+        demoMode.setMode(DemoMode.UNTIL_PHONE_CONNECTS)
 
         testSubject.performAction("d1", WearMessageAction.STAR)
 
         assertThat(demo.performedActions).containsExactly("d1" to WearMessageAction.STAR)
         assertThat(phone.performedActions).isEmpty()
 
-        demoMode.setEnabled(false)
+        demoMode.setMode(DemoMode.OFF)
         testSubject.performAction("p1", WearMessageAction.STAR)
 
         assertThat(phone.performedActions).containsExactly("p1" to WearMessageAction.STAR)
@@ -78,7 +91,7 @@ class DemoAwarePhoneConnectionTest {
     @Test
     fun `refresh always asks the phone and doesn't report a failure in demo mode`() = runTest {
         phone.refreshResult = PhoneResult.NoPhone
-        demoMode.setEnabled(true)
+        demoMode.setMode(DemoMode.UNTIL_PHONE_CONNECTS)
 
         val result = testSubject.refresh()
 
@@ -91,7 +104,7 @@ class DemoAwarePhoneConnectionTest {
         assertThat(testSubject.isDemo.first()).isFalse()
 
         demo.publish(mailboxes = listOf(mailbox(UNIFIED)), inboxes = emptyMap())
-        demoMode.setEnabled(true)
+        demoMode.setMode(DemoMode.UNTIL_PHONE_CONNECTS)
 
         assertThat(testSubject.isDemo.first()).isTrue()
     }
@@ -99,7 +112,7 @@ class DemoAwarePhoneConnectionTest {
     @Test
     fun `replies and mark all read go to the demo while it's shown, and to the phone after`() = runTest {
         demo.publish(mailboxes = listOf(mailbox(UNIFIED)), inboxes = emptyMap())
-        demoMode.setEnabled(true)
+        demoMode.setMode(DemoMode.UNTIL_PHONE_CONNECTS)
 
         testSubject.reply("demo-1", "Thanks!")
         testSubject.markAllRead(UNIFIED)

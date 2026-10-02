@@ -36,15 +36,17 @@
     <!-- Settings on the watch -->
     <string name="settings_title">Settings</string>
     <string name="settings_swipe_actions">Swipe actions</string>
-    <string name="settings_swipe_left_archive">Swipe left to archive or delete</string>
-    <string name="settings_swipe_left_delete">Swipe left to delete or archive</string>
-    <string name="settings_swipe_left_archive_right_delete">Swipe left to archive, right to delete</string>
-    <string name="settings_swipe_left_delete_right_archive">Swipe left to delete, right to archive</string>
-    <string name="settings_swipe_back_from_edge">To go back, swipe from the left edge</string>
+    <string name="settings_swipe_left">Swipe left</string>
+    <string name="settings_swipe_right">Swipe right</string>
+    <!-- What swiping right does when no action is chosen: the usual Wear OS gesture -->
+    <string name="settings_swipe_go_back">Go back</string>
+    <string name="settings_swipe_back_from_edge">To go back, swipe from the left edge of the screen.</string>
     <string name="settings_messages">Messages</string>
     <string name="settings_confirm_delete">Confirm before deleting</string>
     <string name="settings_mark_as_read_when_opened">Mark as read when opened</string>
     <string name="settings_show_previews">Show message previews</string>
+    <string name="settings_demo">Demo mailbox</string>
+    <string name="settings_demo_description">Shows sample mail instead of yours</string>
     <!-- %s is the version, for example "0.1.0-beta5" -->
     <string name="settings_version">ThunderWren %s</string>
     <string name="delete_confirmation">Delete this message?</string>
