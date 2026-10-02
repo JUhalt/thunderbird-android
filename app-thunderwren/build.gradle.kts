@@ -10,8 +10,8 @@ android {
         // app-thunderbird (including the build type suffixes below). See RFC 0010.
         applicationId = "net.thunderbird.android"
 
-        versionCode = 5
-        versionName = "0.1.0-beta5"
+        versionCode = 6
+        versionName = "0.1.0-beta6"
 
         minSdk = 30
         targetSdk = 35
@@ -78,6 +78,25 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-SNAPSHOT"
             isDebuggable = true
+        }
+        // For trying the watch app at full speed with a debug build of Thunderbird on the phone. Debuggable apps run
+        // much slower, especially right after installing. This build has the debug application ID and signing key, so
+        // it connects to app-thunderbird's fullDebug build, but isn't debuggable and is optimized like a release.
+        create("optimized") {
+            initWith(getByName("debug"))
+
+            signingConfig = signingConfigs.getByName("debug")
+            versionNameSuffix = "-optimized"
+            isDebuggable = false
+            // Like release, shrunk only outside CI, where it would only slow down the build.
+            isMinifyEnabled = !isCI.get()
+            isShrinkResources = !isCI.get()
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+
+            matchingFallbacks += listOf("release")
         }
     }
 

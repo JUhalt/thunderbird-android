@@ -14,7 +14,8 @@ import net.thunderbird.feature.wear.companion.WearMessageAction
 /**
  * Shows the phone's data when there is any, and the demo mailbox while demo mode is on and no phone has published.
  *
- * Data from a real phone always wins: when it arrives, demo mode is turned off so the demo mailbox disappears.
+ * Data from a real phone wins over a demo started with "Try the demo": when it arrives, demo mode is turned off so the
+ * demo mailbox disappears. A demo turned on in the settings stays until it's turned off there.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class DemoAwarePhoneConnection(
@@ -24,14 +25,16 @@ class DemoAwarePhoneConnection(
 ) : PhoneConnection {
 
     private val source: Flow<PhoneConnection?> =
-        combine(phone.mailboxes, demoModeStore.isEnabled) { phoneMailboxes, isDemoEnabled ->
+        combine(phone.mailboxes, demoModeStore.mode) { phoneMailboxes, demoMode ->
             when {
+                demoMode == DemoMode.ON -> demo
+
                 phoneMailboxes != null -> {
-                    if (isDemoEnabled) demoModeStore.setEnabled(false)
+                    if (demoMode == DemoMode.UNTIL_PHONE_CONNECTS) demoModeStore.setMode(DemoMode.OFF)
                     phone
                 }
 
-                isDemoEnabled -> demo
+                demoMode == DemoMode.UNTIL_PHONE_CONNECTS -> demo
 
                 else -> null
             }
@@ -48,7 +51,13 @@ class DemoAwarePhoneConnection(
     override suspend fun refresh(): PhoneResult {
         // Always ask the phone, so a phone that appears takes over from the demo.
         val result = phone.refresh()
-        return if (result != PhoneResult.Success && demoModeStore.isEnabled.value) PhoneResult.Success else result
+        return if (result != PhoneResult.Success &&
+            demoModeStore.mode.value != DemoMode.OFF
+        ) {
+            PhoneResult.Success
+        } else {
+            result
+        }
     }
 
     override suspend fun performAction(messageId: String, action: WearMessageAction): PhoneResult {

@@ -59,5 +59,7 @@ val thunderWrenModule = module {
     viewModel { (messageId: String, mailboxId: String) ->
         ReplyViewModel(messageId = messageId, mailboxId = mailboxId, phoneConnection = get())
     }
-    viewModel { SettingsViewModel(settingsStore = get(), appVersion = BuildConfig.VERSION_NAME) }
+    viewModel {
+        SettingsViewModel(settingsStore = get(), demoModeStore = get(), appVersion = BuildConfig.VERSION_NAME)
+    }
 }

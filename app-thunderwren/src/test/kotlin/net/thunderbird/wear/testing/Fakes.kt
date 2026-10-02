@@ -11,6 +11,7 @@ import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.data.BodyResult
+import net.thunderbird.wear.data.DemoMode
 import net.thunderbird.wear.data.DemoModeStore
 import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.PhoneResult
@@ -92,12 +93,11 @@ class FakePhoneConnection(isDemo: Boolean = false) : PhoneConnection {
     private fun inboxFlow(mailboxId: String) = inboxes.getOrPut(mailboxId) { MutableStateFlow(null) }
 }
 
-class FakeDemoModeStore(initial: Boolean = false) : DemoModeStore {
-    private val enabled = MutableStateFlow(initial)
-    override val isEnabled: StateFlow<Boolean> = enabled
+class FakeDemoModeStore(initial: DemoMode = DemoMode.OFF) : DemoModeStore {
+    override val mode = MutableStateFlow(initial)
 
-    override fun setEnabled(enabled: Boolean) {
-        this.enabled.value = enabled
+    override fun setMode(mode: DemoMode) {
+        this.mode.value = mode
     }
 }
 
