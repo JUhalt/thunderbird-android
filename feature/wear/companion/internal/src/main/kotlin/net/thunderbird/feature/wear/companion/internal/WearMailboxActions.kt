@@ -14,17 +14,18 @@ import net.thunderbird.feature.wear.companion.WearResponse
 import net.thunderbird.feature.wear.companion.internal.WearMailboxSearches.onlyUnread
 
 /** Applies a watch action to a whole mailbox. Must be called off the main thread. */
-internal fun interface WearMailboxActions {
-    fun markAllRead(mailboxId: String): WearResponse
+internal interface WearMailboxActions {
+    suspend fun markAllRead(mailboxId: String): WearResponse
 }
 
 internal class MessagingControllerWearMailboxActions(
     private val messagingController: MessagingController,
     private val accountManager: LegacyAccountDtoManager,
     private val messageListRepository: MessageListRepository,
+    private val folderSource: WearFolderSource,
 ) : WearMailboxActions {
 
-    override fun markAllRead(mailboxId: String): WearResponse {
+    override suspend fun markAllRead(mailboxId: String): WearResponse {
         val mailbox = findMailbox(mailboxId) ?: return WearResponse.Error(WearErrorReason.MAILBOX_NOT_FOUND)
 
         // Without a known inbox there is nothing to mark.
@@ -40,16 +41,19 @@ internal class MessagingControllerWearMailboxActions(
         return WearResponse.Ok
     }
 
-    private fun findMailbox(mailboxId: String): Mailbox? {
+    private suspend fun findMailbox(mailboxId: String): Mailbox? {
         val unifiedView = WearMailboxSearches.unifiedView(mailboxId)
         val folder = WearCompanion.parseFolderMailboxId(mailboxId)
         return when {
             unifiedView != null -> Mailbox(accountManager.getAccounts(), unifiedView)
 
+            // Only the folders the watch can see, so hidden folders and Drafts stay as they are.
             folder != null -> {
                 val (accountUuid, folderId) = folder
-                accountManager.getAccount(accountUuid)?.let { account ->
-                    Mailbox(listOf(account), WearMailboxSearches.folder(account.uuid, folderId))
+                val account = accountManager.getAccount(accountUuid)
+                val shownFolders = (folderSource.loadFolders(accountUuid) as? WearResponse.Folders)?.folders
+                account?.takeIf { shownFolders?.any { it.id == folderId } == true }?.let {
+                    Mailbox(listOf(it), WearMailboxSearches.folder(it.uuid, folderId))
                 }
             }
 

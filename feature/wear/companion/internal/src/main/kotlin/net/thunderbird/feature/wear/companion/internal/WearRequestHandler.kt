@@ -94,7 +94,7 @@ internal class WearRequestHandler(
     }
 
     /** Runs [block] off the main thread and, if it succeeded, republishes so the watch sees the result. */
-    private suspend fun republishIfOk(block: () -> WearResponse): WearResponse {
+    private suspend fun republishIfOk(block: suspend () -> WearResponse): WearResponse {
         val response = withContext(ioDispatcher) { block() }
 
         if (response == WearResponse.Ok) {

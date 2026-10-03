@@ -5,6 +5,7 @@ import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
 import com.fsck.k9.controller.MessagingController
 import kotlin.test.Test
+import kotlinx.coroutines.test.runTest
 import net.thunderbird.core.android.account.LegacyAccountDto
 import net.thunderbird.core.android.account.LegacyAccountDtoManager
 import net.thunderbird.core.common.mail.Flag
@@ -28,7 +29,7 @@ class WearMailboxActionsTest {
     private val messagingController = mock<MessagingController>()
 
     @Test
-    fun `mark all read in an account marks its unread inbox messages`() {
+    fun `mark all read in an account marks its unread inbox messages`() = runTest {
         val repository = FakeMessageListRepository(
             messages = mapOf(
                 WORK_UUID to listOf(FakeMessageDetailsAccessor(id = 10), FakeMessageDetailsAccessor(id = 11)),
@@ -45,7 +46,7 @@ class WearMailboxActionsTest {
     }
 
     @Test
-    fun `mark all read in a view of the unified inbox covers every account`() {
+    fun `mark all read in a view of the unified inbox covers every account`() = runTest {
         val repository = FakeMessageListRepository(
             messages = mapOf(
                 WORK_UUID to listOf(FakeMessageDetailsAccessor(id = 10)),
@@ -61,7 +62,7 @@ class WearMailboxActionsTest {
     }
 
     @Test
-    fun `mark all read in a folder marks its unread messages`() {
+    fun `mark all read in a folder marks its unread messages`() = runTest {
         val repository = FakeMessageListRepository(
             messages = mapOf(WORK_UUID to listOf(FakeMessageDetailsAccessor(id = 30))),
         )
@@ -74,7 +75,19 @@ class WearMailboxActionsTest {
     }
 
     @Test
-    fun `nothing is changed when there are no unread messages`() {
+    fun `mark all read in a folder the watch can't see changes nothing`() = runTest {
+        val repository = FakeMessageListRepository(
+            messages = mapOf(WORK_UUID to listOf(FakeMessageDetailsAccessor(id = 30))),
+        )
+
+        val response = createTestSubject(repository).markAllRead(WearCompanion.folderMailboxId(WORK_UUID, 99))
+
+        assertThat(response).isEqualTo(WearResponse.Error(WearErrorReason.MAILBOX_NOT_FOUND))
+        verify(messagingController, never()).setFlag(any(), any<List<Long>>(), any(), any())
+    }
+
+    @Test
+    fun `nothing is changed when there are no unread messages`() = runTest {
         val response = createTestSubject(FakeMessageListRepository()).markAllRead(WearCompanion.UNIFIED_MAILBOX_ID)
 
         assertThat(response).isEqualTo(WearResponse.Ok)
@@ -82,7 +95,7 @@ class WearMailboxActionsTest {
     }
 
     @Test
-    fun `removed account is reported`() {
+    fun `removed account is reported`() = runTest {
         val response = createTestSubject(
             FakeMessageListRepository(),
         ).markAllRead("00000000-0000-4000-8000-000000000000")
@@ -94,6 +107,7 @@ class WearMailboxActionsTest {
         messagingController = messagingController,
         accountManager = accountManager,
         messageListRepository = repository,
+        folderSource = FakeWearFolderSource(folderIds = listOf(5)),
     )
 
     private companion object {

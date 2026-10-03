@@ -153,6 +153,10 @@ class ThunderWrenAppTest {
         composeRule.onNodeWithText("Corner Shop").assertIsDisplayed()
         // The Sent folder's messages and others the account sent name who they went to.
         composeRule.onNodeWithText("To: Bo").assertIsDisplayed()
+        // The folder name at the top goes back to the folder list, and says so to screen readers.
+        composeRule.onNodeWithContentDescription(
+            "Back to the folder list. Showing Receipts. 0 unread",
+        ).assertIsDisplayed()
 
         composeRule.onNodeWithText("Corner Shop").performClick()
         composeRule.onNodeWithText("Your receipt").assertIsDisplayed()
