@@ -160,7 +160,8 @@ Debug builds are slow on the watch, especially right after installing. To try th
 - [x] Read whole messages on the watch, loaded from the phone when opened.
 - [x] Folders other than the inbox, loaded from the phone when opened.
 - [x] Decided against a standalone mode (no phone); the [RFC](docs/engineering/rfcs/0010-wear-os-companion.md#alternatives-considered) explains why.
-- [ ] Present on [thunderbird/thunderbird-android#6969](https://github.com/thunderbird/thunderbird-android/issues/6969), the open Wear OS request.
+- [x] Presented on [thunderbird/thunderbird-android#6969](https://github.com/thunderbird/thunderbird-android/issues/6969), the open Wear OS request, on 3 October 2026. Waiting for the team's reply.
+- [ ] Follow the team's direction: an RFC pull request, small pull requests, a Mozilla Connect post, or keeping the fork as a reference.
 
 For architectural guidelines, see [`docs/architecture/`](docs/architecture/README.md) and [`AGENTS.md`](AGENTS.md). The original upstream README is preserved in [`README.upstream.md`](README.upstream.md).
 
