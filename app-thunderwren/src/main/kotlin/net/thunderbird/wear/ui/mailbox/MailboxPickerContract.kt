@@ -16,9 +16,13 @@ interface MailboxPickerContract {
 
     sealed interface Event {
         data class MailboxClicked(val mailboxId: String) : Event
+
+        /** Lists the folders of the account with [accountId]. */
+        data class FoldersClicked(val accountId: String) : Event
     }
 
     sealed interface Effect {
         data object Close : Effect
+        data class OpenFolders(val accountId: String) : Effect
     }
 }

@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import net.thunderbird.feature.wear.companion.WearCompanion
+import net.thunderbird.feature.wear.companion.WearFolder
 import net.thunderbird.feature.wear.companion.WearGlanceVisibility
 import net.thunderbird.feature.wear.companion.WearInboxSnapshot
 import net.thunderbird.feature.wear.companion.WearMailbox
@@ -13,6 +14,8 @@ import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.data.BodyResult
 import net.thunderbird.wear.data.DemoMode
 import net.thunderbird.wear.data.DemoModeStore
+import net.thunderbird.wear.data.FolderRef
+import net.thunderbird.wear.data.LoadedFolders
 import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.PhoneResult
 import net.thunderbird.wear.data.SelectedMailboxStore
@@ -37,7 +40,51 @@ class FakePhoneConnection(isDemo: Boolean = false) : PhoneConnection {
 
     override val isDemo: Flow<Boolean> = MutableStateFlow(isDemo)
 
-    override fun inbox(mailboxId: String): Flow<WearInboxSnapshot?> = inboxFlow(mailboxId)
+    override fun inbox(mailboxId: String): Flow<WearInboxSnapshot?> {
+        return if (WearCompanion.parseFolderMailboxId(mailboxId) != null) {
+            loadedFolders.inbox(mailboxId)
+        } else {
+            inboxFlow(mailboxId)
+        }
+    }
+
+    /** What the phone has: the folders by account, and the messages by folder. */
+    val phoneFolders = mutableMapOf<String, List<WearFolder>>()
+    val phoneFolderMessages = mutableMapOf<FolderRef, List<WearMessageSummary>>()
+    var loadFoldersResult: PhoneResult = PhoneResult.Success
+    var loadFolderResult: PhoneResult = PhoneResult.Success
+    val loadedFolderRequests = mutableListOf<FolderRef>()
+    val loadedFolders = LoadedFolders()
+
+    override fun folders(accountId: String): Flow<List<WearFolder>?> = loadedFolders.folders(accountId)
+
+    override fun folder(mailboxId: String): Flow<WearFolder?> = loadedFolders.folder(mailboxId)
+
+    override suspend fun loadFolders(accountId: String): PhoneResult {
+        if (loadFoldersResult == PhoneResult.Success) {
+            loadedFolders.putFolders(accountId, phoneFolders[accountId].orEmpty())
+        }
+        return loadFoldersResult
+    }
+
+    override suspend fun loadFolder(folder: FolderRef): PhoneResult {
+        loadedFolderRequests += folder
+        val wearFolder = phoneFolders[folder.accountId]?.firstOrNull { it.id == folder.folderId }
+        if (loadFolderResult == PhoneResult.Success && wearFolder != null) {
+            val messages = phoneFolderMessages[folder].orEmpty()
+            loadedFolders.putFolder(
+                accountId = folder.accountId,
+                folder = wearFolder,
+                snapshot = WearInboxSnapshot(
+                    mailboxId = folder.mailboxId,
+                    generatedAt = 1,
+                    unreadCount = messages.count { !it.isRead },
+                    messages = messages,
+                ),
+            )
+        }
+        return loadFolderResult
+    }
 
     fun publish(
         mailboxes: List<WearMailbox>,
@@ -64,6 +111,7 @@ class FakePhoneConnection(isDemo: Boolean = false) : PhoneConnection {
 
     override suspend fun performAction(messageId: String, action: WearMessageAction): PhoneResult {
         performedActions += messageId to action
+        if (actionResult == PhoneResult.Success) loadedFolders.apply(messageId, action)
         return actionResult
     }
 
@@ -136,6 +184,7 @@ fun message(
     isStarred: Boolean = false,
     isEncrypted: Boolean = false,
     accountId: String = "",
+    isOutgoing: Boolean = false,
 ) = WearMessageSummary(
     id = id,
     senderName = senderName,
@@ -149,6 +198,7 @@ fun message(
     isEncrypted = isEncrypted,
     accountColor = 0xFF0A84FF.toInt(),
     accountId = accountId,
+    isOutgoing = isOutgoing,
 )
 
 const val UNIFIED = WearCompanion.UNIFIED_MAILBOX_ID

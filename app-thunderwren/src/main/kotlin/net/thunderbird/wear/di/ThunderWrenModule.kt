@@ -15,6 +15,7 @@ import net.thunderbird.wear.data.SharedPreferencesDemoModeStore
 import net.thunderbird.wear.data.SharedPreferencesSelectedMailboxStore
 import net.thunderbird.wear.data.SharedPreferencesWatchSettingsStore
 import net.thunderbird.wear.data.WatchSettingsStore
+import net.thunderbird.wear.ui.folders.FolderListViewModel
 import net.thunderbird.wear.ui.inbox.InboxViewModel
 import net.thunderbird.wear.ui.mailbox.MailboxPickerViewModel
 import net.thunderbird.wear.ui.reader.MessageViewModel
@@ -39,15 +40,18 @@ val thunderWrenModule = module {
     single<SelectedMailboxStore> { SharedPreferencesSelectedMailboxStore(context = androidContext()) }
     single<WatchSettingsStore> { SharedPreferencesWatchSettingsStore(context = androidContext()) }
 
-    viewModel {
+    // Without parameters, the selected mailbox; with a FolderRef, that folder.
+    viewModel { parameters ->
         InboxViewModel(
             phoneConnection = get(),
             selectedMailboxStore = get(),
             demoModeStore = get(),
             settingsStore = get(),
+            folder = parameters.getOrNull(),
         )
     }
     viewModel { MailboxPickerViewModel(phoneConnection = get(), selectedMailboxStore = get()) }
+    viewModel { (accountId: String) -> FolderListViewModel(accountId = accountId, phoneConnection = get()) }
     viewModel { (messageId: String, mailboxId: String) ->
         MessageViewModel(
             messageId = messageId,

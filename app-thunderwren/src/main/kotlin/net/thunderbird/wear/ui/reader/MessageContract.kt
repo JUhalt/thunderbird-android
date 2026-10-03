@@ -26,6 +26,8 @@ interface MessageContract {
         val isBodyIncomplete: Boolean = false,
         /** The whole text couldn't be loaded, so only the preview is shown. */
         val isBodyUnavailable: Boolean = false,
+        /** Messages opened from the Archive folder are archived already. */
+        val canArchive: Boolean = true,
     ) {
         /** Encrypted messages can only be answered on the phone, which can encrypt the reply. */
         val canReply: Boolean

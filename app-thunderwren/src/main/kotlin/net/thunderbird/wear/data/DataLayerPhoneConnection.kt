@@ -24,6 +24,7 @@ import kotlinx.coroutines.withContext
 import net.thunderbird.core.logging.Logger
 import net.thunderbird.feature.wear.companion.WearCompanion
 import net.thunderbird.feature.wear.companion.WearErrorReason
+import net.thunderbird.feature.wear.companion.WearFolder
 import net.thunderbird.feature.wear.companion.WearInboxSnapshot
 import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageAction
@@ -32,9 +33,11 @@ import net.thunderbird.feature.wear.companion.WearRequest
 import net.thunderbird.feature.wear.companion.WearResponse
 
 /** [PhoneConnection] over the Wearable Data Layer (Google Play Services). */
+@Suppress("TooManyFunctions") // Mostly PhoneConnection's.
 class DataLayerPhoneConnection(
     private val context: Context,
     private val logger: Logger,
+    private val loadedFolders: LoadedFolders = LoadedFolders(),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : PhoneConnection {
     private val dataClient = Wearable.getDataClient(context)
@@ -51,19 +54,55 @@ class DataLayerPhoneConnection(
 
     override val isDemo: Flow<Boolean> = flowOf(false)
 
-    override fun inbox(mailboxId: String): Flow<WearInboxSnapshot?> =
-        dataItem(WearCompanion.inboxPath(mailboxId))
+    override fun inbox(mailboxId: String): Flow<WearInboxSnapshot?> {
+        // Folders aren't published; they're loaded when opened.
+        if (WearCompanion.parseFolderMailboxId(mailboxId) != null) return loadedFolders.inbox(mailboxId)
+
+        return dataItem(WearCompanion.inboxPath(mailboxId))
             .map { data -> data?.let(WearProtocolCodec::decodeSnapshot) }
             .distinctUntilChanged()
+    }
+
+    override fun folders(accountId: String): Flow<List<WearFolder>?> = loadedFolders.folders(accountId)
+
+    override fun folder(mailboxId: String): Flow<WearFolder?> = loadedFolders.folder(mailboxId)
+
+    override suspend fun loadFolders(accountId: String): PhoneResult {
+        var folders: List<WearFolder>? = null
+        val result = sendRequest(WearRequest.LoadFolders(accountId)) { response ->
+            folders = (response as? WearResponse.Folders)?.folders
+        }
+
+        return folders?.let {
+            loadedFolders.putFolders(accountId, it)
+            PhoneResult.Success
+        } ?: result.unlessUnexpectedResponse()
+    }
+
+    override suspend fun loadFolder(folder: FolderRef): PhoneResult {
+        var loaded: WearResponse.Folder? = null
+        val result = sendRequest(WearRequest.LoadFolder(folder.accountId, folder.folderId)) { response ->
+            loaded = response as? WearResponse.Folder
+        }
+
+        return loaded?.let {
+            loadedFolders.putFolder(folder.accountId, it.folder, it.snapshot)
+            PhoneResult.Success
+        } ?: result.unlessUnexpectedResponse()
+    }
 
     override suspend fun refresh(): PhoneResult = sendRequest(WearRequest.Refresh)
 
     override suspend fun performAction(messageId: String, action: WearMessageAction): PhoneResult {
-        return sendRequest(WearRequest.PerformAction(messageId, action))
+        return sendRequest(WearRequest.PerformAction(messageId, action)).also { result ->
+            if (result == PhoneResult.Success) loadedFolders.apply(messageId, action)
+        }
     }
 
     override suspend fun markAllRead(mailboxId: String): PhoneResult {
-        return sendRequest(WearRequest.MarkAllRead(mailboxId))
+        return sendRequest(WearRequest.MarkAllRead(mailboxId)).also { result ->
+            if (result == PhoneResult.Success) loadedFolders.markAllRead(mailboxId)
+        }
     }
 
     override suspend fun reply(messageId: String, text: String): PhoneResult {
@@ -101,16 +140,25 @@ class DataLayerPhoneConnection(
                 .await()
 
             when (val response = WearProtocolCodec.decodeResponse(responseData)) {
-                WearResponse.Ok, is WearResponse.Body -> {
+                is WearResponse.Error -> {
+                    // The phone removed the published mail when the companion was turned off; forget the folders too.
+                    if (response.reason == WearErrorReason.COMPANION_DISABLED) loadedFolders.clear()
+                    PhoneResult.Failed(response.reason)
+                }
+
+                null -> PhoneResult.Failed(WearErrorReason.UNSUPPORTED_REQUEST)
+
+                else -> {
                     onResponse(response)
                     PhoneResult.Success
                 }
-
-                is WearResponse.Error -> PhoneResult.Failed(response.reason)
-
-                null -> PhoneResult.Failed(WearErrorReason.UNSUPPORTED_REQUEST)
             }
         }
+    }
+
+    /** A request that succeeded without the expected answer failed. */
+    private fun PhoneResult.unlessUnexpectedResponse(): PhoneResult {
+        return if (this == PhoneResult.Success) PhoneResult.Failed(WearErrorReason.FAILED) else this
     }
 
     /** Finds a reachable phone running Thunderbird, preferring one connected directly over Bluetooth. */

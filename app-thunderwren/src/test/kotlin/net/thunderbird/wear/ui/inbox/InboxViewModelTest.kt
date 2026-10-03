@@ -21,9 +21,12 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import net.thunderbird.components.ui.testing.coroutines.MainDispatcherHelper
 import net.thunderbird.feature.wear.companion.WearErrorReason
+import net.thunderbird.feature.wear.companion.WearFolder
+import net.thunderbird.feature.wear.companion.WearFolderType
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.wear.R
 import net.thunderbird.wear.data.DemoMode
+import net.thunderbird.wear.data.FolderRef
 import net.thunderbird.wear.data.MessageSwipeAction
 import net.thunderbird.wear.data.PhoneResult
 import net.thunderbird.wear.testing.FakeDemoModeStore
@@ -344,6 +347,111 @@ class InboxViewModelTest {
         }
     }
 
+    @Test
+    fun `a folder is loaded when opened and shown like its account's inbox`() = runTest {
+        publishWorkFolders()
+        val testSubject = createTestSubject(folder = RECEIPTS)
+
+        val state = stateOf(testSubject) as State.Content
+
+        assertThat(phone.loadedFolderRequests).containsExactly(RECEIPTS)
+        assertThat(phone.refreshCount).isEqualTo(0)
+        assertThat(state.mailbox.id).isEqualTo(RECEIPTS.mailboxId)
+        assertThat(state.mailbox.name).isEqualTo("Receipts")
+        assertThat(state.mailbox.monogram).isEqualTo("WO")
+        assertThat(state.mailbox.unreadCount).isEqualTo(1)
+        assertThat(state.messages.map { it.id }).containsExactly("r1", "r2")
+        assertThat(state.folderType).isEqualTo(WearFolderType.REGULAR)
+    }
+
+    @Test
+    fun `a folder shows loading until its messages arrive`() = runTest {
+        publishWorkFolders()
+        val testSubject = createTestSubject(folder = RECEIPTS)
+
+        // Nothing has run yet, so the folder is still being loaded.
+        assertThat(testSubject.state.value).isEqualTo(State.Loading)
+
+        assertThat(stateOf(testSubject)).isInstanceOf(State.Content::class)
+    }
+
+    @Test
+    fun `a folder that couldn't be loaded says why`() = runTest {
+        publishWorkFolders()
+        phone.loadFolders("work")
+        phone.loadFolderResult = PhoneResult.NoPhone
+        val testSubject = createTestSubject(folder = RECEIPTS)
+
+        val state = stateOf(testSubject) as State.Content
+
+        assertThat(state.messages).isEmpty()
+        assertThat(state.errorMessage).isEqualTo(R.string.error_no_phone)
+    }
+
+    @Test
+    fun `refresh loads the folder again`() = runTest {
+        publishWorkFolders()
+        val testSubject = createTestSubject(folder = RECEIPTS)
+        stateOf(testSubject)
+
+        testSubject.event(Event.RefreshClicked)
+        advanceUntilIdle()
+
+        assertThat(phone.loadedFolderRequests).containsExactly(RECEIPTS, RECEIPTS)
+    }
+
+    @Test
+    fun `archived messages in a folder disappear from it`() = runTest {
+        publishWorkFolders()
+        val testSubject = createTestSubject(folder = RECEIPTS)
+        stateOf(testSubject)
+
+        testSubject.event(Event.ArchiveClicked("r1"))
+
+        val state = stateOf(testSubject) as State.Content
+        assertThat(state.messages.map { it.id }).containsExactly("r2")
+        assertThat(state.mailbox.unreadCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `archiving in the Archive folder says the message is archived already`() = runTest {
+        publishWorkFolders()
+        phone.actionResult = PhoneResult.Failed(WearErrorReason.ACTION_NOT_AVAILABLE)
+        val testSubject = createTestSubject(folder = ARCHIVE)
+        stateOf(testSubject)
+
+        testSubject.event(Event.ArchiveClicked("a1"))
+
+        val state = stateOf(testSubject) as State.Content
+        assertThat(state.errorMessage).isEqualTo(R.string.error_already_archived)
+        assertThat(state.messages.map { it.id }).containsExactly("a1")
+    }
+
+    @Test
+    fun `mark all read in a folder marks that folder`() = runTest {
+        publishWorkFolders()
+        val testSubject = createTestSubject(folder = RECEIPTS)
+        stateOf(testSubject)
+
+        testSubject.event(Event.MarkAllReadConfirmed(RECEIPTS.mailboxId))
+        advanceUntilIdle()
+
+        assertThat(phone.markedAllRead).containsExactly(RECEIPTS.mailboxId)
+    }
+
+    private fun publishWorkFolders() {
+        phone.publish(mailboxes = listOf(mailbox(UNIFIED), mailbox("work", name = "Work")), inboxes = emptyMap())
+        phone.phoneFolders["work"] = listOf(
+            WearFolder(id = RECEIPTS.folderId, name = "Receipts", type = WearFolderType.REGULAR, unreadCount = 1),
+            WearFolder(id = ARCHIVE.folderId, name = "Archive", type = WearFolderType.ARCHIVE, unreadCount = 0),
+        )
+        phone.phoneFolderMessages[RECEIPTS] = listOf(
+            message("r1", accountId = "work"),
+            message("r2", isRead = true, accountId = "work"),
+        )
+        phone.phoneFolderMessages[ARCHIVE] = listOf(message("a1", isRead = true, accountId = "work"))
+    }
+
     private fun publishTwoAccounts() {
         phone.publish(
             mailboxes = listOf(
@@ -361,12 +469,18 @@ class InboxViewModelTest {
         )
     }
 
-    private fun createTestSubject() = InboxViewModel(
+    private fun createTestSubject(folder: FolderRef? = null) = InboxViewModel(
         phoneConnection = phone,
         selectedMailboxStore = selectedMailbox,
         demoModeStore = demoMode,
         settingsStore = settings,
+        folder = folder,
     )
+
+    private companion object {
+        val RECEIPTS = FolderRef(accountId = "work", folderId = 5)
+        val ARCHIVE = FolderRef(accountId = "work", folderId = 3)
+    }
 
     private fun TestScope.stateOf(testSubject: InboxViewModel): State {
         advanceUntilIdle()

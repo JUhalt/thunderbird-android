@@ -36,6 +36,8 @@ class MailboxPickerViewModel(
                 selectedMailboxStore.select(event.mailboxId)
                 emitEffect(Effect.Close)
             }
+
+            is Event.FoldersClicked -> emitEffect(Effect.OpenFolders(event.accountId))
         }
     }
 }

@@ -5,6 +5,7 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentMapOf
 import net.thunderbird.core.ui.contract.mvi.UnidirectionalViewModel
+import net.thunderbird.feature.wear.companion.WearFolderType
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.data.MessageSwipeAction
@@ -40,10 +41,13 @@ interface InboxContract {
             val confirmDelete: Boolean = false,
             /** The message waiting for the user to confirm its deletion. */
             val pendingDeleteMessageId: String? = null,
+            /** The type of the folder shown, or `null` if it's an inbox or a view of the inboxes. */
+            val folderType: WearFolderType? = null,
         ) : State
     }
 
     sealed interface Event {
+        /** The mailbox at the top was tapped: switch mailboxes, or go back to the folder list from a folder. */
         data object MailboxClicked : Event
         data class MessageClicked(val messageId: String) : Event
         data class ArchiveClicked(val messageId: String) : Event

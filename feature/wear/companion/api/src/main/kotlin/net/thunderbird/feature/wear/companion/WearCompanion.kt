@@ -33,11 +33,20 @@ object WearCompanion {
     /** [WearMailbox.id] of the starred messages in the unified inbox. */
     const val STARRED_MAILBOX_ID = "starred"
 
+    /** Prefix of the [WearMailbox.id] of a folder opened on the watch. See [folderMailboxId]. */
+    const val FOLDER_MAILBOX_ID_PREFIX = "folder:"
+
     /** Message path the watch sends [WearRequest]s to. */
     const val REQUEST_PATH = "/thunderwren/v1/request"
 
     /** Maximum number of messages included in a [WearInboxSnapshot]. */
     const val MAX_MESSAGES = 25
+
+    /** Maximum number of folders in [WearResponse.Folders]. */
+    const val MAX_FOLDERS = 200
+
+    /** Maximum length of [WearFolder.name]. */
+    const val MAX_FOLDER_NAME_LENGTH = 100
 
     /** Maximum length of [WearMessageSummary.preview]. */
     const val MAX_PREVIEW_LENGTH = 300
@@ -57,6 +66,25 @@ object WearCompanion {
 
     /** Data Layer path of the [WearInboxSnapshot] for the mailbox with [mailboxId]. */
     fun inboxPath(mailboxId: String): String = INBOX_PATH_PREFIX + mailboxId
+
+    /**
+     * [WearMailbox.id] of the folder with [folderId] of the account with [accountId], for example to mark everything in
+     * it as read with [WearRequest.MarkAllRead]. Folders are loaded on request, so they have no Data Layer path.
+     */
+    fun folderMailboxId(accountId: String, folderId: Long): String = "$FOLDER_MAILBOX_ID_PREFIX$folderId:$accountId"
+
+    /**
+     * The account ID and folder ID of a mailbox ID created by [folderMailboxId], or `null` if [mailboxId] isn't one.
+     */
+    fun parseFolderMailboxId(mailboxId: String): Pair<String, Long>? {
+        val folderAndAccount = mailboxId.takeIf { it.startsWith(FOLDER_MAILBOX_ID_PREFIX) }
+            ?.removePrefix(FOLDER_MAILBOX_ID_PREFIX)
+            ?: return null
+        val folderId = folderAndAccount.substringBefore(':').toLongOrNull()
+        val accountId = folderAndAccount.substringAfter(':', missingDelimiterValue = "")
+
+        return if (folderId != null && accountId.isNotEmpty()) accountId to folderId else null
+    }
 
     /** URI the watch opens on the phone to show a message there. */
     fun openOnPhoneUri(messageId: String): String {

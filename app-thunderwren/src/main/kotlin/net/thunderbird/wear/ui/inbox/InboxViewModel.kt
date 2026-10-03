@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import net.thunderbird.core.ui.contract.mvi.BaseViewModel
 import net.thunderbird.feature.wear.companion.WearCompanion
 import net.thunderbird.feature.wear.companion.WearErrorReason
+import net.thunderbird.feature.wear.companion.WearFolderType
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageAction
@@ -25,6 +26,7 @@ import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
 import net.thunderbird.wear.data.DemoMode
 import net.thunderbird.wear.data.DemoModeStore
+import net.thunderbird.wear.data.FolderRef
 import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.PhoneResult
 import net.thunderbird.wear.data.SelectedMailboxStore
@@ -35,19 +37,31 @@ import net.thunderbird.wear.ui.inbox.InboxContract.Effect
 import net.thunderbird.wear.ui.inbox.InboxContract.Event
 import net.thunderbird.wear.ui.inbox.InboxContract.State
 
+/**
+ * The messages of the mailbox selected in the mailbox picker, or of [folder] if it's opened from the folder list.
+ *
+ * The inboxes are kept up to date by the phone. A folder is loaded from the phone when it's opened.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class InboxViewModel(
     private val phoneConnection: PhoneConnection,
     selectedMailboxStore: SelectedMailboxStore,
     private val demoModeStore: DemoModeStore,
     private val settingsStore: WatchSettingsStore,
+    private val folder: FolderRef? = null,
 ) : BaseViewModel<State, Event, Effect>(initialState = State.Loading),
     InboxContract.ViewModel {
 
     private val isRefreshing = MutableStateFlow(false)
     private val actionState = MutableStateFlow(ActionState())
 
-    private val content: Flow<InboxContent?> =
+    private val content: Flow<InboxContent?> = if (folder != null) {
+        folderContent(folder)
+    } else {
+        selectedMailboxContent(selectedMailboxStore)
+    }
+
+    private fun selectedMailboxContent(selectedMailboxStore: SelectedMailboxStore): Flow<InboxContent?> =
         combine(phoneConnection.mailboxes, selectedMailboxStore.selectedMailboxId) { mailboxes, selectedId ->
             mailboxes to mailboxes?.resolve(selectedId)
         }.flatMapLatest { (mailboxes, mailbox) ->
@@ -65,7 +79,37 @@ class InboxViewModel(
             }
         }
 
+    /** The folder, shown like its account's inbox, or `null` until the folder or the account is known. */
+    private fun folderContent(folder: FolderRef): Flow<InboxContent?> =
+        combine(
+            phoneConnection.mailboxes,
+            phoneConnection.folder(folder.mailboxId),
+            phoneConnection.inbox(folder.mailboxId),
+        ) { mailboxes, wearFolder, inbox ->
+            val account = mailboxes?.account(folder.accountId)
+            if (account == null || wearFolder == null) {
+                null
+            } else {
+                InboxContent(
+                    mailbox = account.copy(
+                        id = folder.mailboxId,
+                        name = wearFolder.name,
+                        unreadCount = inbox?.unreadCount ?: wearFolder.unreadCount,
+                    ),
+                    canSwitchMailbox = true,
+                    messages = inbox?.messages.orEmpty(),
+                    accounts = persistentMapOf(),
+                    folderType = wearFolder.type,
+                    isLoaded = inbox != null,
+                )
+            }
+        }
+
     init {
+        // The phone only republishes when its message list changes, so ask for fresh data when the app opens. A folder
+        // is loaded when it's opened.
+        refresh(isRequestedByUser = false)
+
         viewModelScope.launch {
             combine(
                 content,
@@ -78,9 +122,6 @@ class InboxViewModel(
                 updateState { newState }
             }
         }
-
-        // The phone only republishes when its message list changes, so ask for fresh data when the app opens.
-        refresh(isRequestedByUser = false)
     }
 
     override fun event(event: Event) {
@@ -90,10 +131,15 @@ class InboxViewModel(
             is Event.MessageClicked -> openMessage(event.messageId)
 
             is Event.ArchiveClicked -> {
+                val isArchiveFolder = (state.value as? State.Content)?.folderType == WearFolderType.ARCHIVE
                 removeMessage(
                     messageId = event.messageId,
                     action = WearMessageAction.ARCHIVE,
-                    notAvailableMessage = R.string.error_archive_unavailable,
+                    notAvailableMessage = if (isArchiveFolder) {
+                        R.string.error_already_archived
+                    } else {
+                        R.string.error_archive_unavailable
+                    },
                 )
             }
 
@@ -127,10 +173,8 @@ class InboxViewModel(
         actions: ActionState,
         settings: WatchSettings,
     ): State {
-        return if (content == null) {
-            State.NotConnected(isRefreshing = isRefreshing, errorMessage = actions.errorMessage)
-        } else {
-            State.Content(
+        return when {
+            content != null && (content.isLoaded || !isRefreshing) -> State.Content(
                 mailbox = content.mailbox,
                 canSwitchMailbox = content.canSwitchMailbox,
                 messages = content.messages.filterNot { it.id in actions.hiddenMessageIds }.toImmutableList(),
@@ -144,23 +188,29 @@ class InboxViewModel(
                 showPreviews = settings.showPreviews,
                 confirmDelete = settings.confirmDelete,
                 pendingDeleteMessageId = actions.pendingDeleteMessageId,
+                folderType = content.folderType,
             )
+
+            // The folder is being loaded for the first time.
+            folder != null && isRefreshing -> State.Loading
+
+            else -> State.NotConnected(isRefreshing = isRefreshing, errorMessage = actions.errorMessage)
         }
     }
 
     /**
      * Asks the phone for fresh data. Failures of the automatic refresh when the app opens aren't shown, because the
      * phone often isn't reachable for a moment then and the last data is still there, except when the companion is
-     * turned off on the phone.
+     * turned off on the phone. A folder only has data once it's loaded, so failing to load it is always shown.
      */
     private fun refresh(isRequestedByUser: Boolean) {
         if (isRefreshing.value) return
+        isRefreshing.value = true
 
         viewModelScope.launch {
-            isRefreshing.value = true
             try {
-                val result = phoneConnection.refresh()
-                if (isRequestedByUser || result.isCompanionDisabled) {
+                val result = if (folder != null) phoneConnection.loadFolder(folder) else phoneConnection.refresh()
+                if (isRequestedByUser || folder != null || result.isCompanionDisabled) {
                     actionState.update { it.copy(errorMessage = result.errorMessage()) }
                 }
             } finally {
@@ -225,6 +275,9 @@ class InboxViewModel(
         val canSwitchMailbox: Boolean,
         val messages: List<WearMessageSummary>,
         val accounts: ImmutableMap<String, WearMailbox>,
+        val folderType: WearFolderType? = null,
+        /** Whether the messages have arrived. A folder's are only known once it has been loaded. */
+        val isLoaded: Boolean = true,
     )
 
     private data class ActionState(

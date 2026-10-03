@@ -16,10 +16,13 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import net.thunderbird.components.ui.testing.coroutines.MainDispatcherHelper
 import net.thunderbird.feature.wear.companion.WearErrorReason
+import net.thunderbird.feature.wear.companion.WearFolder
+import net.thunderbird.feature.wear.companion.WearFolderType
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
 import net.thunderbird.wear.data.BodyResult
+import net.thunderbird.wear.data.FolderRef
 import net.thunderbird.wear.data.PhoneResult
 import net.thunderbird.wear.testing.FakePhoneConnection
 import net.thunderbird.wear.testing.FakeWatchSettingsStore
@@ -317,6 +320,23 @@ class MessageViewModelTest {
 
     private fun publish(vararg messages: WearMessageSummary) {
         phone.publish(mailboxes = listOf(mailbox(UNIFIED)), inboxes = mapOf(UNIFIED to messages.toList()))
+    }
+
+    @Test
+    fun `a message opened from the Archive folder can't be archived again`() = runTest {
+        val archive = FolderRef(accountId = "work", folderId = 3)
+        phone.publish(mailboxes = listOf(mailbox(UNIFIED), mailbox("work")), inboxes = emptyMap())
+        phone.phoneFolders["work"] = listOf(
+            WearFolder(id = archive.folderId, name = "Archive", type = WearFolderType.ARCHIVE, unreadCount = 0),
+        )
+        phone.phoneFolderMessages[archive] = listOf(message("a1", isRead = true, accountId = "work"))
+        phone.loadFolder(archive)
+
+        val testSubject = createTestSubject("a1", mailboxId = archive.mailboxId)
+        advanceUntilIdle()
+
+        assertThat(testSubject.state.value.message?.id).isEqualTo("a1")
+        assertThat(testSubject.state.value.canArchive).isFalse()
     }
 
     private fun createTestSubject(messageId: String, mailboxId: String = UNIFIED) = MessageViewModel(

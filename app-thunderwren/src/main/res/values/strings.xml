@@ -11,6 +11,9 @@
     <string name="mailbox_starred">Starred</string>
     <string name="mailbox_picker_title">Mailboxes</string>
     <string name="mailbox_picker_accounts">Accounts</string>
+    <string name="mailbox_picker_folders">Folders</string>
+    <!-- Screen reader description of the button that lists an account's folders. %1$s is the account name. -->
+    <string name="mailbox_picker_folders_of">Folders of %1$s</string>
     <string name="mailbox_switch_description">Switch mailbox. Showing %1$s.</string>
 
     <plurals name="unread_count">
@@ -25,6 +28,8 @@
     <string name="inbox_marking_all_read">Marking as read…</string>
     <!-- Title of the confirmation dialog. %1$s is the mailbox name, for example "All inboxes". -->
     <string name="inbox_mark_all_read_confirmation">Mark everything in %1$s as read?</string>
+
+    <string name="folders_empty">No folders</string>
 
     <string name="not_connected_title">Connect your phone</string>
     <string name="not_connected_text">Open Thunderbird on your paired phone to see your mail here.</string>
@@ -63,19 +68,37 @@
     <string name="demo_standup_subject">Standup moved to 10:30</string>
     <string name="demo_standup_preview">Quick heads-up: the room is booked at 10, so we\'ll meet at 10:30 today.</string>
     <string name="demo_switch_subject">Switch between inboxes</string>
-    <string name="demo_switch_preview">Tap \"All inboxes\" at the top of the list to see only unread or starred messages, or a single account.</string>
+    <string name="demo_switch_preview">Tap \"All inboxes\" at the top of the list to see only unread or starred messages, a single account, or an account\'s folders.</string>
     <string name="demo_encrypted_subject">Contract draft</string>
     <string name="demo_hike_subject">Saturday hike?</string>
     <string name="demo_hike_preview">Weather looks great. Meet at the trailhead at 8? I\'ll bring snacks.</string>
     <string name="demo_invoice_subject">Your invoice is ready</string>
     <string name="demo_invoice_preview">Invoice #1042 for September is attached. No action needed.</string>
+    <string name="demo_standup_reply_subject">Re: Standup moved to 10:30</string>
+    <string name="demo_standup_reply_preview">Works for me. See you at 10:30.</string>
+    <string name="demo_hike_reply_subject">Re: Saturday hike?</string>
+    <string name="demo_hike_reply_preview">Count me in! I\'ll bring the map.</string>
+    <string name="demo_mockups_subject">New watch mockups</string>
+    <string name="demo_mockups_preview">The latest mockups are in the shared folder. Feedback by Friday would be great.</string>
+    <string name="demo_report_subject">Quarterly report</string>
+    <string name="demo_report_preview">Here\'s the final version of the quarterly report. Thanks for your input!</string>
+    <string name="demo_booking_subject">Your booking is confirmed</string>
+    <string name="demo_booking_preview">We look forward to welcoming you on the 14th. Check-in starts at 3 pm.</string>
+    <string name="demo_folder_inbox">Inbox</string>
+    <string name="demo_folder_sent">Sent</string>
+    <string name="demo_folder_archive">Archive</string>
+    <string name="demo_folder_trash">Trash</string>
+    <string name="demo_folder_projects">Projects</string>
+    <string name="demo_folder_travel">Travel</string>
     <string name="demo_explanation">This is a demo mailbox. Your real inbox replaces it once Thunderbird on your phone connects.</string>
 
     <string name="message_unread_indicator">Unread</string>
     <string name="message_starred_indicator">Starred</string>
     <string name="message_no_subject">(No subject)</string>
     <string name="message_encrypted">Encrypted message. Open it on your phone to read it.</string>
-    <string name="message_not_found">This message is no longer in the inbox.</string>
+    <string name="message_not_found">This message was moved or deleted.</string>
+    <!-- Shown instead of the sender for messages in the Sent folder. %1$s is the recipients\' names. -->
+    <string name="message_to">To: %1$s</string>
     <!-- Screen reader description of the account a message belongs to. %1$s is the account name. -->
     <string name="message_account">Account: %1$s</string>
 
@@ -107,6 +130,7 @@
 
     <string name="error_no_phone">Your phone isn\'t connected.</string>
     <string name="error_archive_unavailable">This account has no Archive folder.</string>
+    <string name="error_already_archived">This message is already archived.</string>
     <string name="error_failed">That didn\'t work. Try again on your phone.</string>
     <string name="error_not_available_in_demo">Not available in the demo.</string>
     <string name="error_reply_unavailable">You can\'t reply to this message from your watch. Open it on your phone.</string>

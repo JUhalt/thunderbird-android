@@ -117,6 +117,9 @@ class WearProtocolCodecTest {
             WearRequest.PerformAction(messageId = "#:abc", action = WearMessageAction.ARCHIVE),
             WearRequest.Reply(messageId = "#:abc", text = "On my way 🚲"),
             WearRequest.MarkAllRead(mailboxId = WearCompanion.STARRED_MAILBOX_ID),
+            WearRequest.LoadBody(messageId = "#:abc"),
+            WearRequest.LoadFolders(accountId = "account"),
+            WearRequest.LoadFolder(accountId = "account", folderId = 12),
         )
 
         for (request in requests) {
@@ -141,6 +144,17 @@ class WearProtocolCodecTest {
             WearResponse.Ok,
             WearResponse.Error(WearErrorReason.MESSAGE_NOT_FOUND),
             WearResponse.Error(WearErrorReason.MAILBOX_NOT_FOUND),
+            WearResponse.Body(text = "Whole text", isComplete = true),
+            WearResponse.Folders(folders = listOf(FOLDER)),
+            WearResponse.Folder(
+                folder = FOLDER,
+                snapshot = WearInboxSnapshot(
+                    mailboxId = WearCompanion.folderMailboxId("account", FOLDER.id),
+                    generatedAt = 9,
+                    unreadCount = 1,
+                    messages = listOf(MESSAGE.copy(isOutgoing = true)),
+                ),
+            ),
         )
 
         for (response in responses) {
@@ -150,7 +164,22 @@ class WearProtocolCodecTest {
         }
     }
 
+    @Test
+    fun `message without the outgoing field is incoming`() {
+        val json = """
+            {"version":1,"mailboxId":"unified","generatedAt":5,"unreadCount":0,"messages":[{"id":"x",
+            "senderName":"Ada","senderAddress":"ada@example.com","subject":"","preview":"","date":1,"isRead":true,
+            "isStarred":false,"hasAttachments":false,"isEncrypted":false,"accountColor":0}]}
+        """.trimIndent()
+
+        val result = WearProtocolCodec.decodeSnapshot(json.encodeToByteArray())
+
+        assertThat(result?.messages?.single()?.isOutgoing).isEqualTo(false)
+    }
+
     private companion object {
+        val FOLDER = WearFolder(id = 12, name = "Work/Projects", type = WearFolderType.REGULAR, unreadCount = 3)
+
         val MESSAGE = WearMessageSummary(
             id = "#:YWNjb3VudA==:MQ==:dWlk",
             senderName = "Ada Lovelace",

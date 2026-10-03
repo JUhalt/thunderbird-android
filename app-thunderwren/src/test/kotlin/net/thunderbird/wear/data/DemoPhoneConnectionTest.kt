@@ -2,6 +2,7 @@ package net.thunderbird.wear.data
 
 import assertk.all
 import assertk.assertThat
+import assertk.assertions.contains
 import assertk.assertions.containsExactly
 import assertk.assertions.doesNotContain
 import assertk.assertions.isEqualTo
@@ -12,6 +13,8 @@ import kotlin.test.Test
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import net.thunderbird.feature.wear.companion.WearCompanion
+import net.thunderbird.feature.wear.companion.WearErrorReason
+import net.thunderbird.feature.wear.companion.WearFolderType
 import net.thunderbird.feature.wear.companion.WearGlanceVisibility
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMessageAction
@@ -75,6 +78,67 @@ class DemoPhoneConnectionTest {
         assertThat(testSubject.inbox("demo-work").first()!!.messages.map { it.id }).doesNotContain(message.id)
         assertThat(testSubject.inbox(WearCompanion.UNIFIED_MAILBOX_ID).first()!!.messages.map { it.id })
             .doesNotContain(message.id)
+    }
+
+    @Test
+    fun `each account has folders, and archived messages move to the Archive folder`() = runTest {
+        val folders = testSubject.folders("demo-work").first().orEmpty()
+        assertThat(folders.map { it.type }).containsExactly(
+            WearFolderType.INBOX,
+            WearFolderType.SENT,
+            WearFolderType.ARCHIVE,
+            WearFolderType.TRASH,
+            WearFolderType.REGULAR,
+        )
+        val archive = FolderRef("demo-work", folders.first { it.type == WearFolderType.ARCHIVE }.id)
+        val message = testSubject.inbox("demo-work").first()!!.messages.first()
+
+        testSubject.performAction(message.id, WearMessageAction.ARCHIVE)
+
+        assertThat(testSubject.inbox(archive.mailboxId).first()!!.messages.map { it.id }).contains(message.id)
+        assertThat(testSubject.performAction(message.id, WearMessageAction.ARCHIVE))
+            .isEqualTo(PhoneResult.Failed(WearErrorReason.ACTION_NOT_AVAILABLE))
+    }
+
+    @Test
+    fun `deleting moves a message to the Trash, and deleting it there removes it`() = runTest {
+        val trashId = testSubject.folders("demo-work").first()!!.first { it.type == WearFolderType.TRASH }.id
+        val trash = FolderRef("demo-work", trashId)
+        val message = testSubject.inbox("demo-work").first()!!.messages.first()
+
+        testSubject.performAction(message.id, WearMessageAction.DELETE)
+        assertThat(testSubject.inbox(trash.mailboxId).first()!!.messages.map { it.id }).contains(message.id)
+
+        testSubject.performAction(message.id, WearMessageAction.DELETE)
+        assertThat(testSubject.inbox(trash.mailboxId).first()!!.messages.map { it.id }).doesNotContain(message.id)
+    }
+
+    @Test
+    fun `sent messages are outgoing and stay out of the inboxes`() = runTest {
+        val sentId = testSubject.folders("demo-work").first()!!.first { it.type == WearFolderType.SENT }.id
+        val sent = testSubject.inbox(FolderRef("demo-work", sentId).mailboxId).first()!!.messages
+
+        assertThat(sent.isNotEmpty() && sent.all { it.isOutgoing }).isTrue()
+        assertThat(testSubject.inbox(WearCompanion.UNIFIED_MAILBOX_ID).first()!!.messages.none { it.isOutgoing })
+            .isTrue()
+    }
+
+    @Test
+    fun `folder unread counts follow the messages`() = runTest {
+        val folder = testSubject.folders("demo-work").first()!!.first { it.unreadCount > 0 }
+        val ref = FolderRef("demo-work", folder.id)
+
+        testSubject.markAllRead(ref.mailboxId)
+
+        assertThat(testSubject.folder(ref.mailboxId).first()?.unreadCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `an unknown folder can't be loaded`() = runTest {
+        assertThat(testSubject.loadFolder(FolderRef("demo-work", folderId = 99)))
+            .isEqualTo(PhoneResult.Failed(WearErrorReason.MAILBOX_NOT_FOUND))
+        assertThat(testSubject.loadFolders("someone-else"))
+            .isEqualTo(PhoneResult.Failed(WearErrorReason.MAILBOX_NOT_FOUND))
     }
 
     @Test

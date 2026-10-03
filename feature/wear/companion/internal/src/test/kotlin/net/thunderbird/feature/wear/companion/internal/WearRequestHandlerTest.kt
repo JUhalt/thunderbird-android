@@ -22,6 +22,7 @@ class WearRequestHandlerTest {
     private val mailboxActions = FakeWearMailboxActions()
     private val replySender = FakeWearReplySender()
     private val bodyLoader = FakeWearMessageBodyLoader()
+    private val folderSource = FakeWearFolderSource()
     private var isCompanionEnabled = true
 
     @Test
@@ -155,6 +156,34 @@ class WearRequestHandlerTest {
         assertThat(actions.performed).isEmpty()
     }
 
+    @Test
+    fun `folders of an account are listed without republishing`() = runTest {
+        val response = handle(WearRequest.LoadFolders(accountId = "account"))
+
+        assertThat(response).isEqualTo(folderSource.foldersResponse)
+        assertThat(folderSource.loadedFolders).containsExactly("account")
+        assertThat(publisher.requestPublishCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `folder is loaded without republishing`() = runTest {
+        val response = handle(WearRequest.LoadFolder(accountId = "account", folderId = 12))
+
+        assertThat(response).isEqualTo(folderSource.folderResponse)
+        assertThat(folderSource.loadedFolder).containsExactly("account" to 12L)
+        assertThat(publisher.requestPublishCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `folders aren't sent while the companion is disabled`() = runTest {
+        isCompanionEnabled = false
+
+        val response = handle(WearRequest.LoadFolder(accountId = "account", folderId = 12))
+
+        assertThat(response).isEqualTo(WearResponse.Error(WearErrorReason.COMPANION_DISABLED))
+        assertThat(folderSource.loadedFolder).isEmpty()
+    }
+
     private suspend fun kotlinx.coroutines.test.TestScope.handle(request: WearRequest): WearResponse? {
         return handle(WearProtocolCodec.encodeRequest(request))
     }
@@ -166,6 +195,7 @@ class WearRequestHandlerTest {
             mailboxActions = mailboxActions,
             replySender = replySender,
             bodyLoader = bodyLoader,
+            folderSource = folderSource,
             feature = { isCompanionEnabled },
             ioDispatcher = StandardTestDispatcher(testScheduler),
         )
