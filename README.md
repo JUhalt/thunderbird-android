@@ -8,7 +8,7 @@
 
 ThunderWren brings your Thunderbird mail to smartwatches running Wear OS 3+. Thunderbird on your phone keeps doing the mail syncing. The watch shows your inboxes and folders, lets you triage messages with a tap or a swipe, and sends quick replies through the phone. For anything longer it hands off to the phone. The watch never stores your passwords or connects to a mail server.
 
-It lives in a fork of the Thunderbird for Android repository. The design is proposed upstream in [RFC 0010](docs/engineering/rfcs/0010-wear-os-companion.md).
+It lives in a fork of the Thunderbird for Android repository. The design is written up as an RFC in Thunderbird's format, [RFC 0010](docs/engineering/rfcs/0010-wear-os-companion.md), to propose upstream.
 
 > [!IMPORTANT]
 > **Project status: beta ([0.1.0-beta7](https://github.com/JUhalt/thunderbird-android/releases/tag/v0.1.0-beta7)).** The phone and watch sides are implemented, covered by unit and UI tests, and tested on a Pixel 10 Pro Fold with a Pixel Watch 5, as well as on emulators. The watch needs the Thunderbird phone app **built from this fork**; the Thunderbird app from the Play Store doesn't include the companion.
