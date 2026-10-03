@@ -25,7 +25,9 @@ internal class MessagingControllerWearMessageActions(
         return when {
             account == null -> WearResponse.Error(WearErrorReason.MESSAGE_NOT_FOUND)
 
-            action == WearMessageAction.ARCHIVE && account.archiveFolderId == null -> {
+            // Thunderbird skips messages that are already in the Archive folder, so don't report them as archived.
+            action == WearMessageAction.ARCHIVE &&
+                (account.archiveFolderId == null || account.archiveFolderId == reference.folderId) -> {
                 WearResponse.Error(WearErrorReason.ACTION_NOT_AVAILABLE)
             }
 

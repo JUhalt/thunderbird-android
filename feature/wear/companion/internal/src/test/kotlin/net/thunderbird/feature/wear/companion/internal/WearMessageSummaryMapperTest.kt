@@ -2,6 +2,7 @@ package net.thunderbird.feature.wear.companion.internal
 
 import app.k9mail.legacy.message.controller.MessageReference
 import app.k9mail.legacy.message.extractors.PreviewResult
+import assertk.all
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -9,6 +10,7 @@ import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import assertk.assertions.prop
+import com.fsck.k9.mail.Address
 import kotlin.test.Test
 import net.thunderbird.feature.wear.companion.WearCompanion
 import net.thunderbird.feature.wear.companion.WearMessageSummary
@@ -53,6 +55,30 @@ class WearMessageSummaryMapperTest {
                 accountId = "account-1",
             ),
         )
+    }
+
+    @Test
+    fun `message in the Sent folder names its recipients`() {
+        val mapper = WearMessageSummaryMapper(
+            accountUuid = "account-1",
+            accountColor = 0,
+            senderName = { address -> "Name of ${address?.address}" },
+            sentFolderId = 9,
+        )
+        val toAddresses = listOf(Address("bo@example.com"), Address("cy@example.com"))
+
+        val sent = mapper.map(FakeMessageDetailsAccessor(folderId = 9, toAddresses = toAddresses))
+        val received = mapper.map(FakeMessageDetailsAccessor(folderId = 7, toAddresses = toAddresses))
+
+        assertThat(sent).isNotNull().all {
+            prop(WearMessageSummary::isOutgoing).isTrue()
+            prop(WearMessageSummary::senderName).isEqualTo("Name of bo@example.com, Name of cy@example.com")
+            prop(WearMessageSummary::senderAddress).isEqualTo("bo@example.com")
+        }
+        assertThat(received).isNotNull().all {
+            prop(WearMessageSummary::isOutgoing).isFalse()
+            prop(WearMessageSummary::senderName).isEqualTo("Name of ada@example.com")
+        }
     }
 
     @Test

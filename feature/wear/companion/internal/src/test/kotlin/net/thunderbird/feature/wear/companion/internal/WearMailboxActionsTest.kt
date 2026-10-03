@@ -61,6 +61,19 @@ class WearMailboxActionsTest {
     }
 
     @Test
+    fun `mark all read in a folder marks its unread messages`() {
+        val repository = FakeMessageListRepository(
+            messages = mapOf(WORK_UUID to listOf(FakeMessageDetailsAccessor(id = 30))),
+        )
+
+        val response = createTestSubject(repository).markAllRead(WearCompanion.folderMailboxId(WORK_UUID, 5))
+
+        assertThat(response).isEqualTo(WearResponse.Ok)
+        verify(messagingController).setFlag(work, listOf(30L), Flag.SEEN, true)
+        assertThat(repository.queries.single().second).containsExactly("5", "0")
+    }
+
+    @Test
     fun `nothing is changed when there are no unread messages`() {
         val response = createTestSubject(FakeMessageListRepository()).markAllRead(WearCompanion.UNIFIED_MAILBOX_ID)
 

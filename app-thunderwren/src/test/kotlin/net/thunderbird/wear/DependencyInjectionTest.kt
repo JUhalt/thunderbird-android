@@ -2,7 +2,10 @@ package net.thunderbird.wear
 
 import android.content.Context
 import kotlin.test.Test
+import net.thunderbird.wear.data.FolderRef
 import net.thunderbird.wear.di.thunderWrenModule
+import net.thunderbird.wear.ui.folders.FolderListViewModel
+import net.thunderbird.wear.ui.inbox.InboxViewModel
 import net.thunderbird.wear.ui.reader.MessageViewModel
 import net.thunderbird.wear.ui.reply.ReplyViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -18,6 +21,8 @@ class DependencyInjectionTest {
         thunderWrenModule.verify(
             extraTypes = listOf(Context::class),
             injections = injectedParameters(
+                definition<InboxViewModel>(FolderRef::class),
+                definition<FolderListViewModel>(String::class),
                 definition<MessageViewModel>(String::class, String::class),
                 definition<ReplyViewModel>(String::class, String::class),
             ),

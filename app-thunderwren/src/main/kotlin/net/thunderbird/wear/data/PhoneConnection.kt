@@ -1,7 +1,9 @@
 package net.thunderbird.wear.data
 
 import kotlinx.coroutines.flow.Flow
+import net.thunderbird.feature.wear.companion.WearCompanion
 import net.thunderbird.feature.wear.companion.WearErrorReason
+import net.thunderbird.feature.wear.companion.WearFolder
 import net.thunderbird.feature.wear.companion.WearInboxSnapshot
 import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageAction
@@ -14,8 +16,23 @@ interface PhoneConnection {
     /** Whether the data comes from the built-in demo mailbox instead of a phone. */
     val isDemo: Flow<Boolean>
 
-    /** The last inbox snapshot the phone published for [mailboxId], or `null` if none has arrived yet. */
+    /**
+     * The last inbox snapshot the phone published for [mailboxId], or `null` if none has arrived yet. For a folder's
+     * [WearCompanion.folderMailboxId], the messages last loaded with [loadFolder].
+     */
     fun inbox(mailboxId: String): Flow<WearInboxSnapshot?>
+
+    /** The folders of the account with [accountId] last loaded with [loadFolders], or `null` until then. */
+    fun folders(accountId: String): Flow<List<WearFolder>?>
+
+    /** The folder with the [WearCompanion.folderMailboxId] [mailboxId], or `null` if it hasn't been loaded. */
+    fun folder(mailboxId: String): Flow<WearFolder?>
+
+    /** Asks the phone for the folders of the account with [accountId]. [folders] has them afterwards. */
+    suspend fun loadFolders(accountId: String): PhoneResult
+
+    /** Asks the phone for the newest messages in [folder]. [inbox] has them afterwards. */
+    suspend fun loadFolder(folder: FolderRef): PhoneResult
 
     /** Asks the phone to publish fresh data. */
     suspend fun refresh(): PhoneResult

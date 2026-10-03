@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import net.thunderbird.core.ui.contract.mvi.BaseViewModel
+import net.thunderbird.feature.wear.companion.WearFolderType
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageAction
@@ -20,7 +21,7 @@ import net.thunderbird.wear.ui.reader.MessageContract.Effect
 import net.thunderbird.wear.ui.reader.MessageContract.Event
 import net.thunderbird.wear.ui.reader.MessageContract.State
 
-/** The message with [messageId], opened from the mailbox with [mailboxId]. */
+/** The message with [messageId], opened from the mailbox or folder with [mailboxId]. */
 class MessageViewModel(
     private val messageId: String,
     private val mailboxId: String,
@@ -34,10 +35,20 @@ class MessageViewModel(
 
     init {
         viewModelScope.launch {
-            combine(phoneConnection.message(messageId, mailboxId), phoneConnection.mailboxes) { message, mailboxes ->
-                message to message?.let { mailboxes?.accountToLabel(it) }
-            }.collect { (message, account) ->
-                updateState { it.copy(isLoading = false, message = message, account = account) }
+            combine(
+                phoneConnection.message(messageId, mailboxId),
+                phoneConnection.mailboxes,
+                phoneConnection.folder(mailboxId),
+            ) { message, mailboxes, folder ->
+                MessageContent(
+                    message = message,
+                    account = message?.let { mailboxes?.accountToLabel(it) },
+                    isInArchive = folder?.type == WearFolderType.ARCHIVE,
+                )
+            }.collect { (message, account, isInArchive) ->
+                updateState {
+                    it.copy(isLoading = false, message = message, account = account, canArchive = !isInArchive)
+                }
                 if (message != null) {
                     markAsReadOnce(message)
                     loadBodyOnce(message)
@@ -163,6 +174,12 @@ class MessageViewModel(
         }
     }
 }
+
+private data class MessageContent(
+    val message: WearMessageSummary?,
+    val account: WearMailbox?,
+    val isInArchive: Boolean,
+)
 
 /** The message's account, if there's more than one account to tell apart. */
 private fun WearMailboxList.accountToLabel(message: WearMessageSummary): WearMailbox? {

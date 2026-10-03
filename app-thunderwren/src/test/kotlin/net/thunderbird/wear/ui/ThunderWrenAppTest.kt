@@ -16,11 +16,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEmpty
+import net.thunderbird.feature.wear.companion.WearFolder
+import net.thunderbird.feature.wear.companion.WearFolderType
 import net.thunderbird.feature.wear.companion.WearMessageAction
 import net.thunderbird.wear.ThunderWrenApplication
 import net.thunderbird.wear.data.DemoAwarePhoneConnection
 import net.thunderbird.wear.data.DemoModeStore
 import net.thunderbird.wear.data.DemoPhoneConnection
+import net.thunderbird.wear.data.FolderRef
 import net.thunderbird.wear.data.PhoneConnection
 import net.thunderbird.wear.data.SelectedMailboxStore
 import net.thunderbird.wear.testing.FakeDemoModeStore
@@ -124,6 +127,42 @@ class ThunderWrenAppTest {
         composeRule.waitUntil { phone.performedActions.isNotEmpty() }
         assertThat(phone.performedActions).containsExactly(messageId to WearMessageAction.ARCHIVE)
         composeRule.onNodeWithText("All inboxes").assertIsDisplayed()
+    }
+
+    @Test
+    fun `opens a folder from the mailbox picker and archives a message in it`() {
+        val receipts = FolderRef(accountId = "work", folderId = 5)
+        phone.publish(
+            mailboxes = listOf(mailbox(UNIFIED), mailbox("work", name = "Work")),
+            inboxes = mapOf(UNIFIED to emptyList()),
+        )
+        phone.phoneFolders["work"] = listOf(
+            WearFolder(id = 1, name = "Inbox", type = WearFolderType.INBOX, unreadCount = 0),
+            WearFolder(id = receipts.folderId, name = "Receipts", type = WearFolderType.REGULAR, unreadCount = 0),
+        )
+        phone.phoneFolderMessages[receipts] = listOf(
+            message("r1", senderName = "Corner Shop", subject = "Your receipt", isRead = true, accountId = "work"),
+            message("s1", senderName = "Bo", subject = "Lunch?", isRead = true, accountId = "work", isOutgoing = true),
+        )
+        composeRule.setContent { ThunderWrenApp() }
+
+        composeRule.onNodeWithText("All inboxes").performClick()
+        composeRule.onNodeWithContentDescription("Folders of Work").performClick()
+        composeRule.onNodeWithText("Receipts").performClick()
+
+        composeRule.onNodeWithText("Corner Shop").assertIsDisplayed()
+        // The Sent folder's messages and others the account sent name who they went to.
+        composeRule.onNodeWithText("To: Bo").assertIsDisplayed()
+
+        composeRule.onNodeWithText("Corner Shop").performClick()
+        composeRule.onNodeWithText("Your receipt").assertIsDisplayed()
+        composeRule.onNodeWithText("Archive").performClick()
+
+        composeRule.waitUntil { phone.performedActions.isNotEmpty() }
+        assertThat(phone.performedActions).containsExactly("r1" to WearMessageAction.ARCHIVE)
+        assertThat(phone.loadedFolderRequests).containsExactly(receipts)
+        composeRule.onNodeWithText("Corner Shop").assertDoesNotExist()
+        composeRule.onNodeWithText("To: Bo").assertIsDisplayed()
     }
 
     @Test

@@ -11,12 +11,14 @@ import net.thunderbird.feature.wear.companion.WearRequest
 import net.thunderbird.feature.wear.companion.WearResponse
 
 /** Answers the requests the watch sends to [WearCompanion.REQUEST_PATH]. */
+@Suppress("LongParameterList")
 internal class WearRequestHandler(
     private val publisher: WearInboxPublisher,
     private val messageActions: WearMessageActions,
     private val mailboxActions: WearMailboxActions,
     private val replySender: WearReplySender,
     private val bodyLoader: WearMessageBodyLoader,
+    private val folderSource: WearFolderSource,
     private val feature: WearCompanionFeature,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
@@ -31,11 +33,23 @@ internal class WearRequestHandler(
 
         val response = when (val request = WearProtocolCodec.decodeRequest(requestData)) {
             null -> WearResponse.Error(WearErrorReason.UNSUPPORTED_REQUEST)
+
             WearRequest.Refresh -> refresh()
+
             is WearRequest.PerformAction -> performAction(request)
+
             is WearRequest.Reply -> reply(request)
+
             is WearRequest.MarkAllRead -> markAllRead(request)
+
             is WearRequest.LoadBody -> loadBody(request)
+
+            // Reading changes nothing, so there's nothing to republish.
+            is WearRequest.LoadFolders -> withContext(ioDispatcher) { folderSource.loadFolders(request.accountId) }
+
+            is WearRequest.LoadFolder -> {
+                withContext(ioDispatcher) { folderSource.loadFolder(request.accountId, request.folderId) }
+            }
         }
 
         return WearProtocolCodec.encodeResponse(response)

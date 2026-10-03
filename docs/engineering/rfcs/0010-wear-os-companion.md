@@ -6,9 +6,9 @@
 ## Summary
 
 Add a Wear OS companion to Thunderbird for Android. The phone app keeps doing all mail syncing. It publishes a
-compact snapshot of the unified inbox to a paired watch over the Wearable Data Layer. The watch app shows that
-snapshot, sends simple actions back (mark read or unread, star, archive, delete, mark all as read), sends short
-replies that the phone writes and sends, and can open a message on the phone for full reading.
+compact snapshot of each inbox to a paired watch over the Wearable Data Layer, and sends other folders when the watch
+asks for them. The watch app shows them, sends simple actions back (mark read or unread, star, archive, delete, mark
+all as read), sends short replies that the phone writes and sends, and can open a message on the phone.
 
 The watch never stores account credentials and never talks to a mail server.
 
@@ -58,10 +58,20 @@ can ignore data it doesn't understand.
 - **Publishing**: The phone republishes (debounced) when the message list changes and a watch is paired. It deletes the
   items of accounts that no longer exist. The Data Layer keeps the last published items on the watch.
 - **Requests**: The watch sends `MessageClient.sendRequest` to `/thunderwren/v1/request` with a `WearRequest`:
-  `Refresh`, `PerformAction(messageId, action)`, `MarkAllRead(mailboxId)`, `Reply(messageId, text)`, or
-  `LoadBody(messageId)`. The phone answers with a `WearResponse`. Actions update the local store through `MessagingController`, and the resulting
-  message-list change republishes the snapshots. A phone that doesn't know a request answers `UNSUPPORTED_REQUEST`,
-  which the watch explains as "update Thunderbird on your phone".
+  `Refresh`, `PerformAction(messageId, action)`, `MarkAllRead(mailboxId)`, `Reply(messageId, text)`,
+  `LoadBody(messageId)`, `LoadFolders(accountId)`, or `LoadFolder(accountId, folderId)`. The phone answers with a
+  `WearResponse`. Actions update the local store through `MessagingController`, and the resulting message-list change
+  republishes the snapshots. A phone that doesn't know a request answers `UNSUPPORTED_REQUEST`, which the watch
+  explains as "update Thunderbird on your phone".
+- **Folders**: Publishing every folder of every account would mostly send mail nobody looks at on a watch, so folders
+  are sent on request. `LoadFolders` answers with the account's folders as the phone's folder list shows them: the same
+  order and names, without hidden folders, and without Drafts and the Outbox, since drafts are written and sent on the
+  phone. Each folder has its ID, name, type, and unread count, and the list is capped at 200. `LoadFolder` answers with
+  the folder and a snapshot of its newest 25 messages, like an inbox snapshot. Its mailbox ID is
+  `folder:<folderId>:<accountId>`, which `MarkAllRead` also accepts. Folders go over `MessageClient` only, so the watch
+  keeps them in memory and loads a folder again when it's opened. Messages in the Sent folder are marked as outgoing
+  and name their recipients instead of the sender, like the phone's message list. Archiving a message that is already
+  in the Archive folder is refused, because Thunderbird would silently skip it.
 - **Reading**: Snapshots only carry a short preview. When a message is opened on the watch, it asks for the whole text
   with `LoadBody`. The phone converts the message to plain text as for quoting in replies, and answers with at most
   20,000 characters. The answer says when the text is incomplete, because it was shortened or the phone has only
@@ -78,11 +88,12 @@ can ignore data it doesn't understand.
 
 ### Watch app
 
-- Uses Compose for Wear OS Material 3. It has an inbox, a mailbox picker (the unified inbox, "Unread", "Starred", or a
-  single account), a message screen with actions, a reply screen (voice, keyboard, or ready-made replies, then a
-  review step), and an "open on phone" action. Messages can be swiped to archive or delete them, and a mailbox can be
-  marked as read after a confirmation. Account monograms show which account a message belongs to. The selected
-  mailbox is remembered on the watch.
+- Uses Compose for Wear OS Material 3. It has an inbox, a mailbox picker (the unified inbox, "Unread", "Starred", a
+  single account, or an account's folders), a folder list, a message screen with actions, a reply screen (voice,
+  keyboard, or ready-made replies, then a review step), and an "open on phone" action. A folder opens in the same
+  screen as an inbox, so everything works there too. Messages can be swiped to archive or delete them, and a mailbox
+  or folder can be marked as read after a confirmation. Account monograms show which account a message belongs to.
+  The selected mailbox is remembered on the watch.
 - The watch has a few settings of its own, stored on the watch: what swiping left does (archive or delete), what
   swiping right does (go back, archive, or delete), confirming deletions, marking messages as read when opened,
   showing previews, and showing the demo mailbox. With an action on the right, the list uses Wear Compose's
@@ -118,8 +129,13 @@ proposal turns it on there so testers can try it.
 
 - **Standalone engine on the watch**: The prototype did this. See Motivation for its size, credential, battery, and
   setup costs. It would also require splitting `legacy:common` and `app-common` into engine and phone UI modules first.
-  A standalone mode could still be added later behind the same watch UI, since the UI only depends on the snapshot
-  models.
+  This proposal leaves it out on purpose, not as a gap to fill later: copying every account's credentials to a second
+  device is the kind of risk Thunderbird avoids, and the watch would duplicate syncing the phone already does. When the
+  watch and phone are out of Bluetooth range but both online, the Data Layer
+  [goes through Google's servers](https://developer.android.com/training/wearables/data/overview) over Wi-Fi or mobile
+  data, end-to-end encrypted, so the companion should keep working away from the phone as long as the phone is on and
+  online. (This hasn't been tested on real devices yet.) If a standalone mode is wanted later, the watch UI only depends on the protocol models, so it
+  could sit behind the same screens.
 - **Rely on bridged phone notifications only**: This needs no new code, but it only covers new mail. It doesn't give
   users an inbox to browse, and the actions available on bridged notifications are limited. The companion still
   improves them: their Wear actions follow the user's notification action order, include Star, and the Reply action
@@ -133,8 +149,9 @@ proposal turns it on there so testers can try it.
   flavor. F-Droid (`foss`) builds get the no-op module. In practice, Wear OS itself also requires Play Services on
   the phone.
 - **Privacy**: Snapshots contain sender names, subjects, and previews. The Data Layer encrypts traffic between paired
-  devices, and data stays within the user's Google account. The snapshot is capped in size and has no message bodies; the whole text of one
-  message is only sent when it is opened on the watch, and isn't kept there.
+  devices, and data stays within the user's Google account. The snapshot is capped in size and has no message bodies;
+  the whole text of one message is only sent when it is opened on the watch, and isn't kept there. Other folders are
+  only sent when opened, and kept in memory only.
   The mailbox list includes account email addresses. The Tile and complication can be seen by people nearby, like a
   phone's lock screen, so they follow Thunderbird's "lock screen notifications" setting, which the phone publishes as
   the glance visibility: senders and subjects, senders only, the unread count only (the default), or nothing. Inside

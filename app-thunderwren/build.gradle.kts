@@ -10,8 +10,8 @@ android {
         // app-thunderbird (including the build type suffixes below). See RFC 0010.
         applicationId = "net.thunderbird.android"
 
-        versionCode = 6
-        versionName = "0.1.0-beta6"
+        versionCode = 7
+        versionName = "0.1.0-beta7"
 
         minSdk = 30
         targetSdk = 35

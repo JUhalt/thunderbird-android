@@ -16,10 +16,12 @@ dependencies {
     implementation(projects.core.preference.api)
     implementation(projects.feature.account.avatar.api)
     implementation(projects.feature.account.storage.api)
+    implementation(projects.feature.mail.folder.api)
     implementation(projects.feature.search.implLegacy)
     implementation(projects.legacy.core)
     implementation(projects.legacy.mailstore)
     implementation(projects.legacy.message)
+    implementation(projects.legacy.ui.folder)
     implementation(projects.legacy.ui.legacy)
     implementation(projects.mail.common)
 

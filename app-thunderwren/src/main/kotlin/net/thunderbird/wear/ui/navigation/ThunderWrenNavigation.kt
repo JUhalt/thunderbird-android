@@ -20,6 +20,10 @@ import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import net.thunderbird.core.ui.contract.mvi.observe
 import net.thunderbird.feature.wear.companion.WearCompanion
 import net.thunderbird.wear.R
+import net.thunderbird.wear.data.FolderRef
+import net.thunderbird.wear.ui.folders.FolderListContract
+import net.thunderbird.wear.ui.folders.FolderListScreen
+import net.thunderbird.wear.ui.folders.FolderListViewModel
 import net.thunderbird.wear.ui.inbox.InboxContract
 import net.thunderbird.wear.ui.inbox.InboxScreen
 import net.thunderbird.wear.ui.inbox.InboxViewModel
@@ -58,6 +62,8 @@ fun ThunderWrenNavigation(
     ) {
         inboxDestination(navController)
         mailboxesDestination(navController)
+        foldersDestination(navController)
+        folderDestination(navController)
         settingsDestination()
         messageDetailDestination(navController)
         replyDestination(navController)
@@ -99,10 +105,64 @@ private fun NavGraphBuilder.mailboxesDestination(navController: NavHostControlle
         val (state, dispatch) = viewModel.observe { effect ->
             when (effect) {
                 MailboxPickerContract.Effect.Close -> navController.popBackStack()
+
+                is MailboxPickerContract.Effect.OpenFolders -> {
+                    navController.navigate(ThunderWrenRoutes.folders(effect.accountId))
+                }
             }
         }
 
         MailboxPickerScreen(state = state.value, onEvent = dispatch)
+    }
+}
+
+private fun NavGraphBuilder.foldersDestination(navController: NavHostController) {
+    composable(
+        route = ThunderWrenRoutes.FOLDERS,
+        arguments = listOf(navArgument(ThunderWrenRoutes.ARG_ACCOUNT_ID) { type = NavType.StringType }),
+    ) { backStackEntry ->
+        val accountId = backStackEntry.arguments?.getString(ThunderWrenRoutes.ARG_ACCOUNT_ID).orEmpty()
+        val viewModel: FolderListViewModel = koinViewModel { parametersOf(accountId) }
+        val (state, dispatch) = viewModel.observe { effect ->
+            when (effect) {
+                is FolderListContract.Effect.OpenFolder -> {
+                    navController.navigate(ThunderWrenRoutes.folder(effect.accountId, effect.folderId))
+                }
+            }
+        }
+
+        FolderListScreen(state = state.value, onEvent = dispatch)
+    }
+}
+
+/** A folder, shown like an inbox. */
+private fun NavGraphBuilder.folderDestination(navController: NavHostController) {
+    composable(
+        route = ThunderWrenRoutes.FOLDER,
+        arguments = listOf(
+            navArgument(ThunderWrenRoutes.ARG_ACCOUNT_ID) { type = NavType.StringType },
+            navArgument(ThunderWrenRoutes.ARG_FOLDER_ID) { type = NavType.LongType },
+        ),
+    ) { backStackEntry ->
+        val folder = FolderRef(
+            accountId = backStackEntry.arguments?.getString(ThunderWrenRoutes.ARG_ACCOUNT_ID).orEmpty(),
+            folderId = backStackEntry.arguments?.getLong(ThunderWrenRoutes.ARG_FOLDER_ID) ?: 0,
+        )
+        val viewModel: InboxViewModel = koinViewModel { parametersOf(folder) }
+        val (state, dispatch) = viewModel.observe { effect ->
+            when (effect) {
+                // The folder's name at the top leads back to the folder list.
+                InboxContract.Effect.OpenMailboxes -> navController.popBackStack()
+
+                InboxContract.Effect.OpenSettings -> navController.navigate(ThunderWrenRoutes.SETTINGS)
+
+                is InboxContract.Effect.OpenMessage -> {
+                    navController.navigate(ThunderWrenRoutes.messageDetail(effect.mailboxId, effect.messageId))
+                }
+            }
+        }
+
+        InboxScreen(state = state.value, onEvent = dispatch)
     }
 }
 

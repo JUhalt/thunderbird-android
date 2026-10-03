@@ -6,6 +6,7 @@ import androidx.compose.ui.res.stringResource
 import java.text.DateFormat
 import net.thunderbird.feature.wear.companion.WearCompanion
 import net.thunderbird.feature.wear.companion.WearMailbox
+import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
 
 /** The mailbox's name as shown on the watch. The phone leaves the unified inbox and its views unnamed. */
@@ -17,6 +18,12 @@ fun WearMailbox.displayName(): String {
         WearCompanion.STARRED_MAILBOX_ID -> stringResource(R.string.mailbox_starred)
         else -> name
     }
+}
+
+/** Who the message is from, or for a message in the Sent folder, who it went to. */
+@Composable
+fun WearMessageSummary.correspondent(): String {
+    return if (isOutgoing) stringResource(R.string.message_to, senderName) else senderName
 }
 
 /** The account's monogram, or the first two letters of its name if the phone didn't send one. */

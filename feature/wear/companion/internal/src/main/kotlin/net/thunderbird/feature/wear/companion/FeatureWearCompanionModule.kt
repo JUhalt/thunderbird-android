@@ -1,9 +1,11 @@
 package net.thunderbird.feature.wear.companion
 
+import app.k9mail.legacy.ui.folder.FolderNameFormatter
 import kotlinx.coroutines.flow.map
 import net.thunderbird.core.featureflag.FeatureFlagProvider
 import net.thunderbird.core.featureflag.keys.GeneratedFeatureFlagKey
 import net.thunderbird.core.preference.GeneralSettingsManager
+import net.thunderbird.feature.wear.companion.internal.DisplayFolderWearFolderSource
 import net.thunderbird.feature.wear.companion.internal.InboxPublicationSource
 import net.thunderbird.feature.wear.companion.internal.LocalStoreWearMessageBodyLoader
 import net.thunderbird.feature.wear.companion.internal.MessagingControllerWearMailboxActions
@@ -13,6 +15,7 @@ import net.thunderbird.feature.wear.companion.internal.QuickReplyWearReplySender
 import net.thunderbird.feature.wear.companion.internal.WearCompanionFeature
 import net.thunderbird.feature.wear.companion.internal.WearCompanionStarter
 import net.thunderbird.feature.wear.companion.internal.WearDataLayer
+import net.thunderbird.feature.wear.companion.internal.WearFolderSource
 import net.thunderbird.feature.wear.companion.internal.WearInboxPublisher
 import net.thunderbird.feature.wear.companion.internal.WearMailboxActions
 import net.thunderbird.feature.wear.companion.internal.WearMessageActions
@@ -20,6 +23,7 @@ import net.thunderbird.feature.wear.companion.internal.WearMessageBodyLoader
 import net.thunderbird.feature.wear.companion.internal.WearPublicationSource
 import net.thunderbird.feature.wear.companion.internal.WearReplySender
 import net.thunderbird.feature.wear.companion.internal.WearRequestHandler
+import net.thunderbird.feature.wear.companion.internal.WearSnapshotLoader
 import net.thunderbird.feature.wear.companion.internal.WearSnapshotPublisher
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.binds
@@ -31,13 +35,18 @@ val featureWearCompanionModule = module {
         val featureFlagProvider = get<FeatureFlagProvider>()
         WearCompanionFeature { featureFlagProvider.provide(GeneratedFeatureFlagKey.WEAR_COMPANION).isEnabled() }
     }
+    factory {
+        WearSnapshotLoader(
+            messageListRepository = get(),
+            messageCountsProvider = get(),
+            messageHelper = get(),
+        )
+    }
     factory<WearPublicationSource> {
         val generalSettingsManager = get<GeneralSettingsManager>()
         InboxPublicationSource(
             accountManager = get(),
-            messageListRepository = get(),
-            messageCountsProvider = get(),
-            messageHelper = get(),
+            snapshotLoader = get(),
             monogramCreator = get(),
             lockScreenNotificationVisibility = {
                 generalSettingsManager.getConfig().notification.lockScreenNotificationVisibility
@@ -73,6 +82,17 @@ val featureWearCompanionModule = module {
     factory<WearMessageBodyLoader> {
         LocalStoreWearMessageBodyLoader(accountManager = get(), messagingController = get(), logger = get())
     }
+    factory<WearFolderSource> {
+        val folderNameFormatter = get<FolderNameFormatter>()
+        DisplayFolderWearFolderSource(
+            accountManager = get(),
+            accountDtoManager = get(),
+            displayFolderRepository = get(),
+            folderName = folderNameFormatter::displayName,
+            snapshotLoader = get(),
+            clock = get(),
+        )
+    }
     factory {
         WearRequestHandler(
             publisher = get(),
@@ -80,6 +100,7 @@ val featureWearCompanionModule = module {
             mailboxActions = get(),
             replySender = get(),
             bodyLoader = get(),
+            folderSource = get(),
             feature = get(),
         )
     }

@@ -109,6 +109,8 @@ data class WearInboxSnapshot(
  * @property isEncrypted Whether the message is end-to-end encrypted, so no preview is available.
  * @property accountColor ARGB color of the account the message belongs to.
  * @property accountId [WearMailbox.id] of the account the message belongs to.
+ * @property isOutgoing Whether the message was sent from the account, because it's in the Sent folder. Then
+ * [senderName] and [senderAddress] name its recipients instead of the sender, like the phone's message list does.
  */
 @Serializable
 data class WearMessageSummary(
@@ -124,4 +126,32 @@ data class WearMessageSummary(
     val isEncrypted: Boolean,
     val accountColor: Int,
     val accountId: String = "",
+    val isOutgoing: Boolean = false,
 )
+
+/**
+ * A folder of an account, as listed on the phone. Drafts and the Outbox aren't listed: drafts are written and sent on
+ * the phone.
+ *
+ * @property id The folder's ID on the phone.
+ * @property name The name the phone shows, for example "Inbox" in the phone's language, or "Work/Projects" for a
+ * subfolder. At most [WearCompanion.MAX_FOLDER_NAME_LENGTH] characters.
+ * @property unreadCount Number of unread messages in the folder.
+ */
+@Serializable
+data class WearFolder(
+    val id: Long,
+    val name: String,
+    val type: WearFolderType,
+    val unreadCount: Int,
+)
+
+@Serializable
+enum class WearFolderType {
+    INBOX,
+    SENT,
+    ARCHIVE,
+    SPAM,
+    TRASH,
+    REGULAR,
+}

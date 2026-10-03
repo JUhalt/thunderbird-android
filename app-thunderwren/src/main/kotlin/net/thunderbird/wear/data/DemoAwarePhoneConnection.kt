@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import net.thunderbird.feature.wear.companion.WearFolder
 import net.thunderbird.feature.wear.companion.WearInboxSnapshot
 import net.thunderbird.feature.wear.companion.WearMailboxList
 import net.thunderbird.feature.wear.companion.WearMessageAction
@@ -18,6 +19,7 @@ import net.thunderbird.feature.wear.companion.WearMessageAction
  * demo mailbox disappears. A demo turned on in the settings stays until it's turned off there.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("TooManyFunctions") // PhoneConnection's.
 class DemoAwarePhoneConnection(
     private val phone: PhoneConnection,
     private val demo: PhoneConnection,
@@ -47,6 +49,18 @@ class DemoAwarePhoneConnection(
     override fun inbox(mailboxId: String): Flow<WearInboxSnapshot?> {
         return source.flatMapLatest { it?.inbox(mailboxId) ?: flowOf(null) }
     }
+
+    override fun folders(accountId: String): Flow<List<WearFolder>?> {
+        return source.flatMapLatest { it?.folders(accountId) ?: flowOf(null) }
+    }
+
+    override fun folder(mailboxId: String): Flow<WearFolder?> {
+        return source.flatMapLatest { it?.folder(mailboxId) ?: flowOf(null) }
+    }
+
+    override suspend fun loadFolders(accountId: String): PhoneResult = current().loadFolders(accountId)
+
+    override suspend fun loadFolder(folder: FolderRef): PhoneResult = current().loadFolder(folder)
 
     override suspend fun refresh(): PhoneResult {
         // Always ask the phone, so a phone that appears takes over from the demo.

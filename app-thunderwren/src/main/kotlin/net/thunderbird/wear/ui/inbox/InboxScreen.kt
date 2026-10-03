@@ -60,6 +60,7 @@ import net.thunderbird.wear.R
 import net.thunderbird.wear.ui.common.AccountMonogram
 import net.thunderbird.wear.ui.common.ColorDot
 import net.thunderbird.wear.ui.common.accountIcon
+import net.thunderbird.wear.ui.common.correspondent
 import net.thunderbird.wear.ui.common.displayName
 import net.thunderbird.wear.ui.common.formatMessageDate
 import net.thunderbird.wear.ui.inbox.InboxContract.Event
@@ -93,7 +94,8 @@ fun InboxScreen(
 
                 is State.Content -> {
                     contentItems(state, onEvent, listState, onMarkAllReadClick = { confirmMarkAllRead = true })
-                    if (state.isDemo) demoItems(onEvent)
+                    // Leaving the demo belongs to the inbox, not to its folders.
+                    if (state.isDemo && state.folderType == null) demoItems(onEvent)
                 }
             }
         }
@@ -178,7 +180,8 @@ private fun ScalingLazyListScope.contentItems(
 
     errorItem(state.errorMessage)
 
-    if (state.messages.isEmpty()) {
+    // Without messages, an error says why; for example the folder couldn't be loaded.
+    if (state.messages.isEmpty() && state.errorMessage == null) {
         item { Text(text = stringResource(R.string.inbox_empty)) }
     }
 
@@ -283,6 +286,7 @@ private fun MessageCard(
     modifier: Modifier = Modifier,
 ) {
     val date = remember(message.date) { formatMessageDate(message.date) }
+    val correspondent = message.correspondent()
     val unreadDescription = stringResource(R.string.message_unread_indicator)
     val starredDescription = stringResource(R.string.message_starred_indicator)
     val accountDescription = account?.let { stringResource(R.string.message_account, it.name) }
@@ -295,7 +299,7 @@ private fun MessageCard(
                 contentDescription = listOfNotNull(
                     unreadDescription.takeIf { !message.isRead },
                     starredDescription.takeIf { message.isStarred },
-                    message.senderName,
+                    correspondent,
                     message.subject,
                     date,
                     accountDescription,
@@ -311,7 +315,7 @@ private fun MessageCard(
                 Spacer(modifier = Modifier.width(6.dp))
             }
             Text(
-                text = message.senderName,
+                text = correspondent,
                 fontWeight = if (message.isRead) FontWeight.Normal else FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

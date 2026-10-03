@@ -49,4 +49,18 @@ class MailboxPickerViewModelTest {
         assertThat(selectedMailbox.selectedMailboxId.value).isEqualTo("home")
         assertThat(testSubject.state.value.selectedMailboxId).isEqualTo("home")
     }
+
+    @Test
+    fun `an account's folders can be opened`() = runTest {
+        phone.publish(mailboxes = listOf(mailbox(UNIFIED), mailbox("work")), inboxes = emptyMap())
+        val testSubject = MailboxPickerViewModel(phoneConnection = phone, selectedMailboxStore = selectedMailbox)
+
+        testSubject.effect.test {
+            testSubject.event(Event.FoldersClicked("work"))
+
+            assertThat(awaitItem()).isEqualTo(Effect.OpenFolders("work"))
+        }
+        // Looking at the folders doesn't change the selected mailbox.
+        assertThat(selectedMailbox.selectedMailboxId.value).isEqualTo(UNIFIED)
+    }
 }

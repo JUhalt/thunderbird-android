@@ -4,8 +4,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -15,6 +17,8 @@ import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
+import androidx.wear.compose.material3.FilledTonalButton
+import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
@@ -77,8 +81,35 @@ fun MailboxPickerScreen(
                     onClick = { onEvent(Event.MailboxClicked(mailbox.id)) },
                 )
             }
+
+            // Every folder of every account wouldn't fit, so each account's folders are listed on their own screen.
+            if (accounts.isNotEmpty()) {
+                item {
+                    ListHeader {
+                        Text(text = stringResource(R.string.mailbox_picker_folders))
+                    }
+                }
+            }
+
+            items(accounts, key = { "folders-${it.id}" }) { account ->
+                FoldersButton(account = account, onClick = { onEvent(Event.FoldersClicked(account.id)) })
+            }
         }
     }
+}
+
+@Composable
+private fun FoldersButton(account: WearMailbox, onClick: () -> Unit) {
+    val description = stringResource(R.string.mailbox_picker_folders_of, account.name)
+
+    FilledTonalButton(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = description },
+        icon = { Icon(painterResource(R.drawable.ic_folder), contentDescription = null) },
+        label = { Text(text = account.displayName(), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+    )
 }
 
 @Composable

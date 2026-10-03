@@ -35,11 +35,14 @@ internal object WearMailboxSearches {
 
     /** The search for an account's inbox, or `null` until the account's folder list has been synced once. */
     fun accountInbox(accountUuid: String, inboxFolderId: Long?): LocalMessageSearch? {
-        return inboxFolderId?.let {
-            LocalMessageSearch().apply {
-                addAccountUuid(accountUuid)
-                addAllowedFolder(inboxFolderId)
-            }
+        return inboxFolderId?.let { folder(accountUuid, it) }
+    }
+
+    /** The search for one folder of an account. */
+    fun folder(accountUuid: String, folderId: Long): LocalMessageSearch {
+        return LocalMessageSearch().apply {
+            addAccountUuid(accountUuid)
+            addAllowedFolder(folderId)
         }
     }
 

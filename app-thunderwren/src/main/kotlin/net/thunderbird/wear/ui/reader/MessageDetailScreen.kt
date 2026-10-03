@@ -41,6 +41,7 @@ import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.R
 import net.thunderbird.wear.ui.common.AccountMonogram
+import net.thunderbird.wear.ui.common.correspondent
 import net.thunderbird.wear.ui.common.formatMessageDate
 import net.thunderbird.wear.ui.preview.PreviewData
 import net.thunderbird.wear.ui.reader.MessageContract.Event
@@ -151,7 +152,7 @@ private fun ScalingLazyListScope.messageItems(
 ) {
     item {
         ListHeader {
-            Text(text = message.senderName, color = MaterialTheme.colorScheme.primary)
+            Text(text = message.correspondent(), color = MaterialTheme.colorScheme.primary)
         }
     }
 
@@ -185,12 +186,14 @@ private fun ScalingLazyListScope.messageItems(
             onClick = { onEvent(Event.ToggleStarClicked) },
         )
     }
-    item {
-        ActionButton(
-            label = R.string.action_archive,
-            enabled = !state.isBusy,
-            onClick = { onEvent(Event.ArchiveClicked) },
-        )
+    if (state.canArchive) {
+        item {
+            ActionButton(
+                label = R.string.action_archive,
+                enabled = !state.isBusy,
+                onClick = { onEvent(Event.ArchiveClicked) },
+            )
+        }
     }
     item {
         ActionButton(

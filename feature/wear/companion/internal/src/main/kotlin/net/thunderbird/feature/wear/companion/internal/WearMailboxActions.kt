@@ -8,6 +8,7 @@ import net.thunderbird.core.android.account.LegacyAccountDtoManager
 import net.thunderbird.core.common.mail.Flag
 import net.thunderbird.feature.search.legacy.LocalMessageSearch
 import net.thunderbird.feature.search.legacy.sql.SqlWhereClause
+import net.thunderbird.feature.wear.companion.WearCompanion
 import net.thunderbird.feature.wear.companion.WearErrorReason
 import net.thunderbird.feature.wear.companion.WearResponse
 import net.thunderbird.feature.wear.companion.internal.WearMailboxSearches.onlyUnread
@@ -41,10 +42,18 @@ internal class MessagingControllerWearMailboxActions(
 
     private fun findMailbox(mailboxId: String): Mailbox? {
         val unifiedView = WearMailboxSearches.unifiedView(mailboxId)
-        return if (unifiedView != null) {
-            Mailbox(accountManager.getAccounts(), unifiedView)
-        } else {
-            accountManager.getAccount(mailboxId)?.let { account ->
+        val folder = WearCompanion.parseFolderMailboxId(mailboxId)
+        return when {
+            unifiedView != null -> Mailbox(accountManager.getAccounts(), unifiedView)
+
+            folder != null -> {
+                val (accountUuid, folderId) = folder
+                accountManager.getAccount(accountUuid)?.let { account ->
+                    Mailbox(listOf(account), WearMailboxSearches.folder(account.uuid, folderId))
+                }
+            }
+
+            else -> accountManager.getAccount(mailboxId)?.let { account ->
                 Mailbox(listOf(account), WearMailboxSearches.accountInbox(account.uuid, account.inboxFolderId))
             }
         }
@@ -56,7 +65,7 @@ internal class MessagingControllerWearMailboxActions(
             account.uuid,
             whereClause.selection,
             whereClause.selectionArgs.toTypedArray(),
-            InboxPublicationSource.SORT_ORDER,
+            WearSnapshotLoader.SORT_ORDER,
             MessageMapper { message -> message.id },
         )
 

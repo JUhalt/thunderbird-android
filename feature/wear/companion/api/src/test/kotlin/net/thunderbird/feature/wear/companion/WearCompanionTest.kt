@@ -31,6 +31,22 @@ class WearCompanionTest {
     }
 
     @Test
+    fun `folder mailbox ID round trips the account and folder`() {
+        val mailboxId = WearCompanion.folderMailboxId("0b1f3c1e-account-uuid", 42)
+
+        assertThat(WearCompanion.parseFolderMailboxId(mailboxId)).isEqualTo("0b1f3c1e-account-uuid" to 42L)
+    }
+
+    @Test
+    fun `parsing rejects mailbox IDs that aren't folders`() {
+        assertThat(WearCompanion.parseFolderMailboxId(WearCompanion.UNIFIED_MAILBOX_ID)).isNull()
+        assertThat(WearCompanion.parseFolderMailboxId("0b1f3c1e-account-uuid")).isNull()
+        assertThat(WearCompanion.parseFolderMailboxId("folder:x:account")).isNull()
+        assertThat(WearCompanion.parseFolderMailboxId("folder:42")).isNull()
+        assertThat(WearCompanion.parseFolderMailboxId("folder:42:")).isNull()
+    }
+
+    @Test
     fun `only account inboxes are accounts`() {
         fun mailbox(id: String) = WearMailbox(id = id, name = "", email = "", color = null, unreadCount = 0)
 

@@ -5,6 +5,8 @@ package net.thunderbird.wear.ui.preview
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableMap
 import net.thunderbird.feature.wear.companion.WearCompanion
+import net.thunderbird.feature.wear.companion.WearFolder
+import net.thunderbird.feature.wear.companion.WearFolderType
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMessageSummary
 import net.thunderbird.wear.ui.inbox.InboxContract
@@ -68,6 +70,14 @@ internal object PreviewData {
             accountColor = HOME_COLOR,
             accountId = home.id,
         ),
+    )
+
+    val folders = persistentListOf(
+        WearFolder(id = 1, name = "Inbox", type = WearFolderType.INBOX, unreadCount = 1),
+        WearFolder(id = 2, name = "Sent", type = WearFolderType.SENT, unreadCount = 0),
+        WearFolder(id = 3, name = "Archive", type = WearFolderType.ARCHIVE, unreadCount = 0),
+        WearFolder(id = 4, name = "Trash", type = WearFolderType.TRASH, unreadCount = 0),
+        WearFolder(id = 5, name = "Receipts", type = WearFolderType.REGULAR, unreadCount = 2),
     )
 
     val inboxContent = InboxContract.State.Content(

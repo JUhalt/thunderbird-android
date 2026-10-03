@@ -8,6 +8,8 @@ import app.k9mail.legacy.message.controller.MessageReference
 import app.k9mail.legacy.message.extractors.PreviewResult
 import com.fsck.k9.mail.Address
 import net.thunderbird.feature.wear.companion.WearCompanion
+import net.thunderbird.feature.wear.companion.WearFolder
+import net.thunderbird.feature.wear.companion.WearFolderType
 import net.thunderbird.feature.wear.companion.WearInboxSnapshot
 import net.thunderbird.feature.wear.companion.WearMailbox
 import net.thunderbird.feature.wear.companion.WearMailboxList
@@ -135,6 +137,32 @@ internal class FakeWearMessageBodyLoader(
     override fun load(reference: MessageReference): WearResponse {
         loaded += reference
         return response
+    }
+}
+
+internal class FakeWearFolderSource : WearFolderSource {
+    private val folder = WearFolder(id = 12, name = "Receipts", type = WearFolderType.REGULAR, unreadCount = 0)
+    val foldersResponse = WearResponse.Folders(listOf(folder))
+    val folderResponse = WearResponse.Folder(
+        folder = folder,
+        snapshot = WearInboxSnapshot(
+            mailboxId = WearCompanion.folderMailboxId("account", folder.id),
+            generatedAt = 1,
+            unreadCount = 0,
+            messages = emptyList(),
+        ),
+    )
+    val loadedFolders = mutableListOf<String>()
+    val loadedFolder = mutableListOf<Pair<String, Long>>()
+
+    override suspend fun loadFolders(accountId: String): WearResponse {
+        loadedFolders += accountId
+        return foldersResponse
+    }
+
+    override suspend fun loadFolder(accountId: String, folderId: Long): WearResponse {
+        loadedFolder += accountId to folderId
+        return folderResponse
     }
 }
 

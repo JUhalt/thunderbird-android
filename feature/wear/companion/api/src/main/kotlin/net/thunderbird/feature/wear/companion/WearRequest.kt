@@ -32,7 +32,10 @@ sealed interface WearRequest {
         val text: String,
     ) : WearRequest
 
-    /** Asks the phone to mark every message in the mailbox with [mailboxId] as read. */
+    /**
+     * Asks the phone to mark every message in the mailbox with [mailboxId] as read. It can also be a folder's
+     * [WearCompanion.folderMailboxId].
+     */
     @Serializable
     @SerialName("mark_all_read")
     data class MarkAllRead(
@@ -47,6 +50,27 @@ sealed interface WearRequest {
     @SerialName("load_body")
     data class LoadBody(
         val messageId: String,
+    ) : WearRequest
+
+    /**
+     * Asks the phone for the folders of the account with [accountId]. The phone answers with [WearResponse.Folders].
+     */
+    @Serializable
+    @SerialName("load_folders")
+    data class LoadFolders(
+        val accountId: String,
+    ) : WearRequest
+
+    /**
+     * Asks the phone for the newest messages in the folder with [folderId] of the account with [accountId]. The phone
+     * answers with [WearResponse.Folder]. Folders are only sent when asked for, so the phone doesn't publish every
+     * folder of every account.
+     */
+    @Serializable
+    @SerialName("load_folder")
+    data class LoadFolder(
+        val accountId: String,
+        val folderId: Long,
     ) : WearRequest
 }
 
@@ -82,6 +106,24 @@ sealed interface WearResponse {
         val text: String,
         val isComplete: Boolean,
     ) : WearResponse
+
+    /** The folders of an account, answering [WearRequest.LoadFolders]. At most [WearCompanion.MAX_FOLDERS]. */
+    @Serializable
+    @SerialName("folders")
+    data class Folders(
+        val folders: List<WearFolder>,
+    ) : WearResponse
+
+    /**
+     * A folder and its newest messages, answering [WearRequest.LoadFolder]. The [snapshot]'s mailbox ID is the
+     * folder's [WearCompanion.folderMailboxId].
+     */
+    @Serializable
+    @SerialName("folder")
+    data class Folder(
+        val folder: WearFolder,
+        val snapshot: WearInboxSnapshot,
+    ) : WearResponse
 }
 
 @Serializable
@@ -98,7 +140,7 @@ enum class WearErrorReason {
      */
     ACTION_NOT_AVAILABLE,
 
-    /** The mailbox no longer exists, for example because its account was removed. */
+    /** The mailbox or folder no longer exists, for example because its account was removed. */
     MAILBOX_NOT_FOUND,
 
     /** The watch companion is turned off in Thunderbird on the phone. */
