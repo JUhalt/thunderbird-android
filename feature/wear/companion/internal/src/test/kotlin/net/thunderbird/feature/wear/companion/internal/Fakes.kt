@@ -114,7 +114,7 @@ internal class FakeWearMessageActions(var response: WearResponse = WearResponse.
 internal class FakeWearMailboxActions(var response: WearResponse = WearResponse.Ok) : WearMailboxActions {
     val markedAllRead = mutableListOf<String>()
 
-    override fun markAllRead(mailboxId: String): WearResponse {
+    override suspend fun markAllRead(mailboxId: String): WearResponse {
         markedAllRead += mailboxId
         return response
     }
@@ -140,9 +140,12 @@ internal class FakeWearMessageBodyLoader(
     }
 }
 
-internal class FakeWearFolderSource : WearFolderSource {
-    private val folder = WearFolder(id = 12, name = "Receipts", type = WearFolderType.REGULAR, unreadCount = 0)
-    val foldersResponse = WearResponse.Folders(listOf(folder))
+internal class FakeWearFolderSource(folderIds: List<Long> = listOf(12)) : WearFolderSource {
+    private val folder =
+        WearFolder(id = folderIds.first(), name = "Receipts", type = WearFolderType.REGULAR, unreadCount = 0)
+    val foldersResponse = WearResponse.Folders(
+        folderIds.map { WearFolder(id = it, name = "Folder $it", type = WearFolderType.REGULAR, unreadCount = 0) },
+    )
     val folderResponse = WearResponse.Folder(
         folder = folder,
         snapshot = WearInboxSnapshot(

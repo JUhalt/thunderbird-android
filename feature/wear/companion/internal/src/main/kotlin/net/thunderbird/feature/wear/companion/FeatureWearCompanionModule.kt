@@ -76,6 +76,7 @@ val featureWearCompanionModule = module {
             messagingController = get(),
             accountManager = get(),
             messageListRepository = get(),
+            folderSource = get(),
         )
     }
     factory<WearReplySender> { QuickReplyWearReplySender(quickReplySender = get()) }

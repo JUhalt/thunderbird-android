@@ -186,7 +186,7 @@ private val MessageSwipeAction.label: Int
 private fun SettingsScreenPreview() {
     ThunderWrenTheme {
         SettingsScreen(
-            state = State(appVersion = "0.1.0-beta7"),
+            state = State(appVersion = "0.1.0-beta8"),
             onEvent = {},
         )
     }

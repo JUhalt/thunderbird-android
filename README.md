@@ -11,7 +11,7 @@ ThunderWren brings your Thunderbird mail to smartwatches running Wear OS 3+. Thu
 It lives in a fork of the Thunderbird for Android repository. The design is written up as an RFC in Thunderbird's format, [RFC 0010](docs/engineering/rfcs/0010-wear-os-companion.md), to propose upstream.
 
 > [!IMPORTANT]
-> **Project status: beta ([0.1.0-beta7](https://github.com/JUhalt/thunderbird-android/releases/tag/v0.1.0-beta7)).** The phone and watch sides are implemented, covered by unit and UI tests, and tested on a Pixel 10 Pro Fold with a Pixel Watch 5, as well as on emulators. The watch needs the Thunderbird phone app **built from this fork**; the Thunderbird app from the Play Store doesn't include the companion.
+> **Project status: beta ([0.1.0-beta8](https://github.com/JUhalt/thunderbird-android/releases/tag/v0.1.0-beta8)).** The phone and watch sides are implemented, covered by unit and UI tests, and tested on a Pixel 10 Pro Fold with a Pixel Watch 5, as well as on emulators. The watch needs the Thunderbird phone app **built from this fork**; the Thunderbird app from the Play Store doesn't include the companion.
 >
 > **Built with AI.** Most of this code was written with an AI coding assistant (Claude Code), directed and tested by the fork's maintainer. It follows the repository's [`AGENTS.md`](AGENTS.md) rules for AI-assisted contributions.
 >

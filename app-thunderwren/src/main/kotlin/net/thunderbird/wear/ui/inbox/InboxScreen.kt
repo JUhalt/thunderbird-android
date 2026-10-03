@@ -263,7 +263,11 @@ private fun MailboxHeader(
     val unreadCount = state.mailbox.unreadCount
     val unreadCountText = pluralStringResource(R.plurals.unread_count, unreadCount, unreadCount)
     val unreadText = if (state.isDemo) stringResource(R.string.demo_label, unreadCountText) else unreadCountText
-    val switchDescription = stringResource(R.string.mailbox_switch_description, mailboxName)
+    val switchDescription = if (state.folderType != null) {
+        stringResource(R.string.folder_back_description, mailboxName)
+    } else {
+        stringResource(R.string.mailbox_switch_description, mailboxName)
+    }
 
     FilledTonalButton(
         onClick = onClick,

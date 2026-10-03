@@ -15,6 +15,8 @@
     <!-- Screen reader description of the button that lists an account's folders. %1$s is the account name. -->
     <string name="mailbox_picker_folders_of">Folders of %1$s</string>
     <string name="mailbox_switch_description">Switch mailbox. Showing %1$s.</string>
+    <!-- Screen reader description of the folder name at the top of a folder. %1$s is the folder name. -->
+    <string name="folder_back_description">Back to the folder list. Showing %1$s.</string>
 
     <plurals name="unread_count">
         <item quantity="one">%1$d unread</item>
