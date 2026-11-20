@@ -15,7 +15,7 @@ It lives in a fork of the Thunderbird for Android repository. The design is writ
 >
 > **Built with AI.** Most of this code was written with an AI coding assistant (Claude Code), directed and tested by the fork's maintainer. It follows the repository's [`AGENTS.md`](AGENTS.md) rules for AI-assisted contributions.
 >
-> **Just curious?** You don't need a phone. Install only the watch app and tap **Try the demo**.
+> **Just curious?** You don't need a phone or Android Studio. Download the watch app from the [latest release](https://github.com/JUhalt/thunderbird-android/releases), install it (see [Install from a release](#install-from-a-release-no-android-studio)), and tap **Try the demo**.
 
 <p align="center">
   <img src="images/thunderwren/screenshots/02-inbox-all.png" width="200" alt="All inboxes, with account monograms on each message">
@@ -81,7 +81,30 @@ Phone: Thunderbird (full/Play build)             Watch: ThunderWren
 
 ## 🛠️ Getting Started
 
-### Requirements
+### Install from a release (no Android Studio)
+
+Each [release](https://github.com/JUhalt/thunderbird-android/releases) has two ready-built apps under **Assets**:
+
+* **`thunderwren-watch-<version>.apk`**: the watch app.
+* **`thunderbird-phone-<version>.apk`**: a debug build of Thunderbird for the phone, with the watch companion turned on. It installs as a separate app next to Thunderbird from the Play Store and doesn't touch it or its accounts.
+
+`SHA256SUMS.txt` lists their checksums.
+
+**Watch only (the demo):** install the watch app, open it, and tap **Try the demo**.
+
+**Phone and watch together:** install both apps **from the same release**, then add a mail account in the debug Thunderbird app on the phone. The watch shows its mail a moment later.
+
+To install them:
+
+1. **Phone:** download the phone APK on the phone, open it, and allow installing apps from your browser or file manager when Android asks.
+2. **Watch:** a watch can't open APK files itself, so install it from a computer with `adb` (part of Android's [SDK Platform Tools](https://developer.android.com/tools/releases/platform-tools)):
+   1. On the watch, turn on **Developer options**: in **Settings → System → About** (under **Versions** on some watches), tap **Build number** seven times. Then turn on **ADB debugging** and **Wireless debugging** in **Developer options**.
+   2. Connect `adb` to the watch over Wi-Fi, as Google describes in [Debug Wear OS over Wi-Fi](https://developer.android.com/training/wearables/get-started/debug-wifi): `adb pair` with the code from **Pair new device** on the watch, then `adb connect` with the address shown under **Wireless debugging**. The computer and watch must be on the same Wi-Fi network.
+   3. Run `adb install thunderwren-watch-<version>.apk`.
+
+These are prototype builds signed with a test key that changes with every release. Before installing a newer release, uninstall both apps from the older one. Uninstalling the debug Thunderbird app removes the accounts you added to it, not those in your Play Store Thunderbird.
+
+### Requirements for building from source
 
 * A recent **Android Studio** release that supports Android Gradle Plugin **9.4**. If Gradle sync says the AGP version is unsupported, update Android Studio.
 * Gradle JDK **17 or newer**. Android Studio's bundled JDK works.
