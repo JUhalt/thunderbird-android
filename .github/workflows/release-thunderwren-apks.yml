@@ -1,0 +1,84 @@
+---
+# Fork-only: attaches installable prototype builds of ThunderWren to its GitHub releases, so it can be tried without
+# Android Studio. Leave this file out of any pull request to thunderbird/thunderbird-android.
+name: Release - ThunderWren prototype APKs
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to attach the APKs to, for example v0.1.0-beta8'
+        required: true
+        type: string
+  # Builds the APKs without uploading them, to check this workflow when it changes.
+  pull_request:
+    paths:
+      - '.github/workflows/release-thunderwren-apks.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thunderwren-apks-${{ github.event.release.tag_name || inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-apks:
+    name: Build ThunderWren prototype APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag || '' }}
+    steps:
+      - name: Check the release tag
+        if: github.event_name != 'pull_request'
+        run: |
+          # Only the ThunderWren prototype releases (v0.1.0-beta8 and so on).
+          if [[ ! "$TAG" =~ ^v0\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "Not a ThunderWren prototype release tag: $TAG"
+            exit 1
+          fi
+
+      - name: Checkout the repo
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ env.TAG || github.sha }}
+          fetch-depth: 1
+
+      - name: Cleanup disk
+        uses: ./.github/actions/disk-cleanup
+
+      - name: Setup Gradle environment
+        uses: ./.github/actions/setup-gradle
+
+      # Built together, so both are signed with the same debug key: the Wearable Data Layer only connects a phone app
+      # and a watch app that share their application ID and signing key.
+      - name: Build the phone and watch apps
+        run: ./gradlew :app-thunderbird:assembleFullDebug :app-thunderwren:assembleOptimized
+
+      - name: Collect the APKs
+        run: |
+          version="${TAG#v}"
+          version="${version:-pr-check}"
+          phone=(app-thunderbird/build/outputs/apk/full/debug/*.apk)
+          watch=(app-thunderwren/build/outputs/apk/optimized/*.apk)
+          if [ "${#phone[@]}" -ne 1 ] || [ ! -f "${phone[0]}" ] || [ "${#watch[@]}" -ne 1 ] || [ ! -f "${watch[0]}" ]; then
+            echo "Expected exactly one phone APK and one watch APK, found: ${phone[*]} ${watch[*]}"
+            exit 1
+          fi
+          mkdir -p dist
+          cp "${phone[0]}" "dist/thunderbird-phone-${version}.apk"
+          cp "${watch[0]}" "dist/thunderwren-watch-${version}.apk"
+          (cd dist && sha256sum ./*.apk > SHA256SUMS.txt)
+          ls -l dist
+          cat dist/SHA256SUMS.txt
+
+      - name: Attach the APKs to the release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
